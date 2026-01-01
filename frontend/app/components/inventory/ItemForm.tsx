@@ -54,6 +54,102 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
     initialData?.image ? getMediaUrl(initialData.image) : null
   );
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let error = '';
+    
+    switch (field) {
+      case 'title':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.titleRequired');
+        }
+        break;
+      case 'club':
+        const isSuperOrMuniAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN';
+        if (isSuperOrMuniAdmin && !clubId && (!value || value.toString().trim() === '')) {
+          error = t('validation.clubRequired');
+        }
+        break;
+      case 'category':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.categoryRequired');
+        }
+        break;
+      case 'description':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.descriptionRequired');
+        }
+        break;
+      case 'image':
+        if (!imageFile && !imagePreview) {
+          error = t('validation.imageRequired');
+        }
+        break;
+      case 'status':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.statusRequired');
+        }
+        break;
+    }
+    
+    return error;
+  };
+
+  // Handle field blur
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    let value: any;
+    
+    if (field === 'image') {
+      value = imageFile || imagePreview;
+    } else {
+      value = formData[field as keyof typeof formData];
+    }
+    
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const isSuperOrMuniAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN';
+    const requiredFields = ['title', 'category', 'description', 'image', 'status'];
+    if (isSuperOrMuniAdmin && !clubId) {
+      requiredFields.push('club');
+    }
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      let value: any;
+      
+      if (field === 'image') {
+        value = imageFile || imagePreview;
+      } else {
+        value = formData[field as keyof typeof formData];
+      }
+      
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Track component mount for portal
   useEffect(() => {
     setIsMounted(true);
@@ -119,6 +215,12 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
     e.preventDefault();
     setLoading(true);
 
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
@@ -152,6 +254,13 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
     if (e.target.files?.[0]) {
       setImageFile(e.target.files[0]);
       setImagePreview(URL.createObjectURL(e.target.files[0]));
+      // Clear validation error
+      setTouchedFields(prev => ({ ...prev, image: true }));
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors['image'];
+        return newErrors;
+      });
     }
   };
 
@@ -295,14 +404,29 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                 <label className={labelClasses}>{t('basicInformation.itemTitle')} <span className="text-[var(--brand-red)]">*</span></label>
                 <input 
                   type="text"
-                  required
+                  name="title"
                   placeholder={t('basicInformation.titlePlaceholder')}
-                  className={inputClasses('title')}
+                  className={`${inputClasses('title')} ${touchedFields['title'] && validationErrors['title'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                   value={formData.title}
-                  onChange={e => setFormData({...formData, title: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, title: e.target.value});
+                    if (validationErrors['title']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['title'];
+                        return newErrors;
+                      });
+                    }
+                  }}
                   onFocus={() => setFocusedField('title')}
-                  onBlur={() => setFocusedField(null)}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    handleBlur('title');
+                  }}
                 />
+                {touchedFields['title'] && validationErrors['title'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['title']}</p>
+                )}
               </div>
 
               {/* Batch Create - Only for new items */}
@@ -331,55 +455,102 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
               {/* Category & Club Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClasses}>{t('basicInformation.category')}</label>
+                  <label className={labelClasses}>{t('basicInformation.category')} <span className="text-[var(--brand-red)]">*</span></label>
                   <select
-                    className={selectClasses('category')}
+                    name="category"
+                    className={`${selectClasses('category')} ${touchedFields['category'] && validationErrors['category'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     style={selectArrowStyle}
                     value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, category: e.target.value});
+                      if (validationErrors['category']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['category'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('category')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('category');
+                    }}
                   >
                     <option value="">{t('basicInformation.selectCategory')}</option>
                     {(Array.isArray(categories) ? categories : []).map(c => (
                       <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                     ))}
                   </select>
+                  {touchedFields['category'] && validationErrors['category'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['category']}</p>
+                  )}
                 </div>
 
                 {((user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN') && !clubId) && (
                   <div>
                     <label className={labelClasses}>{t('basicInformation.assignToClub')} <span className="text-[var(--brand-red)]">*</span></label>
                     <select
-                      required
-                      className={selectClasses('club')}
+                      name="club"
+                      className={`${selectClasses('club')} ${touchedFields['club'] && validationErrors['club'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                       style={selectArrowStyle}
                       value={formData.club}
-                      onChange={e => setFormData({...formData, club: e.target.value})}
+                      onChange={e => {
+                        setFormData({...formData, club: e.target.value});
+                        if (validationErrors['club']) {
+                          setValidationErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors['club'];
+                            return newErrors;
+                          });
+                        }
+                      }}
                       onFocus={() => setFocusedField('club')}
-                      onBlur={() => setFocusedField(null)}
+                      onBlur={() => {
+                        setFocusedField(null);
+                        handleBlur('club');
+                      }}
                     >
                       <option value="">{t('basicInformation.selectClub')}</option>
                       {(Array.isArray(clubs) ? clubs : []).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
+                    {touchedFields['club'] && validationErrors['club'] && (
+                      <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['club']}</p>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Description */}
               <div>
-                <label className={labelClasses}>{t('basicInformation.itemDescription')}</label>
+                <label className={labelClasses}>{t('basicInformation.itemDescription')} <span className="text-[var(--brand-red)]">*</span></label>
                 <textarea
+                  name="description"
                   rows={3}
                   placeholder={t('basicInformation.descriptionPlaceholder')}
-                  className={textareaClasses('description')}
+                  className={`${textareaClasses('description')} ${touchedFields['description'] && validationErrors['description'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, description: e.target.value});
+                    if (validationErrors['description']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['description'];
+                        return newErrors;
+                      });
+                    }
+                  }}
                   onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    handleBlur('description');
+                  }}
                 />
+                {touchedFields['description'] && validationErrors['description'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+                )}
                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('basicInformation.descriptionHint')}</p>
               </div>
             </div>
@@ -393,7 +564,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('itemImage.title')}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('itemImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
                   <p className="text-sm text-[var(--brand-light)]/50">{t('itemImage.description')}</p>
                 </div>
               </div>
@@ -402,8 +573,12 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row gap-4 items-start">
                 <div 
-                  className="relative group w-full sm:w-48 h-32 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
-                  onClick={() => imageRef.current?.click()}
+                  id="image"
+                  className={`relative group w-full sm:w-48 h-32 border-2 border-dashed ${touchedFields['image'] && validationErrors['image'] ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
+                  onClick={() => {
+                    setTouchedFields(prev => ({ ...prev, image: true }));
+                    imageRef.current?.click();
+                  }}
                 >
                   {imagePreview ? (
                     <>
@@ -437,6 +612,9 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                       <p className="text-xs text-[var(--brand-light)]/50">{t('itemImage.imageHint')}</p>
                     </div>
                   </div>
+                  {touchedFields['image'] && validationErrors['image'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['image']}</p>
+                  )}
                 </div>
                 <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               </div>
@@ -480,14 +658,27 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
                 {/* Status */}
                 <div>
-                  <label className={labelClasses}>{t('settings.status')}</label>
+                  <label className={labelClasses}>{t('settings.status')} <span className="text-[var(--brand-red)]">*</span></label>
                   <select
-                    className={selectClasses('status')}
+                    name="status"
+                    className={`${selectClasses('status')} ${touchedFields['status'] && validationErrors['status'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     style={selectArrowStyle}
                     value={formData.status}
-                    onChange={e => setFormData({...formData, status: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, status: e.target.value});
+                      if (validationErrors['status']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['status'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('status')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('status');
+                    }}
                   >
                     <option value="AVAILABLE">{tFilters('available')}</option>
                     <option value="BORROWED">{tFilters('borrowed')}</option>
@@ -495,6 +686,9 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                     <option value="MISSING">{tFilters('missing')}</option>
                     <option value="HIDDEN">{tFilters('hidden')}</option>
                   </select>
+                  {touchedFields['status'] && validationErrors['status'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['status']}</p>
+                  )}
                 </div>
               </div>
 

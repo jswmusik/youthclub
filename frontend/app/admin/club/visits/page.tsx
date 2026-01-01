@@ -45,7 +45,7 @@ export default function VisitsDashboard() {
       <div className="max-w-7xl mx-auto space-y-6 px-0 sm:px-6 lg:px-8">
         {/* Back Link */}
         <div>
-          <BackButton href="/admin/club/details" translationKey="backToClub" />
+          <BackButton href="/admin/club/details" translationKey="clubVisits.backToClub" />
         </div>
 
         {/* Header Section */}
@@ -105,6 +105,7 @@ export default function VisitsDashboard() {
           isOpen={isManualModalOpen} 
           onClose={() => setManualModalOpen(false)}
           onSuccess={refreshData}
+          clubId={clubId}
         />
       </div>
     </div>

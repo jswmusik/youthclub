@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import InterestForm from '@/app/components/InterestForm';
 import { Heart } from 'lucide-react';
@@ -22,7 +22,6 @@ function LoadingState() {
 
 function EditPageContent() {
   const { id } = useParams() as { id: string };
-  const searchParams = useSearchParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,19 +33,10 @@ function EditPageContent() {
     }
   }, [id]);
 
-  const buildRedirectPath = () => {
-    const params = new URLSearchParams();
-    const page = searchParams.get('page');
-    const search = searchParams.get('search');
-    if (page && page !== '1') params.set('page', page);
-    if (search) params.set('search', search);
-    const queryString = params.toString();
-    return queryString ? `/admin/super/interests?${queryString}` : '/admin/super/interests';
-  };
-
   if (loading || !data) return <LoadingState />;
 
-  return <InterestForm initialData={data} redirectPath={buildRedirectPath()} />;
+  // Pass the base path - the form will preserve URL params from its own searchParams
+  return <InterestForm initialData={data} redirectPath="/admin/super/interests" />;
 }
 
 export default function Page() {

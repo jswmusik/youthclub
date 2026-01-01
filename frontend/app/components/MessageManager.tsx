@@ -230,16 +230,49 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
   const [typeFilter, setTypeFilter] = useState(searchParams.get('message_type') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialTypeRef = useRef(searchParams.get('message_type') || '');
+  const initialStatusRef = useRef(searchParams.get('status') || '');
+  const hasUserChangedFilters = useRef(false);
+  
   // Delete State
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const { success, error, info, warning } = useToast();
+
+  // Build URL with current params preserved
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams();
+    const page = searchParams.get('page');
+    const search = searchParams.get('search');
+    const messageType = searchParams.get('message_type');
+    const status = searchParams.get('status');
+    
+    if (page && page !== '1') params.set('page', page);
+    if (search) params.set('search', search);
+    if (messageType) params.set('message_type', messageType);
+    if (status) params.set('status', status);
+    
+    const queryString = params.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
 
   useEffect(() => {
     fetchAllMessagesForAnalytics();
   }, []);
 
-  // Debounced Search/Filter Update
+  // Debounced Search/Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const typeChanged = typeFilter !== initialTypeRef.current;
+    const statusChanged = statusFilter !== initialStatusRef.current;
+    
+    if (!searchChanged && !typeChanged && !statusChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -247,9 +280,14 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
       if (statusFilter) params.set('status', statusFilter); else params.delete('status');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialTypeRef.current = typeFilter;
+      initialStatusRef.current = statusFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, typeFilter, statusFilter]);
+  }, [searchInput, typeFilter, statusFilter, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchMessages();
@@ -535,7 +573,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
             </div>
             <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('subtitle')}</p>
           </div>
-          <Link href={`${basePath}/create`}>
+          <Link href={buildUrlWithParams(`${basePath}/create`)}>
             <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
               <Plus className="h-4 w-4" /> {t('createMessage')}
             </button>
@@ -691,7 +729,7 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
               {hasFilters ? 'Try adjusting your search or filters.' : 'Get started by creating your first message.'}
             </p>
             {!hasFilters && (
-              <Link href={`${basePath}/create`}>
+              <Link href={buildUrlWithParams(`${basePath}/create`)}>
                 <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                   <Plus className="h-4 w-4" /> Create Message
                 </button>

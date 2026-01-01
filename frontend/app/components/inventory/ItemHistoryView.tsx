@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -102,11 +102,27 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
     const [startDate, setStartDate] = useState(searchParams.get('start_date') || '');
     const [endDate, setEndDate] = useState(searchParams.get('end_date') || '');
     
+    // Track initial values to detect actual user changes
+    const initialSearchRef = useRef(searchParams.get('search') || '');
+    const initialStartDateRef = useRef(searchParams.get('start_date') || '');
+    const initialEndDateRef = useRef(searchParams.get('end_date') || '');
+    const hasUserChangedFilters = useRef(false);
+    
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
-    // Debounced filter update
+    // Debounced filter update - only reset page when user actually changes filters
     useEffect(() => {
+        const searchChanged = searchInput !== initialSearchRef.current;
+        const startDateChanged = startDate !== initialStartDateRef.current;
+        const endDateChanged = endDate !== initialEndDateRef.current;
+        
+        if (!searchChanged && !startDateChanged && !endDateChanged && !hasUserChangedFilters.current) {
+            return;
+        }
+        
+        hasUserChangedFilters.current = true;
+
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -114,9 +130,14 @@ export default function ItemHistoryView({ itemId, basePath }: ItemHistoryViewPro
             if (endDate) params.set('end_date', endDate); else params.delete('end_date');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
+            
+            // Update refs to current values
+            initialSearchRef.current = searchInput;
+            initialStartDateRef.current = startDate;
+            initialEndDateRef.current = endDate;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, startDate, endDate]);
+    }, [searchInput, startDate, endDate, searchParams, pathname, router]);
 
     useEffect(() => {
         loadItem();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -91,11 +91,27 @@ export default function MunicipalityBorrowedItemsPage() {
     const [selectedItemId, setSelectedItemId] = useState(searchParams.get('item') || '');
     const [selectedClubId, setSelectedClubId] = useState(searchParams.get('club') || '');
     
+    // Track initial values to detect actual user changes
+    const initialSearchRef = useRef(searchParams.get('search') || '');
+    const initialItemRef = useRef(searchParams.get('item') || '');
+    const initialClubRef = useRef(searchParams.get('club') || '');
+    const hasUserChangedFilters = useRef(false);
+    
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
-    // Debounced filter update
+    // Debounced filter update - only reset page when user actually changes filters
     useEffect(() => {
+        const searchChanged = searchInput !== initialSearchRef.current;
+        const itemChanged = selectedItemId !== initialItemRef.current;
+        const clubChanged = selectedClubId !== initialClubRef.current;
+        
+        if (!searchChanged && !itemChanged && !clubChanged && !hasUserChangedFilters.current) {
+            return;
+        }
+        
+        hasUserChangedFilters.current = true;
+
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -103,9 +119,14 @@ export default function MunicipalityBorrowedItemsPage() {
             if (selectedClubId) params.set('club', selectedClubId); else params.delete('club');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
+            
+            // Update refs to current values
+            initialSearchRef.current = searchInput;
+            initialItemRef.current = selectedItemId;
+            initialClubRef.current = selectedClubId;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, selectedItemId, selectedClubId]);
+    }, [searchInput, selectedItemId, selectedClubId, searchParams, pathname, router]);
 
     useEffect(() => {
         loadItems();

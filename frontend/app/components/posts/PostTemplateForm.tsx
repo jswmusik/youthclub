@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
     ArrowLeft, Globe, Building, Users, FileText, Image, Video,
     CheckCircle2, Lightbulb, Sparkles, Bell, MessageSquare, Pin,
@@ -14,6 +16,7 @@ import {
 import api from '../../../lib/api';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { createPostTemplateSchema, PostTemplateFormData } from '../../../lib/validations/postTemplate';
 
 interface PostTemplateFormProps {
     initialData?: any;
@@ -40,6 +43,7 @@ const ALL_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
 export default function PostTemplateForm({ initialData, role, onSuccess }: PostTemplateFormProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user: currentUser } = useAuth();
     const t = useTranslations('postTemplatesManager.form');
     const progressPlaceholderRef = useRef<HTMLDivElement>(null);
@@ -47,6 +51,12 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const { success, error: showError, info, warning } = useToast();
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -62,11 +72,22 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
     const [groupSearchQuery, setGroupSearchQuery] = useState('');
     const [showGroupDropdown, setShowGroupDropdown] = useState(false);
 
-    // --- Basic Info ---
-    const [name, setName] = useState(initialData?.name || '');
-    const [description, setDescription] = useState(initialData?.description || '');
-    const [icon, setIcon] = useState(initialData?.icon || 'MEGAPHONE');
-    const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
+    // Initialize React Hook Form with validation
+    const { register, handleSubmit: handleFormSubmit, formState: { errors }, watch, setValue } = useForm<PostTemplateFormData>({
+        resolver: zodResolver(createPostTemplateSchema(t)),
+        defaultValues: {
+            name: initialData?.name || '',
+            description: initialData?.description || '',
+            icon: initialData?.icon || 'MEGAPHONE',
+            is_active: initialData?.is_active ?? true,
+        }
+    });
+
+    // Watch form values for progress tracking
+    const name = watch('name');
+    const description = watch('description');
+    const icon = watch('icon');
+    const isActive = watch('is_active');
 
     // --- Distribution (Scope) State ---
     const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
@@ -252,16 +273,15 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (data: PostTemplateFormData) => {
         setLoading(true);
         setError('');
 
         const payload: any = {
-            name,
-            description,
-            icon,
-            is_active: isActive,
+            name: data.name,
+            description: data.description,
+            icon: data.icon,
+            is_active: data.is_active,
             default_post_type: defaultPostType,
             target_member_type: memberType,
             target_min_age: minAge ? parseInt(minAge) : null,
@@ -459,7 +479,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleFormSubmit(handleSubmit)}>
 
                     {/* --- TEMPLATE INFO --- */}
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
@@ -481,14 +501,15 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <label className={labelClasses}>{t('templateInfo.name')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
-                                    required 
                                     placeholder={t('templateInfo.namePlaceholder')}
                                     className={inputClasses('name')}
-                                    value={name} 
-                                    onChange={e => setName(e.target.value)} 
+                                    {...register('name')}
                                     onFocus={() => setFocusedField('name')}
                                     onBlur={() => setFocusedField(null)}
                                 />
+                                {errors.name && (
+                                    <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.name.message}</p>
+                                )}
                             </div>
 
                             {/* Description */}
@@ -497,8 +518,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 <textarea 
                                     placeholder={t('templateInfo.descriptionPlaceholder')}
                                     className={`${inputClasses('description')} h-24 py-3 resize-none`}
-                                    value={description} 
-                                    onChange={e => setDescription(e.target.value)} 
+                                    {...register('description')}
                                     onFocus={() => setFocusedField('description')}
                                     onBlur={() => setFocusedField(null)}
                                 />
@@ -517,7 +537,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             <button
                                                 key={opt.value}
                                                 type="button"
-                                                onClick={() => setIcon(opt.value)}
+                                                onClick={() => setValue('icon', opt.value)}
                                                 className={`w-full aspect-square rounded-xl flex items-center justify-center text-lg transition-all ${
                                                     icon === opt.value 
                                                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] ring-2 ring-[var(--brand-primary)] ring-offset-2 ring-offset-[var(--dark-800)]' 
@@ -540,7 +560,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setIsActive(!isActive)}
+                                    onClick={() => setValue('is_active', !isActive)}
                                     className={`w-14 h-8 rounded-full transition-all flex items-center px-1 ${
                                         isActive ? 'bg-[var(--brand-green)]' : 'bg-[var(--dark-500)]'
                                     }`}
@@ -1216,7 +1236,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 py-4 sm:py-0 mb-8">
                         <button 
                             type="button" 
-                            onClick={() => router.push(getBasePath())}
+                            onClick={() => router.push(buildUrlWithParams(getBasePath()))}
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
                                      bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
                                      hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"

@@ -258,6 +258,13 @@ export default function MunicipalityEventsPage() {
     const [recurringFilter, setRecurringFilter] = useState(searchParams.get('recurring') || '');
     const [clubFilter, setClubFilter] = useState(searchParams.get('club') || '');
 
+    // Track initial values to detect actual user changes
+    const initialSearchRef = useRef(searchParams.get('search') || '');
+    const initialStatusRef = useRef(searchParams.get('status') || '');
+    const initialRecurringRef = useRef(searchParams.get('recurring') || '');
+    const initialClubRef = useRef(searchParams.get('club') || '');
+    const hasUserChangedFilters = useRef(false);
+
     // Delete
     const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
     const [deleteMode, setDeleteMode] = useState<'single' | 'future' | null>(null);
@@ -271,8 +278,19 @@ export default function MunicipalityEventsPage() {
         fetchClubs();
     }, []);
 
-    // Debounced Search/Filter Update
+    // Debounced Search/Filter Update - only reset page when user actually changes filters
     useEffect(() => {
+        const searchChanged = searchInput !== initialSearchRef.current;
+        const statusChanged = statusFilter !== initialStatusRef.current;
+        const recurringChanged = recurringFilter !== initialRecurringRef.current;
+        const clubChanged = clubFilter !== initialClubRef.current;
+        
+        if (!searchChanged && !statusChanged && !recurringChanged && !clubChanged && !hasUserChangedFilters.current) {
+            return;
+        }
+        
+        hasUserChangedFilters.current = true;
+
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -281,9 +299,15 @@ export default function MunicipalityEventsPage() {
             if (clubFilter) params.set('club', clubFilter); else params.delete('club');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
+            
+            // Update refs to current values
+            initialSearchRef.current = searchInput;
+            initialStatusRef.current = statusFilter;
+            initialRecurringRef.current = recurringFilter;
+            initialClubRef.current = clubFilter;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, statusFilter, recurringFilter, clubFilter]);
+    }, [searchInput, statusFilter, recurringFilter, clubFilter, searchParams, pathname, router]);
 
     useEffect(() => {
         const currentPage = searchParams.get('page');
@@ -652,7 +676,7 @@ export default function MunicipalityEventsPage() {
                         </div>
                         <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('subtitle')}</p>
                     </div>
-                    <Link href="/admin/municipality/events/create">
+                    <Link href={buildUrlWithParams("/admin/municipality/events/create")}>
                         <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
                             <Plus className="h-4 w-4" /> {t('createEvent')}
                         </button>
@@ -814,7 +838,7 @@ export default function MunicipalityEventsPage() {
                             {hasFilters ? t('emptyState.tryAdjustingFilters') : t('emptyState.getStarted')}
                         </p>
                         {!hasFilters && (
-                            <Link href="/admin/municipality/events/create">
+                            <Link href={buildUrlWithParams("/admin/municipality/events/create")}>
                                 <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                                     <Plus className="h-4 w-4" /> {t('createEvent')}
                                 </button>

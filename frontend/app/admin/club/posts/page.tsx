@@ -596,7 +596,7 @@ export default function ClubAdminPostsPage() {
                                     </button>
                                 </Link>
                             )}
-                            <Link href="/admin/club/posts/create" className="flex-1 sm:flex-none">
+                            <Link href={buildUrlWithParams("/admin/club/posts/create")} className="flex-1 sm:flex-none">
                                 <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-semibold hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all">
                                     <Plus className="h-4 w-4" /> {t('advanced')}
                                 </button>
@@ -780,7 +780,7 @@ export default function ClubAdminPostsPage() {
                             {hasActiveFilters ? t('tryAdjustingFilters') : t('createFirstPost')}
                         </p>
                         {!hasActiveFilters && (
-                            <Link href="/admin/club/posts/create">
+                            <Link href={buildUrlWithParams("/admin/club/posts/create")}>
                                 <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-purple)] transition-all">
                                     <Plus className="h-4 w-4" /> {t('createPost')}
                                 </button>

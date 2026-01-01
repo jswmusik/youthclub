@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ArrowLeft, Upload, X, Globe, Flag, MapPin, Clock, Languages, Coins, Save, CheckCircle2, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
@@ -28,6 +28,7 @@ interface FormData {
 export default function CountryForm({ initialData, redirectPath }: CountryFormProps) {
   const t = useTranslations('countriesAdmin');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,12 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
   // Track component mount for portal
   useEffect(() => {
@@ -108,7 +115,7 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
         );
       }
 
-      router.push(redirectPath);
+      router.push(buildUrlWithParams(redirectPath));
 
     } catch (err: any) {
       console.error(err);
@@ -467,7 +474,7 @@ export default function CountryForm({ initialData, redirectPath }: CountryFormPr
             <div className="px-6 py-5 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30 flex flex-col sm:flex-row justify-end gap-3">
               <button 
                 type="button" 
-                onClick={() => router.push(redirectPath)} 
+                onClick={() => router.push(buildUrlWithParams(redirectPath))} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
                 {t('create.cancel')}

@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { 
   Settings, Quote, Plus, Pencil, Trash2, Star, 
   Save, X, Eye, EyeOff, Loader2, Image as ImageIcon,
-  Sparkles, Upload, Globe, Megaphone, Search
+  Sparkles, Upload, Globe, Megaphone, Search, Video
 } from 'lucide-react';
 import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
@@ -33,6 +33,7 @@ interface SEOSettings {
   hero_subtitle: string;
   hero_cta_text: string;
   hero_background: string | null;
+  hero_video: string | null;
   og_title: string;
   og_description: string;
   og_image: string | null;
@@ -66,6 +67,7 @@ export default function MarketingPage() {
     hero_subtitle: 'Samlade aktiviteter och evenemang för unga.',
     hero_cta_text: 'Sök aktiviteter',
     hero_background: null,
+    hero_video: null,
     og_title: '',
     og_description: '',
     og_image: null,
@@ -75,6 +77,11 @@ export default function MarketingPage() {
   const [heroBackgroundFile, setHeroBackgroundFile] = useState<File | null>(null);
   const [heroBackgroundPreview, setHeroBackgroundPreview] = useState<string | null>(null);
   const heroFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hero Video State
+  const [heroVideoFile, setHeroVideoFile] = useState<File | null>(null);
+  const [heroVideoPreview, setHeroVideoPreview] = useState<string | null>(null);
+  const heroVideoInputRef = useRef<HTMLInputElement>(null);
   
   // Testimonials State
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -101,6 +108,9 @@ export default function MarketingPage() {
           setSeoSettings(res.data);
           if (res.data.hero_background) {
             setHeroBackgroundPreview(getMediaUrl(res.data.hero_background) || null);
+          }
+          if (res.data.hero_video) {
+            setHeroVideoPreview(getMediaUrl(res.data.hero_video) || null);
           }
         }
       } catch (error) {
@@ -150,6 +160,29 @@ export default function MarketingPage() {
     }
   };
 
+  // Handle hero video file selection
+  const handleHeroVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 50MB)
+      if (file.size > 50 * 1024 * 1024) {
+        error(t('hero.videoTooLarge'));
+        return;
+      }
+      setHeroVideoFile(file);
+      // Create object URL for video preview
+      const videoUrl = URL.createObjectURL(file);
+      setHeroVideoPreview(videoUrl);
+    }
+  };
+
+  // Clear hero video
+  const handleClearHeroVideo = () => {
+    setHeroVideoFile(null);
+    setHeroVideoPreview(null);
+    setSeoSettings({ ...seoSettings, hero_video: null });
+  };
+
   // Save SEO/Hero settings
   const handleSaveSEO = async () => {
     setSeoSaving(true);
@@ -167,15 +200,20 @@ export default function MarketingPage() {
       if (heroBackgroundFile) {
         formData.append('hero_background', heroBackgroundFile);
       }
+      
+      if (heroVideoFile) {
+        formData.append('hero_video', heroVideoFile);
+      }
 
       await api.put('/marketing/admin/seo-settings/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       setHeroBackgroundFile(null);
+      setHeroVideoFile(null);
       success(t('toast.settingsSaved'));
-    } catch (error) {
-      console.error('Failed to save SEO settings:', error);
+    } catch (err) {
+      console.error('Failed to save SEO settings:', err);
       error(t('toast.failedToSave'));
     } finally {
       setSeoSaving(false);
@@ -422,10 +460,71 @@ export default function MarketingPage() {
                     <div className="text-sm text-[var(--brand-light)]/50">
                       <p>{t('hero.recommendedSize')}</p>
                       <p>{t('hero.format')}</p>
+                      <p className="text-[var(--brand-peach)] mt-1">{t('hero.imageFallbackNote')}</p>
                       {heroBackgroundFile && (
                         <p className="text-[var(--brand-green)] mt-2 flex items-center gap-1">
                           <Upload className="w-4 h-4" />
                           {t('hero.newImageSelected')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Video */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                    {t('hero.backgroundVideo')}
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-start gap-4">
+                    <div 
+                      className="relative w-full sm:w-64 h-36 rounded-xl overflow-hidden bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] cursor-pointer hover:border-[var(--brand-purple)] transition-colors"
+                      onClick={() => heroVideoInputRef.current?.click()}
+                    >
+                      {heroVideoPreview || seoSettings.hero_video ? (
+                        <>
+                          <video 
+                            src={heroVideoPreview || getMediaUrl(seoSettings.hero_video) || undefined}
+                            className="w-full h-full object-cover"
+                            muted
+                            loop
+                            autoPlay
+                            playsInline
+                          />
+                          {/* Clear video button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearHeroVideo();
+                            }}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-[var(--dark-900)]/80 text-[var(--brand-red)] hover:bg-[var(--brand-red)] hover:text-white transition-all"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-[var(--brand-light)]/40">
+                          <Video className="w-8 h-8 mb-2" />
+                          <span className="text-sm">{t('hero.clickToUploadVideo')}</span>
+                        </div>
+                      )}
+                      <input
+                        ref={heroVideoInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime"
+                        onChange={handleHeroVideoChange}
+                        className="hidden"
+                      />
+                    </div>
+                    <div className="text-sm text-[var(--brand-light)]/50">
+                      <p>{t('hero.videoRecommendedSize')}</p>
+                      <p>{t('hero.videoFormat')}</p>
+                      <p className="text-[var(--brand-purple)] mt-1">{t('hero.videoNote')}</p>
+                      {heroVideoFile && (
+                        <p className="text-[var(--brand-green)] mt-2 flex items-center gap-1">
+                          <Upload className="w-4 h-4" />
+                          {t('hero.newVideoSelected')}
                         </p>
                       )}
                     </div>
@@ -477,16 +576,32 @@ export default function MarketingPage() {
                 {/* Preview */}
                 <div className="pt-4 border-t border-[var(--dark-600)]">
                   <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('hero.preview')}</h3>
-                  <div 
-                    className="relative rounded-xl overflow-hidden h-48 sm:h-56"
-                    style={{
-                      backgroundImage: heroBackgroundPreview 
-                        ? `url(${heroBackgroundPreview})` 
-                        : 'linear-gradient(135deg, var(--dark-800), var(--dark-700))',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  >
+                  <div className="relative rounded-xl overflow-hidden h-48 sm:h-56">
+                    {/* Video or Image Background */}
+                    {heroVideoPreview || seoSettings.hero_video ? (
+                      <video
+                        src={heroVideoPreview || getMediaUrl(seoSettings.hero_video) || undefined}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                      />
+                    ) : heroBackgroundPreview ? (
+                      <img 
+                        src={heroBackgroundPreview}
+                        alt="Preview"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div 
+                        className="absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(135deg, var(--dark-800), var(--dark-700))',
+                        }}
+                      />
+                    )}
+                    {/* Overlay with content */}
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
                       <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">{seoSettings.hero_title || t('hero.headingPlaceholder')}</h2>
                       <p className="text-sm opacity-80 mb-4 text-center max-w-md">{seoSettings.hero_subtitle || t('hero.subheadingPlaceholder')}</p>

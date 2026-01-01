@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Upload, X, Package, Calendar, Users, Settings, Image as ImageIcon } from 'lucide-react';
 import api from '../../../lib/api';
@@ -19,12 +19,19 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
   const t = useTranslations('bookingsAdmin.resources.form');
   const tResources = useTranslations('bookingsAdmin.resources');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const { success, error, info, warning } = useToast();
   const [clubs, setClubs] = useState<any[]>([]); // To store available clubs
   const [groups, setGroups] = useState<any[]>([]); // To store available groups
   const [qualificationGroups, setQualificationGroups] = useState<any[]>([]); // To store CLOSED groups for qualification
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
   
   const imageRef = useRef<HTMLInputElement>(null);
   
@@ -46,6 +53,110 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image ? getMediaUrl(initialData.image) : null);
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let error = '';
+    
+    switch (field) {
+      case 'club':
+        if (!clubId && (!value || value.toString().trim() === '')) {
+          error = t('validation.clubRequired');
+        }
+        break;
+      case 'name':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.nameRequired');
+        }
+        break;
+      case 'resource_type':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.typeRequired');
+        }
+        break;
+      case 'description':
+        if (!value || value.toString().trim() === '') {
+          error = t('validation.descriptionRequired');
+        }
+        break;
+      case 'image':
+        if (!imageFile && !imagePreview) {
+          error = t('validation.imageRequired');
+        }
+        break;
+      case 'max_participants':
+        if (!value || value.toString().trim() === '' || parseInt(value.toString()) < 1) {
+          error = t('validation.maxParticipantsRequired');
+        }
+        break;
+      case 'booking_window_weeks':
+        if (!value || value.toString().trim() === '' || parseInt(value.toString()) < 1) {
+          error = t('validation.bookingWindowRequired');
+        }
+        break;
+      case 'max_bookings_per_user_per_week':
+        if (!value || value.toString().trim() === '' || parseInt(value.toString()) < 1) {
+          error = t('validation.maxBookingsRequired');
+        }
+        break;
+    }
+    
+    return error;
+  };
+
+  // Handle field blur
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    let value: any;
+    
+    if (field === 'image') {
+      value = imageFile || imagePreview;
+    } else {
+      value = formData[field as keyof typeof formData];
+    }
+    
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredFields = ['name', 'resource_type', 'description', 'image', 'max_participants', 'booking_window_weeks', 'max_bookings_per_user_per_week'];
+    if (!clubId) {
+      requiredFields.push('club');
+    }
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      let value: any;
+      
+      if (field === 'image') {
+        value = imageFile || imagePreview;
+      } else {
+        value = formData[field as keyof typeof formData];
+      }
+      
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   useEffect(() => {
     // Fetch clubs list if not forced via prop (needed for both create and edit modes)
@@ -110,6 +221,13 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
     if (e.target.files?.[0]) {
       setImageFile(e.target.files[0]);
       setImagePreview(URL.createObjectURL(e.target.files[0]));
+      // Clear validation error
+      setTouchedFields(prev => ({ ...prev, image: true }));
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors['image'];
+        return newErrors;
+      });
     }
   };
 
@@ -121,6 +239,13 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
+
     if (!formData.club) {
         error(t('toast.selectClub'));
         return;
@@ -153,7 +278,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
         // EDIT MODE: Stay here or go back to list
         await api.patch(`/bookings/resources/${initialData.id}/`, data, config);
         success(t('toast.resourceUpdated'));
-        setTimeout(() => router.push(redirectPath), 1000);
+        setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
       } else {
         // CREATE MODE: Capture response to get ID
         const res = await api.post('/bookings/resources/', data, config);
@@ -161,7 +286,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
         success(t('toast.resourceCreated'));
         
         // Redirect to the SCHEDULE page for this new resource
-        setTimeout(() => router.push(`${redirectPath}/${newResourceId}/schedule`), 1000);
+        setTimeout(() => router.push(buildUrlWithParams(`${redirectPath}/${newResourceId}/schedule`)), 1000);
       }
       
     } catch (err: any) {
@@ -234,67 +359,129 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
               {!clubId && (
                 <div>
                   <label className={labelClasses}>
-                    {t('sections.basicInformation.assignToClub')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.assignToClub')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <select 
-                    required
-                    className={`${inputClasses('club')} appearance-none cursor-pointer`}
+                    name="club"
+                    className={`${inputClasses('club')} appearance-none cursor-pointer ${touchedFields['club'] && validationErrors['club'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     style={selectArrowStyle}
                     value={formData.club}
-                    onChange={e => setFormData({...formData, club: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, club: e.target.value});
+                      if (validationErrors['club']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['club'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('club')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('club');
+                    }}
                   >
                     <option value="">{t('sections.basicInformation.selectClub')}</option>
                     {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                  {touchedFields['club'] && validationErrors['club'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['club']}</p>
+                  )}
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className={labelClasses}>
-                    {t('sections.basicInformation.name')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.name')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <input 
                     type="text"
-                    required
-                    className={inputClasses('name')}
+                    name="name"
+                    className={`${inputClasses('name')} ${touchedFields['name'] && validationErrors['name'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, name: e.target.value});
+                      if (validationErrors['name']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['name'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('name');
+                    }}
                     placeholder={t('sections.basicInformation.namePlaceholder')}
                   />
+                  {touchedFields['name'] && validationErrors['name'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['name']}</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelClasses}>
-                    {t('sections.basicInformation.type')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.basicInformation.type')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <select 
-                    className={`${inputClasses('resource_type')} appearance-none cursor-pointer`}
+                    name="resource_type"
+                    className={`${inputClasses('resource_type')} appearance-none cursor-pointer ${touchedFields['resource_type'] && validationErrors['resource_type'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     style={selectArrowStyle}
                     value={formData.resource_type}
-                    onChange={e => setFormData({...formData, resource_type: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, resource_type: e.target.value});
+                      if (validationErrors['resource_type']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['resource_type'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('resource_type')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('resource_type');
+                    }}
                   >
                     <option value="ROOM">{tResources('resourceTypes.ROOM')}</option>
                     <option value="EQUIPMENT">{tResources('resourceTypes.EQUIPMENT')}</option>
                   </select>
+                  {touchedFields['resource_type'] && validationErrors['resource_type'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['resource_type']}</p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <label className={labelClasses}>{t('sections.basicInformation.description')}</label>
+                <label className={labelClasses}>{t('sections.basicInformation.description')} <span className="text-[var(--brand-red)]">*</span></label>
                 <textarea 
-                  className={`${inputClasses('description')} min-h-[100px] resize-none`}
+                  name="description"
+                  className={`${inputClasses('description')} min-h-[100px] resize-none ${touchedFields['description'] && validationErrors['description'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, description: e.target.value});
+                    if (validationErrors['description']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['description'];
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder={t('sections.basicInformation.descriptionPlaceholder')}
                   onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    handleBlur('description');
+                  }}
                 />
+                {touchedFields['description'] && validationErrors['description'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+                )}
               </div>
             </div>
           </div>
@@ -307,7 +494,7 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                   <ImageIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.resourceImage.title')}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.resourceImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
                   <p className="text-sm text-[var(--brand-light)]/50">{t('sections.resourceImage.description')}</p>
                 </div>
               </div>
@@ -315,8 +502,12 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
             <div className="p-6">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                 <div 
-                  className="relative group h-32 w-32 rounded-xl border-2 border-dashed border-[var(--dark-500)] bg-[var(--dark-700)] flex items-center justify-center overflow-hidden shrink-0 hover:border-[var(--brand-primary)]/50 transition-colors cursor-pointer"
-                  onClick={() => imageRef.current?.click()}
+                  id="image"
+                  className={`relative group h-32 w-32 rounded-xl border-2 border-dashed ${touchedFields['image'] && validationErrors['image'] ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} bg-[var(--dark-700)] flex items-center justify-center overflow-hidden shrink-0 hover:border-[var(--brand-primary)]/50 transition-colors cursor-pointer`}
+                  onClick={() => {
+                    setTouchedFields(prev => ({ ...prev, image: true }));
+                    imageRef.current?.click();
+                  }}
                 >
                   {imagePreview ? (
                     <>
@@ -352,6 +543,9 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                     )}
                   </div>
                   <p className="text-xs text-[var(--brand-light)]/50">{t('sections.resourceImage.recommended')}</p>
+                  {touchedFields['image'] && validationErrors['image'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['image']}</p>
+                  )}
                 </div>
                 <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
               </div>
@@ -374,16 +568,32 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxParticipants')}</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxParticipants')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="number" 
+                    name="max_participants"
                     min="1"
-                    className={inputClasses('max_participants')}
+                    className={`${inputClasses('max_participants')} ${touchedFields['max_participants'] && validationErrors['max_participants'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     value={formData.max_participants}
-                    onChange={e => setFormData({...formData, max_participants: parseInt(e.target.value)})}
+                    onChange={e => {
+                      setFormData({...formData, max_participants: parseInt(e.target.value)});
+                      if (validationErrors['max_participants']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['max_participants'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('max_participants')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('max_participants');
+                    }}
                   />
+                  {touchedFields['max_participants'] && validationErrors['max_participants'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['max_participants']}</p>
+                  )}
                 </div>
 
                 <div>
@@ -437,30 +647,62 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
                 )}
                 
                 <div>
-                  <label className={labelClasses}>{t('sections.rulesAndLimits.bookingWindowWeeks')}</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.bookingWindowWeeks')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="number" 
+                    name="booking_window_weeks"
                     min="1"
-                    className={inputClasses('booking_window_weeks')}
+                    className={`${inputClasses('booking_window_weeks')} ${touchedFields['booking_window_weeks'] && validationErrors['booking_window_weeks'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     value={formData.booking_window_weeks}
-                    onChange={e => setFormData({...formData, booking_window_weeks: parseInt(e.target.value)})}
+                    onChange={e => {
+                      setFormData({...formData, booking_window_weeks: parseInt(e.target.value)});
+                      if (validationErrors['booking_window_weeks']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['booking_window_weeks'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('booking_window_weeks')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('booking_window_weeks');
+                    }}
                   />
+                  {touchedFields['booking_window_weeks'] && validationErrors['booking_window_weeks'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['booking_window_weeks']}</p>
+                  )}
                   <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('sections.rulesAndLimits.bookingWindowHint')}</p>
                 </div>
                 
                 <div>
-                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxBookingsPerUserPerWeek')}</label>
+                  <label className={labelClasses}>{t('sections.rulesAndLimits.maxBookingsPerUserPerWeek')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="number" 
+                    name="max_bookings_per_user_per_week"
                     min="0"
-                    className={inputClasses('max_bookings_per_user_per_week')}
+                    className={`${inputClasses('max_bookings_per_user_per_week')} ${touchedFields['max_bookings_per_user_per_week'] && validationErrors['max_bookings_per_user_per_week'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     value={formData.max_bookings_per_user_per_week}
-                    onChange={e => setFormData({...formData, max_bookings_per_user_per_week: parseInt(e.target.value) || 0})}
+                    onChange={e => {
+                      setFormData({...formData, max_bookings_per_user_per_week: parseInt(e.target.value) || 0});
+                      if (validationErrors['max_bookings_per_user_per_week']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['max_bookings_per_user_per_week'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('max_bookings_per_user_per_week')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('max_bookings_per_user_per_week');
+                    }}
                   />
+                  {touchedFields['max_bookings_per_user_per_week'] && validationErrors['max_bookings_per_user_per_week'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['max_bookings_per_user_per_week']}</p>
+                  )}
                   <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('sections.rulesAndLimits.maxBookingsHint')}</p>
                 </div>
               </div>

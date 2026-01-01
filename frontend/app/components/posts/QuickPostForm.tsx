@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
     ArrowLeft, Upload, X, FileText, Image, Video,
     CheckCircle2, Sparkles, Send, Clock, Eye, EyeOff,
@@ -17,6 +19,7 @@ import PostRichTextEditor from './PostRichTextEditor';
 import { getMediaUrl } from '../../utils';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { createQuickPostSchema, QuickPostFormData } from '../../../lib/validations/quickPost';
 
 interface PostTemplate {
     id: number;
@@ -69,6 +72,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user: currentUser } = useAuth();
     const t = useTranslations('postsManager.quickPost');
     const progressPlaceholderRef = useRef<HTMLDivElement>(null);
@@ -77,6 +81,12 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const [loadingTemplates, setLoadingTemplates] = useState(true);
     const [error, setError] = useState('');
     const { success, error: showError, info, warning } = useToast();
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     const [focusedField, setFocusedField] = useState<string | null>(null);
     const [isProgressFixed, setIsProgressFixed] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
@@ -85,18 +95,29 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const [templates, setTemplates] = useState<PostTemplate[]>([]);
     const [selectedTemplate, setSelectedTemplate] = useState<PostTemplate | null>(null);
 
-    // Post Content (only these fields need to be filled)
-    const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [postType, setPostType] = useState('TEXT');
+    // Initialize React Hook Form with validation
+    const { register, handleSubmit: handleFormSubmit, formState: { errors }, watch, setValue, control, trigger } = useForm<QuickPostFormData>({
+        resolver: zodResolver(createQuickPostSchema(t)),
+        mode: 'onBlur', // Validate on blur
+        defaultValues: {
+            selectedTemplate: 0,
+            title: '',
+            content: '',
+            postType: 'TEXT',
+        }
+    });
+
+    // Watch form values
+    const templateId = watch('selectedTemplate');
+    const title = watch('title');
+    const content = watch('content');
+    const postType = watch('postType');
+
+    // Non-validated fields (keep as state)
     const [videoUrl, setVideoUrl] = useState('');
     const [newImages, setNewImages] = useState<File[]>([]);
-
-    // Publish Status
     const [status, setStatus] = useState<'DRAFT' | 'PUBLISHED' | 'SCHEDULED'>('DRAFT');
     const [publishedAt, setPublishedAt] = useState('');
-
-    // Push Notification (editable from template defaults)
     const [sendPush, setSendPush] = useState(false);
     const [pushTitle, setPushTitle] = useState('');
     const [pushMessage, setPushMessage] = useState('');
@@ -127,22 +148,23 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     // When template is selected, set defaults
     useEffect(() => {
         if (selectedTemplate) {
-            setPostType(selectedTemplate.default_post_type);
+            setValue('postType', selectedTemplate.default_post_type);
             // Set push notification defaults from template
             setSendPush(selectedTemplate.send_push_notification || false);
             setPushTitle(selectedTemplate.default_push_title || '');
             setPushMessage(selectedTemplate.default_push_message || '');
         }
-    }, [selectedTemplate]);
+    }, [selectedTemplate, setValue]);
 
-    // Progress calculation
+    // Progress calculation - now includes content as required
     const calculateCompletion = useCallback(() => {
-        let required = 2; // Template + Title
+        let required = 3; // Template + Title + Content
         let filled = 0;
-        if (selectedTemplate) filled++;
-        if (title.trim()) filled++;
+        if (templateId && templateId > 0) filled++;
+        if (title && title.trim()) filled++;
+        if (content && content.trim()) filled++;
         return Math.round((filled / required) * 100);
-    }, [selectedTemplate, title]);
+    }, [templateId, title, content]);
 
     const completionPercent = calculateCompletion();
 
@@ -165,9 +187,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
         };
     }, [checkScroll]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
+    const handleSubmit = async (data: QuickPostFormData) => {
         if (!selectedTemplate) {
             setError(t('toast.selectTemplate'));
             return;
@@ -177,9 +197,9 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
         setError('');
 
         const formData = new FormData();
-        formData.append('title', title);
-        formData.append('content', content);
-        formData.append('post_type', postType);
+        formData.append('title', data.title);
+        formData.append('content', data.content);
+        formData.append('post_type', data.postType || 'TEXT');
         if (videoUrl) formData.append('video_url', videoUrl);
 
         // Helper to extract ID from value that could be number or object
@@ -358,7 +378,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleFormSubmit(handleSubmit)}>
 
                     {/* --- TEMPLATE SELECTION --- */}
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
@@ -404,7 +424,12 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         <button
                                             key={template.id}
                                             type="button"
-                                            onClick={() => setSelectedTemplate(template)}
+                                            onClick={() => {
+                                                setSelectedTemplate(template);
+                                                setValue('selectedTemplate', template.id);
+                                                trigger('selectedTemplate');
+                                            }}
+                                            onBlur={() => trigger('selectedTemplate')}
                                             className={`text-left p-4 rounded-xl border-2 transition-all ${
                                                 selectedTemplate?.id === template.id
                                                     ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)] ring-2 ring-[var(--brand-primary)]/20'
@@ -450,6 +475,9 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     ))}
                                 </div>
                             )}
+                            {errors.selectedTemplate && (
+                                <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.selectedTemplate.message}</p>
+                            )}
                         </div>
                     </div>
 
@@ -473,20 +501,39 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                 <label className={labelClasses}>{t('postContent.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
-                                    required 
                                     placeholder={t('postContent.titlePlaceholder')}
                                     className={inputClasses('title')}
-                                    value={title} 
-                                    onChange={e => setTitle(e.target.value)} 
+                                    {...register('title')}
                                     onFocus={() => setFocusedField('title')}
-                                    onBlur={() => setFocusedField(null)}
+                                    onBlur={(e) => {
+                                        setFocusedField(null);
+                                        register('title').onBlur(e);
+                                    }}
                                 />
+                                {errors.title && (
+                                    <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.title.message}</p>
+                                )}
                             </div>
 
                             {/* Content */}
                             <div>
-                                <label className={labelClasses}>{t('postContent.contentLabel')}</label>
-                                <PostRichTextEditor value={content} onChange={setContent} />
+                                <label className={labelClasses}>{t('postContent.contentLabel')} <span className="text-[var(--brand-red)]">*</span></label>
+                                <Controller
+                                    name="content"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <PostRichTextEditor 
+                                            value={field.value} 
+                                            onChange={(value) => {
+                                                field.onChange(value);
+                                                field.onBlur();
+                                            }}
+                                        />
+                                    )}
+                                />
+                                {errors.content && (
+                                    <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.content.message}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -515,7 +562,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <button 
                                         key={type} 
                                         type="button" 
-                                        onClick={() => setPostType(type)} 
+                                        onClick={() => setValue('postType', type)} 
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             postType === type 
                                                 ? 'bg-[var(--brand-primary)] text-white' 
@@ -810,7 +857,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 py-4 sm:py-0 mb-8">
                         <button 
                             type="button" 
-                            onClick={() => router.push(getBasePath())}
+                            onClick={() => router.push(buildUrlWithParams(getBasePath()))}
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
                                      bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)]
                                      hover:bg-[var(--dark-600)] hover:border-[var(--dark-400)] transition-all"

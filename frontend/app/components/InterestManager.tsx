@@ -425,7 +425,7 @@ export default function InterestManager({ basePath }: InterestManagerProps) {
                 <div className="bg-[var(--dark-800)] rounded-none border-y border-[var(--dark-600)] p-12 text-center">
                   <Heart className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
                   <p className="text-[var(--brand-light)]/50">{t('empty')}</p>
-                  <Link href={`${basePath}/create`}>
+                  <Link href={buildUrlWithParams(`${basePath}/create`)}>
                     <button className="mt-4 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-medium text-sm">
                       {t('addFirstInterest')}
                     </button>

@@ -585,7 +585,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
               <p className="text-[var(--brand-light)]/60 text-sm">{t('subtitle')}</p>
             </div>
           </div>
-          <Link href={`${basePath}/create`}>
+          <Link href={buildUrlWithParams(`${basePath}/create`)}>
             <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
               {t('addField')}

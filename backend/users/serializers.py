@@ -424,8 +424,8 @@ class UserManagementSerializer(serializers.ModelSerializer):
                 attrs['assigned_municipality'] = None
         
         # Clean up empty strings - convert to None for optional fields
-        # Note: nickname is excluded because the model has blank=True but not null=True
-        for field in ['preferred_gender', 'phone_number', 'profession', 'background_image', 'mood_status']:
+        # Note: nickname and mood_status are excluded because the model has blank=True but not null=True
+        for field in ['preferred_gender', 'phone_number', 'profession', 'background_image']:
             if field in attrs and attrs[field] == '':
                 attrs[field] = None
         

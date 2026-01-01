@@ -270,12 +270,30 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('assigned_municipality') || '');
   const [clubFilter, setClubFilter] = useState(searchParams.get('assigned_club') || '');
 
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialRoleRef = useRef(searchParams.get('role') || '');
+  const initialMunicipalityRef = useRef(searchParams.get('assigned_municipality') || '');
+  const initialClubRef = useRef(searchParams.get('assigned_club') || '');
+  const hasUserChangedFilters = useRef(false);
+
   useEffect(() => {
     fetchDropdowns();
   }, []);
 
-  // Debounced Search/Filter Update
+  // Debounced Search/Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const roleChanged = roleFilter !== initialRoleRef.current;
+    const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
+    const clubChanged = clubFilter !== initialClubRef.current;
+    
+    if (!searchChanged && !roleChanged && !municipalityChanged && !clubChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -284,9 +302,15 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       if (clubFilter) params.set('assigned_club', clubFilter); else params.delete('assigned_club');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialRoleRef.current = roleFilter;
+      initialMunicipalityRef.current = municipalityFilter;
+      initialClubRef.current = clubFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, roleFilter, municipalityFilter, clubFilter]);
+  }, [searchInput, roleFilter, municipalityFilter, clubFilter, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchAdmins();
@@ -520,7 +544,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addAdmin')}
           </button>
@@ -709,7 +733,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addAdmin')}
               </button>

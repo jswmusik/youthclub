@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
 import { Menu, X, ExternalLink, ChevronRight, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem } from '@/types/cms';
 import CookieConsentBanner from '@/app/components/cms/CookieConsentBanner';
@@ -156,6 +157,9 @@ export default function PublicLayout({
 
             {/* Auth Buttons - Desktop */}
             <div className="hidden md:flex items-center gap-3">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
               {!authLoading && (
                 <>
                   {user ? (
@@ -370,6 +374,16 @@ export default function PublicLayout({
                     )}
                   </>
                 )}
+              </motion.div>
+
+              {/* Theme Toggle for Mobile */}
+              <motion.div 
+                className="mt-6 flex justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 }}
+              >
+                <ThemeToggle showLabel />
               </motion.div>
 
               {/* Footer Info */}

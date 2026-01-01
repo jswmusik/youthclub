@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, User, ShieldCheck, Building, Building2, 
   Mail, Phone, CheckCircle2, Lightbulb, Save, Briefcase
@@ -14,6 +16,7 @@ import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { getMediaUrl } from '../../app/utils';
 import { useAuth } from '../../context/AuthContext';
+import { createAdminSchema, type AdminFormData } from '@/lib/validations/admin';
 
 interface Option { id: number; name: string; }
 
@@ -59,21 +62,37 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
     return 'MUNICIPALITY_ADMIN';
   };
 
-  // Form Data
-  const [formData, setFormData] = useState({
-    email: initialData?.email || '',
-    password: '',
-    first_name: initialData?.first_name || '',
-    last_name: initialData?.last_name || '',
-    nickname: initialData?.nickname || '',
-    legal_gender: initialData?.legal_gender || 'MALE',
-    phone_number: initialData?.phone_number || '',
-    profession: initialData?.profession || '',
-    assigned_municipality: initialData?.assigned_municipality || '',
-    assigned_club: initialData?.assigned_club || '',
-    hide_contact_info: initialData?.hide_contact_info || false,
-    role: initialData?.role || getDefaultRole()
+  // Create the schema with translations
+  const adminSchema = createAdminSchema(t, !!initialData);
+
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    formState: { errors },
+    setValue,
+  } = useForm<AdminFormData>({
+    resolver: zodResolver(adminSchema),
+    defaultValues: {
+      first_name: initialData?.first_name || '',
+      last_name: initialData?.last_name || '',
+      email: initialData?.email || '',
+      password: '',
+      legal_gender: initialData?.legal_gender || 'MALE',
+      nickname: initialData?.nickname || '',
+      phone_number: initialData?.phone_number || '',
+      profession: initialData?.profession || '',
+      assigned_municipality: initialData?.assigned_municipality || '',
+      assigned_club: initialData?.assigned_club || '',
+      hide_contact_info: initialData?.hide_contact_info || false,
+      role: initialData?.role || getDefaultRole(),
+    },
+    mode: 'onBlur',
   });
+
+  // Watch form values
+  const formData = watch();
 
   // Track component mount for portal
   useEffect(() => {
@@ -84,9 +103,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
   useEffect(() => {
     fetchDropdowns();
     if (scope === 'CLUB' && !initialData) {
-      setFormData(prev => prev.role !== 'CLUB_ADMIN' ? {...prev, role: 'CLUB_ADMIN'} : prev);
+      const currentRole = formData.role;
+      if (currentRole !== 'CLUB_ADMIN') {
+        setValue('role', 'CLUB_ADMIN');
+      }
     }
-  }, [scope, initialData]);
+  }, [scope, initialData, formData.role, setValue]);
 
   const fetchDropdowns = async () => {
     try {
@@ -121,44 +143,43 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
     if (avatarRef.current) avatarRef.current.value = '';
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (validatedData: AdminFormData) => {
     setLoading(true);
 
     try {
       const data = new FormData();
       
-      data.append('email', formData.email);
-      data.append('first_name', formData.first_name);
-      data.append('last_name', formData.last_name);
-      data.append('role', formData.role);
-      data.append('legal_gender', formData.legal_gender);
+      data.append('email', validatedData.email);
+      data.append('first_name', validatedData.first_name);
+      data.append('last_name', validatedData.last_name);
+      data.append('role', validatedData.role || getDefaultRole());
+      data.append('legal_gender', validatedData.legal_gender);
       
-      if (formData.password) {
-        data.append('password', formData.password);
+      if (validatedData.password) {
+        data.append('password', validatedData.password);
       }
       
-      if (formData.phone_number) {
-        data.append('phone_number', formData.phone_number);
+      if (validatedData.phone_number) {
+        data.append('phone_number', validatedData.phone_number);
       }
       
-      if (formData.nickname) {
-        data.append('nickname', formData.nickname);
+      if (validatedData.nickname) {
+        data.append('nickname', validatedData.nickname);
       }
       
-      if (formData.profession) {
-        data.append('profession', formData.profession);
+      if (validatedData.profession) {
+        data.append('profession', validatedData.profession);
       }
       
-      data.append('hide_contact_info', formData.hide_contact_info.toString());
+      data.append('hide_contact_info', (validatedData.hide_contact_info || false).toString());
 
       if (scope === 'MUNICIPALITY' && currentUser?.assigned_municipality) {
          const muniId = typeof currentUser.assigned_municipality === 'object' 
             ? currentUser.assigned_municipality.id 
             : currentUser.assigned_municipality;
          data.append('assigned_municipality', muniId.toString());
-      } else if (formData.assigned_municipality && formData.assigned_municipality !== '') {
-        data.append('assigned_municipality', formData.assigned_municipality.toString());
+      } else if (validatedData.assigned_municipality && validatedData.assigned_municipality !== '') {
+        data.append('assigned_municipality', validatedData.assigned_municipality.toString());
       }
       
       if (scope === 'CLUB' && currentUser?.assigned_club) {
@@ -167,8 +188,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             : currentUser.assigned_club;
          data.append('assigned_club', clubId.toString());
          data.append('role', 'CLUB_ADMIN');
-      } else if (formData.assigned_club && formData.assigned_club !== '') {
-        data.append('assigned_club', formData.assigned_club.toString());
+      } else if (validatedData.assigned_club && validatedData.assigned_club !== '') {
+        data.append('assigned_club', validatedData.assigned_club.toString());
       }
 
       if (avatarFile) data.append('avatar', avatarFile);
@@ -178,7 +199,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       if (initialData) {
         await api.patch(`/users/${initialData.id}/`, data, config);
         queueToastForNavigation(
-          t('toast.adminUpdated', { firstName: formData.first_name, lastName: formData.last_name }),
+          t('toast.adminUpdated', { firstName: validatedData.first_name, lastName: validatedData.last_name }),
           'success',
           t('toast.adminUpdatedTitle'),
           2500
@@ -186,7 +207,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       } else {
         await api.post('/users/', data, config);
         queueToastForNavigation(
-          t('toast.adminCreated', { firstName: formData.first_name, lastName: formData.last_name }),
+          t('toast.adminCreated', { firstName: validatedData.first_name, lastName: validatedData.last_name }),
           'success',
           t('toast.adminCreatedTitle'),
           2500
@@ -383,7 +404,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit(handleSubmit)}>
           
           {/* Role Selection Card */}
           {allowedRoles.length > 1 && (
@@ -405,7 +426,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     <button
                       key={role}
                       type="button"
-                      onClick={() => setFormData({...formData, role})}
+                      onClick={() => setValue('role', role)}
                       className={`
                         p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2 text-center
                         ${getRoleColor(role, formData.role === role)}
@@ -456,14 +477,18 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <input 
                     id="first_name"
                     type="text"
-                    required 
                     placeholder={t('basicInformation.placeholders.firstName')}
-                    value={formData.first_name}
-                    onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                    {...register('first_name')}
                     onFocus={() => setFocusedField('first_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('first_name').onBlur(e);
+                    }}
                     className={inputClasses('first_name')}
                   />
+                  {errors.first_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.first_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="last_name" className={labelClasses}>
@@ -472,14 +497,18 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <input 
                     id="last_name"
                     type="text"
-                    required 
                     placeholder={t('basicInformation.placeholders.lastName')}
-                    value={formData.last_name}
-                    onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                    {...register('last_name')}
                     onFocus={() => setFocusedField('last_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('last_name').onBlur(e);
+                    }}
                     className={inputClasses('last_name')}
                   />
+                  {errors.last_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.last_name.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -493,12 +522,17 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     id="nickname"
                     type="text"
                     placeholder={t('basicInformation.placeholders.nickname')}
-                    value={formData.nickname}
-                    onChange={e => setFormData({ ...formData, nickname: e.target.value })}
+                    {...register('nickname')}
                     onFocus={() => setFocusedField('nickname')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('nickname').onBlur(e);
+                    }}
                     className={inputClasses('nickname')}
                   />
+                  {errors.nickname && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.nickname.message}</p>
+                  )}
                 </div>
               )}
 
@@ -515,14 +549,18 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <input 
                     id="email"
                     type="email"
-                    required
                     placeholder={t('basicInformation.placeholders.email')}
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    {...register('email')}
                     onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('email').onBlur(e);
+                    }}
                     className={inputClasses('email')}
                   />
+                  {errors.email && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.email.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="password" className={labelClasses}>
@@ -531,14 +569,18 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <input 
                     id="password"
                     type="password"
-                    required={!initialData}
                     placeholder={initialData ? t('basicInformation.placeholders.passwordEdit') : t('basicInformation.placeholders.password')}
-                    value={formData.password}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                    {...register('password')}
                     onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('password').onBlur(e);
+                    }}
                     className={inputClasses('password')}
                   />
+                  {errors.password && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.password.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -553,23 +595,30 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     id="phone_number"
                     type="tel"
                     placeholder={t('basicInformation.placeholders.phoneNumber')}
-                    value={formData.phone_number}
-                    onChange={e => setFormData({ ...formData, phone_number: e.target.value })}
+                    {...register('phone_number')}
                     onFocus={() => setFocusedField('phone_number')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('phone_number').onBlur(e);
+                    }}
                     className={inputClasses('phone_number')}
                   />
+                  {errors.phone_number && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.phone_number.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="legal_gender" className={labelClasses}>
-                    {t('basicInformation.gender')}
+                    {t('basicInformation.gender')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     id="legal_gender"
-                    value={formData.legal_gender}
-                    onChange={e => setFormData({ ...formData, legal_gender: e.target.value })}
+                    {...register('legal_gender')}
                     onFocus={() => setFocusedField('legal_gender')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('legal_gender').onBlur(e);
+                    }}
                     className={selectClasses('legal_gender')}
                     style={selectArrowStyle}
                   >
@@ -577,6 +626,9 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     <option value="FEMALE">{t('basicInformation.genders.FEMALE')}</option>
                     <option value="OTHER">{t('basicInformation.genders.OTHER')}</option>
                   </select>
+                  {errors.legal_gender && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.legal_gender.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -606,16 +658,21 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   </label>
                   <select 
                     id="assigned_municipality"
-                    value={formData.assigned_municipality}
-                    onChange={e => setFormData({ ...formData, assigned_municipality: e.target.value })}
+                    {...register('assigned_municipality')}
                     onFocus={() => setFocusedField('assigned_municipality')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('assigned_municipality').onBlur(e);
+                    }}
                     className={selectClasses('assigned_municipality')}
                     style={selectArrowStyle}
                   >
                     <option value="">{t('assignments.selectMunicipality')}</option>
                     {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
+                  {errors.assigned_municipality && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.assigned_municipality.message}</p>
+                  )}
                 </div>
               )}
 
@@ -629,16 +686,21 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     </label>
                     <select 
                       id="assigned_club"
-                      value={formData.assigned_club}
-                      onChange={e => setFormData({ ...formData, assigned_club: e.target.value })}
+                      {...register('assigned_club')}
                       onFocus={() => setFocusedField('assigned_club')}
-                      onBlur={() => setFocusedField(null)}
+                      onBlur={(e) => {
+                        setFocusedField(null);
+                        register('assigned_club').onBlur(e);
+                      }}
                       className={selectClasses('assigned_club')}
                       style={selectArrowStyle}
                     >
                       <option value="">{t('assignments.selectClub')}</option>
                       {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
+                    {errors.assigned_club && (
+                      <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.assigned_club.message}</p>
+                    )}
                   </div>
                   
                   <div>
@@ -650,12 +712,17 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                       id="profession"
                       type="text"
                       placeholder={t('assignments.professionPlaceholder')}
-                      value={formData.profession}
-                      onChange={e => setFormData({ ...formData, profession: e.target.value })}
+                      {...register('profession')}
                       onFocus={() => setFocusedField('profession')}
-                      onBlur={() => setFocusedField(null)}
+                      onBlur={(e) => {
+                        setFocusedField(null);
+                        register('profession').onBlur(e);
+                      }}
                       className={inputClasses('profession')}
                     />
+                    {errors.profession && (
+                      <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.profession.message}</p>
+                    )}
                   </div>
                 </>
               )}

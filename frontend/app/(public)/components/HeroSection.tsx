@@ -14,6 +14,7 @@ interface HeroSettings {
   hero_subtitle: string;
   hero_cta_text: string;
   hero_background: string | null;
+  hero_video: string | null;
 }
 
 export default function HeroSection() {
@@ -27,7 +28,12 @@ export default function HeroSection() {
     hero_subtitle: 'Upptäck evenemang, fritidsgårdar och aktiviteter i ditt område. Ungdomsappen samlar allt på ett ställe.',
     hero_cta_text: 'Sök',
     hero_background: null,
+    hero_video: null,
   });
+  
+  // Video loading states
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   // Fetch hero settings
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function HeroSection() {
             hero_subtitle: data.hero_subtitle || heroSettings.hero_subtitle,
             hero_cta_text: data.hero_cta_text || heroSettings.hero_cta_text,
             hero_background: data.hero_background,
+            hero_video: data.hero_video,
           });
         }
       } catch (error) {
@@ -99,12 +106,45 @@ export default function HeroSection() {
   };
 
   const backgroundUrl = getMediaUrl(heroSettings.hero_background);
+  const videoUrl = getMediaUrl(heroSettings.hero_video);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image or Animated Background */}
+      {/* Background Video/Image or Animated Background */}
       <div className="absolute inset-0 bg-[var(--dark-900)]">
-        {backgroundUrl ? (
+        {/* Priority 1: Video Background */}
+        {videoUrl && !videoError ? (
+          <>
+            {/* Video element */}
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              onLoadedData={() => setVideoLoaded(true)}
+              onError={() => setVideoError(true)}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                videoLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <source src={videoUrl} type="video/mp4" />
+              <source src={videoUrl} type="video/webm" />
+            </video>
+            
+            {/* Show fallback image while video loads */}
+            {!videoLoaded && backgroundUrl && (
+              <img 
+                src={backgroundUrl} 
+                alt="Hero background" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+            
+            {/* Gradient overlay for video */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[var(--dark-900)]/70 via-[var(--dark-900)]/50 to-[var(--dark-900)]" />
+          </>
+        ) : backgroundUrl ? (
+          /* Priority 2: Image Background (fallback) */
           <>
             <img 
               src={backgroundUrl} 
@@ -114,6 +154,7 @@ export default function HeroSection() {
             <div className="absolute inset-0 bg-gradient-to-b from-[var(--dark-900)]/70 via-[var(--dark-900)]/50 to-[var(--dark-900)]" />
           </>
         ) : (
+          /* Priority 3: Animated gradient orbs (no media) */
           <>
             {/* Gradient Orbs */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[var(--brand-primary)]/20 blur-[100px] animate-pulse" />

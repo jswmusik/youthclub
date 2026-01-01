@@ -270,6 +270,11 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
 
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialMunicipalityRef = useRef(searchParams.get('municipality') || '');
+  const hasUserChangedFilters = useRef(false);
+
   // Load Metadata
   useEffect(() => {
     if (scope === 'SUPER') {
@@ -280,17 +285,30 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
     fetchAllAnalyticsData();
   }, [scope]);
 
-  // Debounced Search/Filter Update
+  // Debounced Search/Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
+    
+    if (!searchChanged && !municipalityChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
         const params = new URLSearchParams(searchParams.toString());
         if (searchInput) params.set('search', searchInput); else params.delete('search');
         if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
         params.set('page', '1'); 
         router.replace(`${pathname}?${params.toString()}`);
+        
+        // Update refs to current values
+        initialSearchRef.current = searchInput;
+        initialMunicipalityRef.current = municipalityFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, municipalityFilter, router, pathname]);
+  }, [searchInput, municipalityFilter, router, pathname, searchParams]);
 
   // Fetch Data on URL Change
   useEffect(() => {
@@ -387,7 +405,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addClub')}
           </button>
@@ -504,7 +522,7 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
             {searchInput || municipalityFilter ? t('emptyState.messageFiltered') : t('emptyState.messageEmpty')}
           </p>
           {!searchInput && !municipalityFilter && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addClub')}
               </button>

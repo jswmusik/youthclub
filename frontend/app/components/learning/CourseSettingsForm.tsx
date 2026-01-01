@@ -3,7 +3,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
 import { learningApi } from '@/lib/learning-api';
@@ -45,6 +45,13 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
     ({ initialData, isEditing = false, hideActions = false, basePath = '/admin/super/knowledge' }, ref) => {
     const t = useTranslations('knowledgeAdmin.courses.form');
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     
     const ROLES = [
         { id: 'MUNICIPALITY_ADMIN', label: t('sections.targetAudience.roles.MUNICIPALITY_ADMIN'), icon: '🏛️' },
@@ -170,7 +177,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                 await learningApi.updateCourse(initialData.slug, submitData);
                 success(t('toast.courseUpdated'));
                 if (exitAfter) {
-                    setTimeout(() => router.push(`${basePath}/courses`), 1000);
+                    setTimeout(() => router.push(buildUrlWithParams(`${basePath}/courses`)), 1000);
                 }
             } else {
                 const response = await learningApi.createCourse(submitData);
@@ -645,7 +652,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                             <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                                 <button 
                                     type="button" 
-                                    onClick={() => router.push(`${basePath}/courses`)} 
+                                    onClick={() => router.push(buildUrlWithParams(`${basePath}/courses`))} 
                                     className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                                 >
                                     {t('actions.cancel')}

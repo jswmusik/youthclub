@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
     ArrowLeft, Upload, X, Globe, Building, Users, FileText, Image, Video,
     CheckCircle2, Lightbulb, Sparkles, Bell, MessageSquare, Pin, Calendar,
@@ -16,6 +18,7 @@ import PostRichTextEditor from './PostRichTextEditor';
 import { getMediaUrl } from '../../utils';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../context/AuthContext';
+import { createPostSchema, PostFormData } from '../../../lib/validations/post';
 
 interface PostFormProps {
     initialData?: Post;
@@ -43,6 +46,22 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
     const [availableInterests, setAvailableInterests] = useState<any[]>([]);
     const [availableCustomFields, setAvailableCustomFields] = useState<any[]>([]);
 
+    // Initialize React Hook Form with validation
+    const { register, handleSubmit: handleFormSubmit, formState: { errors }, watch, setValue, control } = useForm<PostFormData>({
+        resolver: zodResolver(createPostSchema(t)),
+        mode: 'onBlur', // Validate on blur
+        defaultValues: {
+            title: initialData?.title || '',
+            content: initialData?.content || '',
+            postType: initialData?.post_type || 'TEXT',
+        }
+    });
+
+    // Watch form values
+    const title = watch('title');
+    const content = watch('content');
+    const postType = watch('postType');
+
     // --- 1. Distribution (Scope) State ---
     const getInitialDistributionMode = (): 'GLOBAL' | 'MUNICIPALITY' | 'CLUB' => {
         if (initialData) {
@@ -62,10 +81,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         (initialData?.target_clubs && initialData.target_clubs.length > 0) ? 'SPECIFIC' : 'ALL'
     );
 
-    // --- 2. Basic Info ---
-    const [title, setTitle] = useState(initialData?.title || '');
-    const [content, setContent] = useState(initialData?.content || '');
-    const [postType, setPostType] = useState(initialData?.post_type || 'TEXT');
+    // --- Non-validated fields ---
     const [videoUrl, setVideoUrl] = useState(initialData?.video_url || '');
     const [existingImages, setExistingImages] = useState<PostImage[]>(initialData?.images || []);
     const [newImages, setNewImages] = useState<File[]>([]);
@@ -141,10 +157,10 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
 
     // Progress calculation
     const calculateCompletion = useCallback(() => {
-        const requiredFields = [title];
+        const requiredFields = [title, content];
         const filled = requiredFields.filter(f => f && f.toString().trim()).length;
         return Math.round((filled / requiredFields.length) * 100);
-    }, [title]);
+    }, [title, content]);
 
     const completionPercent = calculateCompletion();
 
@@ -180,15 +196,14 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (data: PostFormData) => {
         setLoading(true);
         setError('');
         const formData = new FormData();
 
-        formData.append('title', title);
-        formData.append('content', content);
-        formData.append('post_type', postType);
+        formData.append('title', data.title);
+        formData.append('content', data.content);
+        formData.append('post_type', data.postType || 'TEXT');
         if (videoUrl) formData.append('video_url', videoUrl);
 
         let isGlobal = false;
@@ -397,7 +412,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleFormSubmit(handleSubmit)}>
 
                     {/* --- POST CONTENT --- */}
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
@@ -419,23 +434,42 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                 <label className={labelClasses}>{t('postContent.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
                                 <input 
                                     type="text" 
-                                    required 
                                     placeholder={t('postContent.titlePlaceholder')}
                                     className={inputClasses('title')}
-                                    value={title} 
-                                    onChange={e => setTitle(e.target.value)} 
+                                    {...register('title')}
                                     onFocus={() => setFocusedField('title')}
-                                    onBlur={() => setFocusedField(null)}
+                                    onBlur={(e) => {
+                                        setFocusedField(null);
+                                        register('title').onBlur(e);
+                                    }}
                                 />
+                                {errors.title && (
+                                    <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.title.message}</p>
+                                )}
                             </div>
 
                             {/* Content */}
                             <div>
-                                <label className={labelClasses}>{t('postContent.contentLabel')}</label>
-                                <PostRichTextEditor value={content} onChange={setContent} />
+                                <label className={labelClasses}>{t('postContent.contentLabel')} <span className="text-[var(--brand-red)]">*</span></label>
+                                <Controller
+                                    name="content"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <PostRichTextEditor 
+                                            value={field.value} 
+                                            onChange={(value) => {
+                                                field.onChange(value);
+                                                field.onBlur();
+                                            }}
+                                        />
+                                    )}
+                                />
                                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">
                                     {t('postContent.contentHint')}
                                 </p>
+                                {errors.content && (
+                                    <p className="mt-2 text-sm text-[var(--brand-red)]">{errors.content.message}</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -464,7 +498,7 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                     <button 
                                         key={type} 
                                         type="button" 
-                                        onClick={() => setPostType(type as any)} 
+                                        onClick={() => setValue('postType', type as any)} 
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             postType === type 
                                                 ? 'bg-[var(--brand-primary)] text-white' 

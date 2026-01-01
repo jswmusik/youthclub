@@ -284,13 +284,33 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
   const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
   const [clubFilter, setClubFilter] = useState(searchParams.get('preferred_club') || '');
 
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialGenderRef = useRef(searchParams.get('legal_gender') || '');
+  const initialStatusRef = useRef(searchParams.get('verification_status') || '');
+  const initialMunicipalityRef = useRef(searchParams.get('municipality') || '');
+  const initialClubRef = useRef(searchParams.get('preferred_club') || '');
+  const hasUserChangedFilters = useRef(false);
+
   useEffect(() => {
     fetchDropdowns();
     fetchAllUsersForAnalytics();
   }, []);
 
-  // Debounced Search/Filter Update
+  // Debounced Search/Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const genderChanged = genderFilter !== initialGenderRef.current;
+    const statusChanged = statusFilter !== initialStatusRef.current;
+    const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
+    const clubChanged = clubFilter !== initialClubRef.current;
+    
+    if (!searchChanged && !genderChanged && !statusChanged && !municipalityChanged && !clubChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -300,9 +320,16 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       if (clubFilter) params.set('preferred_club', clubFilter); else params.delete('preferred_club');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialGenderRef.current = genderFilter;
+      initialStatusRef.current = statusFilter;
+      initialMunicipalityRef.current = municipalityFilter;
+      initialClubRef.current = clubFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, genderFilter, statusFilter, municipalityFilter, clubFilter]);
+  }, [searchInput, genderFilter, statusFilter, municipalityFilter, clubFilter, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchYouth();
@@ -623,7 +650,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addYouth')}
           </button>
@@ -817,7 +844,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
             {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.addFirstMember')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addYouth')}
               </button>

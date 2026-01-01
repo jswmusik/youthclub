@@ -73,6 +73,96 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     members_to_add: [] as number[],
   });
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let error = '';
+    
+    switch (field) {
+      case 'name':
+        if (!value || value.trim() === '') {
+          error = t('validation.nameRequired');
+        }
+        break;
+      case 'group_type':
+        if (!value || value.trim() === '') {
+          error = t('validation.groupTypeRequired');
+        }
+        break;
+      case 'description':
+        if (!value || value.trim() === '') {
+          error = t('validation.descriptionRequired');
+        }
+        break;
+      case 'backgroundImage':
+        if (!backgroundImageFile && !backgroundPreview) {
+          error = t('validation.coverImageRequired');
+        }
+        break;
+      case 'avatar':
+        if (!avatarFile && !avatarPreview) {
+          error = t('validation.avatarRequired');
+        }
+        break;
+    }
+    
+    return error;
+  };
+
+  // Handle field blur
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    let value: any;
+    
+    if (field === 'backgroundImage') {
+      value = backgroundImageFile || backgroundPreview;
+    } else if (field === 'avatar') {
+      value = avatarFile || avatarPreview;
+    } else {
+      value = formData[field as keyof typeof formData];
+    }
+    
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredFields = ['name', 'group_type', 'description', 'backgroundImage', 'avatar'];
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      let value: any;
+      
+      if (field === 'backgroundImage') {
+        value = backgroundImageFile || backgroundPreview;
+      } else if (field === 'avatar') {
+        value = avatarFile || avatarPreview;
+      } else {
+        value = formData[field as keyof typeof formData];
+      }
+      
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Track component mount for portal
   useEffect(() => {
     setIsMounted(true);
@@ -213,6 +303,13 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
       }
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
+      // Clear validation error
+      setTouchedFields(prev => ({ ...prev, avatar: true }));
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors['avatar'];
+        return newErrors;
+      });
     }
   };
 
@@ -224,6 +321,13 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
       }
       setBackgroundImageFile(file);
       setBackgroundPreview(URL.createObjectURL(file));
+      // Clear validation error
+      setTouchedFields(prev => ({ ...prev, backgroundImage: true }));
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors['backgroundImage'];
+        return newErrors;
+      });
     }
   };
 
@@ -244,6 +348,12 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
     setLoading(true);
 
     try {
+      // Validate form
+      if (!validateForm()) {
+        setLoading(false);
+        return;
+      }
+      
       const data = new FormData();
       
       data.append('name', formData.name);
@@ -442,37 +552,68 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    {t('basicInfo.groupName')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInfo.groupName')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <input 
                     id="name"
+                    name="name"
                     type="text"
-                    required
                     placeholder={t('basicInfo.namePlaceholder')}
                     value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, name: e.target.value});
+                      if (validationErrors['name']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['name'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('name')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('name')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('name');
+                    }}
+                    className={`${inputClasses('name')} ${touchedFields['name'] && validationErrors['name'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                   />
+                  {touchedFields['name'] && validationErrors['name'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['name']}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="group_type" className={labelClasses}>
-                    {t('basicInfo.groupType')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('basicInfo.groupType')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <select 
                     id="group_type"
+                    name="group_type"
                     value={formData.group_type}
-                    onChange={e => setFormData({...formData, group_type: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, group_type: e.target.value});
+                      if (validationErrors['group_type']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['group_type'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('group_type')}
-                    onBlur={() => setFocusedField(null)}
-                    className={selectClasses('group_type')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('group_type');
+                    }}
+                    className={`${selectClasses('group_type')} ${touchedFields['group_type'] && validationErrors['group_type'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                     style={selectArrowStyle}
                   >
                     <option value="OPEN">{t('basicInfo.types.open')}</option>
                     <option value="APPLICATION">{t('basicInfo.types.application')}</option>
                     <option value="CLOSED">{t('basicInfo.types.closed')}</option>
                   </select>
+                  {touchedFields['group_type'] && validationErrors['group_type'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['group_type']}</p>
+                  )}
                 </div>
               </div>
 
@@ -514,18 +655,34 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
 
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  {t('basicInfo.descriptionLabel')}
+                  {t('basicInfo.descriptionLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <textarea 
                   id="description"
+                  name="description"
                   rows={3}
                   placeholder={t('basicInfo.descriptionPlaceholder')}
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, description: e.target.value});
+                    if (validationErrors['description']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['description'];
+                        return newErrors;
+                      });
+                    }
+                  }}
                   onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('description')} h-auto min-h-[100px] py-3`}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    handleBlur('description');
+                  }}
+                  className={`${inputClasses('description')} h-auto min-h-[100px] py-3 ${touchedFields['description'] && validationErrors['description'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                 />
+                {touchedFields['description'] && validationErrors['description'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+                )}
               </div>
             </div>
           </div>
@@ -548,11 +705,15 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Cover Image */}
                 <div>
-                  <label className={labelClasses}>{t('profileVisuals.coverImage')}</label>
+                  <label className={labelClasses}>{t('profileVisuals.coverImage')} <span className="text-[var(--brand-red)]">*</span></label>
                   <div className="flex items-start gap-4">
                     <div 
-                      className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
-                      onClick={() => bgRef.current?.click()}
+                      id="backgroundImage"
+                      className={`relative group w-24 h-16 border-2 border-dashed ${touchedFields['backgroundImage'] && validationErrors['backgroundImage'] ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
+                      onClick={() => {
+                        setTouchedFields(prev => ({ ...prev, backgroundImage: true }));
+                        bgRef.current?.click();
+                      }}
                     >
                       {backgroundPreview ? (
                         <>
@@ -591,15 +752,22 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                     </div>
                     <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
                   </div>
+                  {touchedFields['backgroundImage'] && validationErrors['backgroundImage'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-2">{validationErrors['backgroundImage']}</p>
+                  )}
                 </div>
 
                 {/* Avatar */}
                 <div>
-                  <label className={labelClasses}>{t('profileVisuals.avatar')}</label>
+                  <label className={labelClasses}>{t('profileVisuals.avatar')} <span className="text-[var(--brand-red)]">*</span></label>
                   <div className="flex items-start gap-4">
                     <div 
-                      className="relative group w-16 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
-                      onClick={() => avatarRef.current?.click()}
+                      id="avatar"
+                      className={`relative group w-16 h-16 border-2 border-dashed ${touchedFields['avatar'] && validationErrors['avatar'] ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
+                      onClick={() => {
+                        setTouchedFields(prev => ({ ...prev, avatar: true }));
+                        avatarRef.current?.click();
+                      }}
                     >
                       {avatarPreview ? (
                         <>
@@ -638,6 +806,9 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                     </div>
                     <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                   </div>
+                  {touchedFields['avatar'] && validationErrors['avatar'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-2">{validationErrors['avatar']}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -944,7 +1115,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10 px-4 sm:px-0">
             <button 
               type="button" 
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
             >
               {t('actions.cancel')}

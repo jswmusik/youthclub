@@ -151,6 +151,14 @@ class UserViewSet(viewsets.ModelViewSet):
                 Q(assigned_municipality=municipality_filter)
             )
 
+        # Filter by is_active status (for excluding deleted/deactivated users)
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            if is_active.lower() in ['true', '1', 'yes']:
+                queryset = queryset.filter(is_active=True)
+            elif is_active.lower() in ['false', '0', 'no']:
+                queryset = queryset.filter(is_active=False)
+
         return queryset
 
     def get_serializer_class(self):

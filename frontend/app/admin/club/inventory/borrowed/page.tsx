@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -91,20 +91,38 @@ export default function ClubBorrowedItemsPage() {
     const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
     const [selectedItemId, setSelectedItemId] = useState(searchParams.get('item') || '');
     
+    // Track initial values to detect actual user changes
+    const initialSearchRef = useRef(searchParams.get('search') || '');
+    const initialItemRef = useRef(searchParams.get('item') || '');
+    const hasUserChangedFilters = useRef(false);
+    
     const currentPage = Number(searchParams.get('page')) || 1;
     const pageSize = 10;
 
-    // Debounced filter update
+    // Debounced filter update - only reset page when user actually changes filters
     useEffect(() => {
+        const searchChanged = searchInput !== initialSearchRef.current;
+        const itemChanged = selectedItemId !== initialItemRef.current;
+        
+        if (!searchChanged && !itemChanged && !hasUserChangedFilters.current) {
+            return;
+        }
+        
+        hasUserChangedFilters.current = true;
+
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (searchInput) params.set('search', searchInput); else params.delete('search');
             if (selectedItemId) params.set('item', selectedItemId); else params.delete('item');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
+            
+            // Update refs to current values
+            initialSearchRef.current = searchInput;
+            initialItemRef.current = selectedItemId;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, selectedItemId]);
+    }, [searchInput, selectedItemId, searchParams, pathname, router]);
 
     useEffect(() => {
         if (user?.assigned_club) {

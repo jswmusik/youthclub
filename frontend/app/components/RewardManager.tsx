@@ -293,8 +293,26 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [expiredFilter, setExpiredFilter] = useState(searchParams.get('expired') || '');
 
-  // Debounced filter update
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialScopeRef = useRef(searchParams.get('scope') || '');
+  const initialStatusRef = useRef(searchParams.get('status') || '');
+  const initialExpiredRef = useRef(searchParams.get('expired') || '');
+  const hasUserChangedFilters = useRef(false);
+
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const scopeChanged = scopeFilter !== initialScopeRef.current;
+    const statusChanged = statusFilter !== initialStatusRef.current;
+    const expiredChanged = expiredFilter !== initialExpiredRef.current;
+    
+    if (!searchChanged && !scopeChanged && !statusChanged && !expiredChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -303,9 +321,15 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
       if (expiredFilter) params.set('expired', expiredFilter); else params.delete('expired');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialScopeRef.current = scopeFilter;
+      initialStatusRef.current = statusFilter;
+      initialExpiredRef.current = expiredFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, scopeFilter, statusFilter, expiredFilter]);
+  }, [searchInput, scopeFilter, statusFilter, expiredFilter, searchParams, pathname, router]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -529,7 +553,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addReward')}
           </button>
@@ -715,7 +739,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
             {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addReward')}
               </button>

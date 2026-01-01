@@ -63,6 +63,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BackgroundGlow } from '@/components/BackgroundGlow';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Helper to get initials
 const getInitials = (first?: string | null, last?: string | null) => {
@@ -111,7 +112,8 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
     if (hasFeature('groups')) refreshPendingRequestsCount();
     if (hasFeature('bookings')) refreshPendingBookingsCount();
     if (hasFeature('events')) refreshPendingEventApplicationsCount();
-  }, [refreshMessageCount, hasFeature]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshMessageCount]);
 
   // Auto-open groups when navigating to a page within that group
   useEffect(() => {
@@ -656,6 +658,24 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
 
       {/* Footer - Always Visible */}
       <div className={cn("p-4 border-t border-[var(--dark-600)] transition-all duration-500 ease-in-out flex-shrink-0", isCollapsed && "px-2")}>
+        {/* Theme Toggle */}
+        <div className={cn("mb-3", isCollapsed && "flex justify-center")}>
+          {isCollapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <ThemeToggle />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-[var(--dark-700)] text-[var(--brand-light)] border-[var(--dark-600)]">
+                <p>Toggle theme</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <ThemeToggle showLabel className="w-full justify-center" />
+          )}
+        </div>
+        
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 

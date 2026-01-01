@@ -5,6 +5,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator, FileExt
 # Define allowed file types for images
 image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
 
+# Define allowed file types for videos
+video_validator = FileExtensionValidator(allowed_extensions=['mp4', 'webm', 'mov'])
+
 
 class SiteSEOSettings(models.Model):
     """
@@ -43,7 +46,14 @@ class SiteSEOSettings(models.Model):
         null=True, 
         blank=True,
         validators=[image_validator],
-        help_text="High res background image (recommended: 1920x1080px)"
+        help_text="Fallback background image if no video (recommended: 1920x1080px)"
+    )
+    hero_video = models.FileField(
+        upload_to='marketing/hero/videos/', 
+        null=True, 
+        blank=True,
+        validators=[video_validator],
+        help_text="Background video for hero section (recommended: MP4, max 30MB, 1920x1080px)"
     )
     
     # --- Open Graph / Social ---

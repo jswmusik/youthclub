@@ -16,7 +16,7 @@ class SiteSEOSettingsSerializer(serializers.ModelSerializer):
             # SEO fields
             'page_title', 'meta_description', 'keywords',
             # Hero fields
-            'hero_title', 'hero_subtitle', 'hero_cta_text', 'hero_background',
+            'hero_title', 'hero_subtitle', 'hero_cta_text', 'hero_background', 'hero_video',
             # Open Graph
             'og_title', 'og_description', 'og_image'
         ]

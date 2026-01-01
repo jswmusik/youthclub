@@ -17,6 +17,7 @@ import {
     CalendarDays,
     ChevronRight
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 
 interface YouthSidebarProps {
@@ -213,10 +214,15 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
                 ))}
             </nav>
 
-            {/* Footer hint */}
-            <div className={`mt-6 pt-4 hidden md:block ${
+            {/* Theme Toggle */}
+            <div className={`mt-6 pt-4 ${
                 darkMode ? 'border-t border-[var(--dark-600)]' : 'border-t border-gray-100'
             }`}>
+                <ThemeToggle showLabel className="w-full justify-center" />
+            </div>
+
+            {/* Footer hint */}
+            <div className={`mt-4 hidden md:block`}>
                 <p className={`text-[10px] text-center ${
                     darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'
                 }`}>

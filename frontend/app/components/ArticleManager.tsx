@@ -256,6 +256,12 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [authorFilter, setAuthorFilter] = useState(searchParams.get('author') || '');
   
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialStatusRef = useRef(searchParams.get('status') || '');
+  const initialAuthorRef = useRef(searchParams.get('author') || '');
+  const hasUserChangedFilters = useRef(false);
+  
   // Delete
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const { success, error, info, warning } = useToast();
@@ -264,8 +270,18 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
     fetchAllArticlesForAnalytics();
   }, []);
 
-  // Debounced Search/Filter Update
+  // Debounced Search/Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const statusChanged = statusFilter !== initialStatusRef.current;
+    const authorChanged = authorFilter !== initialAuthorRef.current;
+    
+    if (!searchChanged && !statusChanged && !authorChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -273,9 +289,14 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
       if (authorFilter) params.set('author', authorFilter); else params.delete('author');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialStatusRef.current = statusFilter;
+      initialAuthorRef.current = authorFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, statusFilter, authorFilter]);
+  }, [searchInput, statusFilter, authorFilter, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchArticles();
@@ -523,7 +544,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
               <Tag className="h-4 w-4" /> {t('tags')}
             </button>
           </Link>
-          <Link href={`${basePath}/create`}>
+          <Link href={buildUrlWithParams(`${basePath}/create`)}>
             <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2.5 transition-all text-sm">
               <Plus className="h-4 w-4" /> {t('createArticle')}
             </button>
@@ -671,7 +692,7 @@ export default function ArticleManager({ basePath }: ArticleManagerProps) {
             {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('createArticle')}
               </button>

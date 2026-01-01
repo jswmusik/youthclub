@@ -90,6 +90,82 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
     is_active: true
   });
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let error = '';
+    
+    switch (field) {
+      case 'name':
+        if (!value || value.trim() === '') {
+          error = t('validation.nameRequired');
+        }
+        break;
+      case 'description':
+        if (!value || value.trim() === '') {
+          error = t('validation.descriptionRequired');
+        }
+        break;
+      case 'image':
+        if (!imageFile && !imagePreview) {
+          error = t('validation.imageRequired');
+        }
+        break;
+    }
+    
+    return error;
+  };
+
+  // Handle field blur
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    let value: any;
+    
+    if (field === 'image') {
+      value = imageFile || imagePreview;
+    } else {
+      value = formData[field as keyof typeof formData];
+    }
+    
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredFields = ['name', 'description', 'image'];
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      let value: any;
+      
+      if (field === 'image') {
+        value = imageFile || imagePreview;
+      } else {
+        value = formData[field as keyof typeof formData];
+      }
+      
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Track component mount for portal
   useEffect(() => {
     setIsMounted(true);
@@ -203,6 +279,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
       }
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      // Clear validation error
+      setTouchedFields(prev => ({ ...prev, image: true }));
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors['image'];
+        return newErrors;
+      });
     }
   };
 
@@ -250,6 +333,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validate form
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => {
@@ -427,19 +516,34 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="name" className={labelClasses}>
-                    {t('sections.rewardDetails.rewardTitle')} <span className="text-[var(--brand-primary)]">*</span>
+                    {t('sections.rewardDetails.rewardTitle')} <span className="text-[var(--brand-red)]">*</span>
                   </label>
                   <input 
                     id="name"
+                    name="name"
                     type="text"
-                    required
                     placeholder={t('sections.rewardDetails.rewardTitlePlaceholder')}
                     value={formData.name}
-                    onChange={e => setFormData({...formData, name: e.target.value})}
+                    onChange={e => {
+                      setFormData({...formData, name: e.target.value});
+                      if (validationErrors['name']) {
+                        setValidationErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors['name'];
+                          return newErrors;
+                        });
+                      }
+                    }}
                     onFocus={() => setFocusedField('name')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('name')}
+                    onBlur={() => {
+                      setFocusedField(null);
+                      handleBlur('name');
+                    }}
+                    className={`${inputClasses('name')} ${touchedFields['name'] && validationErrors['name'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                   />
+                  {touchedFields['name'] && validationErrors['name'] && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['name']}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="sponsor_name" className={labelClasses}>
@@ -477,19 +581,34 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
               <div>
                 <label htmlFor="description" className={labelClasses}>
-                  {t('sections.rewardDetails.description')} <span className="text-[var(--brand-primary)]">*</span>
+                  {t('sections.rewardDetails.descriptionLabel')} <span className="text-[var(--brand-red)]">*</span>
                 </label>
                 <textarea 
                   id="description"
+                  name="description"
                   rows={4}
-                  required
                   placeholder={t('sections.rewardDetails.descriptionPlaceholder')}
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, description: e.target.value});
+                    if (validationErrors['description']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['description'];
+                        return newErrors;
+                      });
+                    }
+                  }}
                   onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('description')} h-auto min-h-[100px] py-3`}
+                  onBlur={() => {
+                    setFocusedField(null);
+                    handleBlur('description');
+                  }}
+                  className={`${inputClasses('description')} h-auto min-h-[100px] py-3 ${touchedFields['description'] && validationErrors['description'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                 />
+                {touchedFields['description'] && validationErrors['description'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+                )}
               </div>
             </div>
           </div>
@@ -502,7 +621,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                   <Image className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardImage.title')}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
                   <p className="text-sm text-[var(--brand-light)]/50">{t('sections.rewardImage.description')}</p>
                 </div>
               </div>
@@ -511,8 +630,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             <div className="p-6">
               <div className="flex items-start gap-4">
                 <div 
-                  className="relative group w-24 h-24 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
-                  onClick={() => imageRef.current?.click()}
+                  id="image"
+                  className={`relative group w-24 h-24 border-2 border-dashed ${touchedFields['image'] && validationErrors['image'] ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
+                  onClick={() => {
+                    setTouchedFields(prev => ({ ...prev, image: true }));
+                    imageRef.current?.click();
+                  }}
                 >
                   {imagePreview ? (
                     <>
@@ -551,6 +674,9 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                 </div>
                 <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
+              {touchedFields['image'] && validationErrors['image'] && (
+                <p className="text-[var(--brand-red)] text-sm mt-2">{validationErrors['image']}</p>
+              )}
             </div>
           </div>
 

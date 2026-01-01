@@ -2,13 +2,20 @@
 
 import { Suspense } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import GroupForm from '@/app/components/GroupForm';
 import { Layers } from 'lucide-react';
 
 function GroupFormContent() {
-  return (
-    <GroupForm redirectPath="/admin/super/groups" />
-  );
+  const searchParams = useSearchParams();
+  
+  const buildRedirectPath = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    const queryString = params.toString();
+    return queryString ? `/admin/super/groups?${queryString}` : '/admin/super/groups';
+  };
+
+  return <GroupForm redirectPath={buildRedirectPath()} />;
 }
 
 function LoadingFallback() {

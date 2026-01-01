@@ -258,9 +258,14 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const { success, error, info, warning } = useToast();
 
-  // Inputs
+  // Inputs - initialize from URL
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   const [countryFilter, setCountryFilter] = useState(searchParams.get('country') || '');
+  
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialCountryRef = useRef(searchParams.get('country') || '');
+  const hasUserChangedFilters = useRef(false);
 
   useEffect(() => {
     api.get('/countries/').then(res => {
@@ -269,16 +274,33 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
     fetchAllMunicipalitiesForAnalytics();
   }, []);
 
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    // Check if values actually changed from initial URL values
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const countryChanged = countryFilter !== initialCountryRef.current;
+    
+    // If user hasn't made any changes yet, don't do anything
+    if (!searchChanged && !countryChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    // Mark that user has started changing filters
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
         const params = new URLSearchParams(searchParams.toString());
         if (searchInput) params.set('search', searchInput); else params.delete('search');
         if (countryFilter) params.set('country', countryFilter); else params.delete('country');
         params.set('page', '1'); // Reset page on filter change
         router.replace(`${pathname}?${params.toString()}`);
+        
+        // Update refs to current values
+        initialSearchRef.current = searchInput;
+        initialCountryRef.current = countryFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, countryFilter, router, pathname]);
+  }, [searchInput, countryFilter, router, pathname, searchParams]);
 
   useEffect(() => {
     fetchData();
@@ -368,7 +390,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addMunicipality')}
           </button>
@@ -483,7 +505,7 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
             {searchInput || countryFilter ? t('noMunicipalitiesMessage') : t('noMunicipalitiesEmptyMessage')}
           </p>
           {!searchInput && !countryFilter && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addMunicipality')}
               </button>

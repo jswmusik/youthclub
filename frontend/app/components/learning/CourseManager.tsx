@@ -155,6 +155,12 @@ export default function CourseManager() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     
     const [courses, setCourses] = useState<Course[]>([]);
     const [coursesWithDetails, setCoursesWithDetails] = useState<any[]>([]);
@@ -171,8 +177,24 @@ export default function CourseManager() {
     const [filterType, setFilterType] = useState(searchParams.get('type') || '');
     const [filterCategory, setFilterCategory] = useState(searchParams.get('category') || '');
 
-    // Debounced filter update
+    // Track initial values to detect actual user changes
+    const initialSearchRef = useRef(searchParams.get('search') || '');
+    const initialTypeRef = useRef(searchParams.get('type') || '');
+    const initialCategoryRef = useRef(searchParams.get('category') || '');
+    const hasUserChangedFilters = useRef(false);
+
+    // Debounced filter update - only reset page when user actually changes filters
     useEffect(() => {
+        const searchChanged = searchInput !== initialSearchRef.current;
+        const typeChanged = filterType !== initialTypeRef.current;
+        const categoryChanged = filterCategory !== initialCategoryRef.current;
+        
+        if (!searchChanged && !typeChanged && !categoryChanged && !hasUserChangedFilters.current) {
+            return;
+        }
+        
+        hasUserChangedFilters.current = true;
+
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
             if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -180,9 +202,14 @@ export default function CourseManager() {
             if (filterCategory) params.set('category', filterCategory); else params.delete('category');
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
+            
+            // Update refs to current values
+            initialSearchRef.current = searchInput;
+            initialTypeRef.current = filterType;
+            initialCategoryRef.current = filterCategory;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, filterType, filterCategory]);
+    }, [searchInput, filterType, filterCategory, searchParams, pathname, router]);
 
     useEffect(() => {
         fetchCategories();
@@ -395,12 +422,12 @@ export default function CourseManager() {
                         <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
                     </div>
                     <div className="flex flex-wrap gap-2 px-4 sm:px-0">
-                        <Link href={`${basePath}/categories`}>
+                        <Link href={buildUrlWithParams(`${basePath}/categories`)}>
                             <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium">
                                 <FolderOpen className="h-4 w-4" /> {t('categories')}
                             </button>
                         </Link>
-                        <Link href={`${basePath}/courses/create`}>
+                        <Link href={buildUrlWithParams(`${basePath}/courses/create`)}>
                             <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
                                 <Plus className="h-4 w-4" /> {t('newCourse')}
                             </button>
@@ -601,8 +628,8 @@ export default function CourseManager() {
                                 return (
                                     <SwipeableCard 
                                         key={course.id}
-                                        onClick={() => router.push(`${basePath}/courses/${course.slug}`)}
-                                        onEdit={() => router.push(`${basePath}/courses/${course.slug}/edit`)}
+                                        onClick={() => router.push(buildUrlWithParams(`${basePath}/courses/${course.slug}`))}
+                                        onEdit={() => router.push(buildUrlWithParams(`${basePath}/courses/${course.slug}/edit`))}
                                         onDelete={() => setItemToDelete(course)}
                                     >
                                         <div className="border-y border-[var(--dark-600)] p-4">
@@ -706,7 +733,7 @@ export default function CourseManager() {
                                                         >
                                                             <Eye className="h-4 w-4" />
                                                         </button>
-                                                        <Link href={`${basePath}/courses/${course.slug}/edit`}>
+                                                        <Link href={buildUrlWithParams(`${basePath}/courses/${course.slug}/edit`)}>
                                                             <button className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center">
                                                                 <Edit className="h-4 w-4" />
                                                             </button>

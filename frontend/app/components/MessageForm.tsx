@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Info, AlertCircle, AlertTriangle, Link as LinkIcon, MessageSquare, Settings, Users, Clock, Pin } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -16,6 +16,13 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
   const t = useTranslations('systemMessages.form');
   const tRoles = useTranslations('systemMessages.roles');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
   
   const ROLES = [
     { id: 'PUBLIC', label: tRoles('public') },
@@ -88,7 +95,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
     try {
       await api.post('/messages/', payload);
       success(t('toasts.createSuccess'));
-      setTimeout(() => router.push(redirectPath), 1000);
+      setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
     } catch (err: any) {
       console.error('Error creating message:', err);
       const errorMessage = err?.response?.data?.message || 
@@ -450,7 +457,7 @@ export default function MessageForm({ redirectPath }: MessageFormProps) {
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pt-4 pb-8">
             <button 
               type="button"
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               disabled={loading}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all disabled:opacity-50"
             >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import MunicipalityForm from '@/app/components/MunicipalityForm';
@@ -10,26 +10,11 @@ import { MapPin } from 'lucide-react';
 function EditPageContent() {
   const t = useTranslations('municipalitiesAdmin');
   const { id } = useParams() as { id: string };
-  const searchParams = useSearchParams();
   const [data, setData] = useState(null);
 
   useEffect(() => {
     if(id) api.get(`/municipalities/${id}/`).then(res => setData(res.data));
   }, [id]);
-
-  const buildRedirectPath = () => {
-    const params = new URLSearchParams();
-    const page = searchParams.get('page');
-    const search = searchParams.get('search');
-    const country = searchParams.get('country');
-    
-    if (page && page !== '1') params.set('page', page);
-    if (search) params.set('search', search);
-    if (country) params.set('country', country);
-    
-    const queryString = params.toString();
-    return queryString ? `/admin/super/municipalities?${queryString}` : '/admin/super/municipalities';
-  };
 
   if (!data) {
     return (
@@ -42,7 +27,8 @@ function EditPageContent() {
     );
   }
 
-  return <MunicipalityForm initialData={data} redirectPath={buildRedirectPath()} />;
+  // Pass the base path without query params - the form will preserve params from its own URL
+  return <MunicipalityForm initialData={data} redirectPath="/admin/super/municipalities" />;
 }
 
 export default function Page() {

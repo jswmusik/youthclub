@@ -467,7 +467,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                 <FileText className="h-4 w-4" /> {t('posts')}
                             </button>
                         </Link>
-                        <Link href={`${basePath}/posts/templates/create`}>
+                        <Link href={buildUrlWithParams(`${basePath}/posts/templates/create`)}>
                             <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
                                 <Plus className="h-4 w-4" /> {t('createTemplate')}
                             </button>
@@ -624,7 +624,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                             {hasActiveFilters ? t('emptyState.adjustFilters') : t('emptyState.createFirstTemplate')}
                         </p>
                         {!hasActiveFilters && (
-                            <Link href={`${basePath}/posts/templates/create`}>
+                            <Link href={buildUrlWithParams(`${basePath}/posts/templates/create`)}>
                                 <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
                                     <Plus className="h-4 w-4" /> {t('createTemplate')}
                                 </button>

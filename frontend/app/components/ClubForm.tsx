@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Clock, 
@@ -16,6 +18,7 @@ import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '@/components/ui/badge';
+import { createClubSchema, type ClubFormData } from '@/lib/validations/club';
 
 interface Option { id: number; name: string; }
 
@@ -83,22 +86,41 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     title: '', gender_restriction: 'ALL', restriction_mode: 'NONE', min_value: '', max_value: ''
   });
 
-  // Form Data
-  const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    municipality: initialData?.municipality || '',
-    email: initialData?.email || '',
-    phone: initialData?.phone || '',
-    description: initialData?.description || '',
-    address: initialData?.address || '',
-    latitude: initialData?.latitude || '',
-    longitude: initialData?.longitude || '',
-    club_categories: initialData?.club_categories || '',
-    terms_and_conditions: initialData?.terms_and_conditions || '',
-    club_policies: initialData?.club_policies || '',
-    allow_self_registration_override: initialData?.allow_self_registration_override === null ? '' : String(initialData?.allow_self_registration_override),
-    require_guardian_override: initialData?.require_guardian_override === null ? '' : String(initialData?.require_guardian_override),
+  // Create the schema with translations
+  const clubSchema = createClubSchema(t, scope);
+
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    formState: { errors },
+    setValue,
+  } = useForm<ClubFormData>({
+    resolver: zodResolver(clubSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      municipality: initialData?.municipality?.toString() || '',
+      email: initialData?.email || '',
+      phone: initialData?.phone || '',
+      description: initialData?.description || '',
+      address: initialData?.address || '',
+      latitude: initialData?.latitude?.toString() || '',
+      longitude: initialData?.longitude?.toString() || '',
+      club_categories: initialData?.club_categories || '',
+      terms_and_conditions: initialData?.terms_and_conditions || '',
+      club_policies: initialData?.club_policies || '',
+      allow_self_registration_override: initialData?.allow_self_registration_override === null ? '' : String(initialData?.allow_self_registration_override),
+      require_guardian_override: initialData?.require_guardian_override === null ? '' : String(initialData?.require_guardian_override),
+    },
+    mode: 'onBlur',
   });
+
+  // Watch form values
+  const formData = watch();
+
+  // File validation errors
+  const [fileErrors, setFileErrors] = useState<{avatar?: string, hero?: string}>({});
 
   // Track component mount for portal
   useEffect(() => {
@@ -234,44 +256,35 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     setOpeningHours(updated);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Form submission - called after Zod validation passes
+  const onSubmit = async (data: ClubFormData) => {
+    // Validate files (avatar and hero are required for new clubs)
+    const newFileErrors: {avatar?: string, hero?: string} = {};
     
-    const trimmedName = formData.name?.trim();
-    const municipalityValue = scope === 'SUPER' ? formData.municipality?.toString().trim() : '';
-    const trimmedEmail = formData.email?.trim();
-    const trimmedPhone = formData.phone?.trim();
-    const trimmedDescription = formData.description?.trim();
-    const trimmedTerms = formData.terms_and_conditions?.trim();
-    const trimmedPolicies = formData.club_policies?.trim();
+    if (!initialData) { // Only require files for new clubs
+      if (!avatarFile && !avatarPreview) {
+        newFileErrors.avatar = t('validation.avatarRequired');
+      }
+      if (!heroFile && !heroPreview) {
+        newFileErrors.hero = t('validation.heroRequired');
+      }
+    }
     
-    const isValidMunicipality = scope === 'MUNICIPALITY' 
-      ? (user?.assigned_municipality !== null && user?.assigned_municipality !== undefined)
-      : (municipalityValue && !isNaN(Number(municipalityValue)) && Number(municipalityValue) > 0);
-    
-    if (!trimmedName || !isValidMunicipality || !trimmedEmail || !trimmedPhone || 
-        !trimmedDescription || !trimmedTerms || !trimmedPolicies) {
-      const missingFields = [];
-      if (!trimmedName) missingFields.push(t('basicInfo.clubName'));
-      if (scope === 'SUPER' && !isValidMunicipality) missingFields.push(t('basicInfo.municipality'));
-      if (scope === 'MUNICIPALITY' && !isValidMunicipality) missingFields.push(t('validation.municipalityNotAssigned'));
-      if (!trimmedEmail) missingFields.push(t('contactLocation.email'));
-      if (!trimmedPhone) missingFields.push(t('contactLocation.phone'));
-      if (!trimmedDescription) missingFields.push(t('basicInfo.descriptionLabel'));
-      if (!trimmedTerms) missingFields.push(t('legalDocuments.termsConditions'));
-      if (!trimmedPolicies) missingFields.push(t('legalDocuments.clubPolicies'));
-      
-      error(t('validation.missingFields', { fields: missingFields.join(', ') }));
+    if (Object.keys(newFileErrors).length > 0) {
+      setFileErrors(newFileErrors);
+      error(t('validation.missingFields', { fields: Object.values(newFileErrors).join(', ') }));
       return;
     }
     
+    setFileErrors({});
     setLoading(true);
     
     try {
-      const data = new FormData();
-      data.append('name', trimmedName);
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', data.name);
+      
       if (scope === 'SUPER') {
-        data.append('municipality', municipalityValue);
+        formDataToSend.append('municipality', data.municipality || '');
       } else if (scope === 'MUNICIPALITY') {
         const userMunicipalityId = user?.assigned_municipality 
           ? (typeof user.assigned_municipality === 'object' 
@@ -279,31 +292,33 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               : user.assigned_municipality)
           : null;
         if (userMunicipalityId) {
-          data.append('municipality', userMunicipalityId.toString());
+          formDataToSend.append('municipality', userMunicipalityId.toString());
         } else {
           throw new Error('Municipality admin must have an assigned municipality');
         }
       }
-      data.append('email', trimmedEmail);
-      data.append('phone', trimmedPhone);
-      data.append('description', trimmedDescription);
-      data.append('terms_and_conditions', trimmedTerms);
-      data.append('club_policies', trimmedPolicies);
-      if (formData.address?.trim()) data.append('address', formData.address.trim());
-      if (formData.club_categories?.trim()) data.append('club_categories', formData.club_categories.trim());
-      if (formData.latitude !== '' && formData.latitude != null) data.append('latitude', String(formData.latitude));
-      if (formData.longitude !== '' && formData.longitude != null) data.append('longitude', String(formData.longitude));
       
-      if (formData.allow_self_registration_override === '') {
-        data.append('allow_self_registration_override', '');
+      formDataToSend.append('email', data.email);
+      formDataToSend.append('phone', data.phone);
+      formDataToSend.append('description', data.description);
+      formDataToSend.append('address', data.address || '');
+      formDataToSend.append('terms_and_conditions', data.terms_and_conditions);
+      formDataToSend.append('club_policies', data.club_policies);
+      
+      if (data.club_categories?.trim()) formDataToSend.append('club_categories', data.club_categories.trim());
+      if (data.latitude !== '' && data.latitude != null) formDataToSend.append('latitude', String(data.latitude));
+      if (data.longitude !== '' && data.longitude != null) formDataToSend.append('longitude', String(data.longitude));
+      
+      if (data.allow_self_registration_override === '') {
+        formDataToSend.append('allow_self_registration_override', '');
       } else {
-        data.append('allow_self_registration_override', formData.allow_self_registration_override);
+        formDataToSend.append('allow_self_registration_override', data.allow_self_registration_override || '');
       }
 
-      if (formData.require_guardian_override === '') {
-        data.append('require_guardian_override', '');
+      if (data.require_guardian_override === '') {
+        formDataToSend.append('require_guardian_override', '');
       } else {
-        data.append('require_guardian_override', formData.require_guardian_override);
+        formDataToSend.append('require_guardian_override', data.require_guardian_override || '');
       }
       
       const cleanedHours = openingHours.map(hour => {
@@ -328,24 +343,24 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
         return cleaned;
       });
       
-      data.append('regular_hours_data', JSON.stringify(cleanedHours));
-      if (avatarFile) data.append('avatar', avatarFile);
-      if (heroFile) data.append('hero_image', heroFile);
+      formDataToSend.append('regular_hours_data', JSON.stringify(cleanedHours));
+      if (avatarFile) formDataToSend.append('avatar', avatarFile);
+      if (heroFile) formDataToSend.append('hero_image', heroFile);
 
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
 
       if (initialData) {
-        await api.patch(`/clubs/${initialData.id}/`, data, config);
+        await api.patch(`/clubs/${initialData.id}/`, formDataToSend, config);
         queueToastForNavigation(
-          t('formToast.clubUpdated', { name: formData.name }),
+          t('formToast.clubUpdated', { name: data.name }),
           'success',
           t('formToast.clubUpdatedTitle'),
           2500
         );
       } else {
-        await api.post('/clubs/', data, config);
+        await api.post('/clubs/', formDataToSend, config);
         queueToastForNavigation(
-          t('formToast.clubCreated', { name: formData.name }),
+          t('formToast.clubCreated', { name: data.name }),
           'success',
           t('formToast.clubCreatedTitle'),
           2500
@@ -361,10 +376,10 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     }
   };
 
-  const inputClasses = (fieldName: string) => `
+  const inputClasses = (fieldName: string, hasError: boolean = false) => `
     w-full px-4 py-3.5 
     bg-[var(--dark-700)] 
-    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    border-2 ${hasError ? 'border-[var(--brand-red)]' : focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
     rounded-xl 
     text-[var(--brand-light)] 
     placeholder-[var(--brand-light)]/40 
@@ -374,10 +389,10 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
     text-base
   `;
 
-  const selectClasses = (fieldName: string) => `
+  const selectClasses = (fieldName: string, hasError: boolean = false) => `
     w-full px-4 py-3.5 
     bg-[var(--dark-700)] 
-    border-2 ${focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    border-2 ${hasError ? 'border-[var(--brand-red)]' : focusedField === fieldName ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
     rounded-xl 
     text-[var(--brand-light)] 
     focus:ring-0 focus:border-[var(--brand-primary)] 
@@ -389,16 +404,20 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
   const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
 
-  // Calculate form completion percentage
+  // Calculate form completion percentage - includes text fields + files
   const requiredFields = scope === 'SUPER' 
-    ? ['name', 'municipality', 'email', 'phone', 'description', 'terms_and_conditions', 'club_policies']
-    : ['name', 'email', 'phone', 'description', 'terms_and_conditions', 'club_policies'];
+    ? ['name', 'municipality', 'email', 'phone', 'address', 'description', 'terms_and_conditions', 'club_policies']
+    : ['name', 'email', 'phone', 'address', 'description', 'terms_and_conditions', 'club_policies'];
   
-  const filledRequired = requiredFields.filter(field => {
-    const value = formData[field as keyof typeof formData];
+  const filledTextFields = requiredFields.filter(field => {
+    const value = formData[field as keyof ClubFormData];
     return typeof value === 'string' ? value.trim() : value;
   }).length;
-  const completionPercent = Math.round((filledRequired / requiredFields.length) * 100);
+  
+  // Add files to calculation (only for new clubs)
+  const totalRequired = initialData ? requiredFields.length : requiredFields.length + 2; // +2 for avatar and hero
+  const filledFiles = initialData ? 0 : (avatarFile || avatarPreview ? 1 : 0) + (heroFile || heroPreview ? 1 : 0);
+  const completionPercent = Math.round(((filledTextFields + filledFiles) / totalRequired) * 100);
 
   // Handle scroll for sticky progress bar
   const checkScroll = useCallback(() => {
@@ -511,7 +530,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit(onSubmit)}>
           
           {/* Basic Information Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
@@ -539,14 +558,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <input 
                     id="name"
                     type="text"
-                    required 
                     placeholder="e.g. Youth Center Downtown"
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    {...register('name')}
                     onFocus={() => setFocusedField('name')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('name')}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('name').onBlur(e);
+                    }}
+                    className={inputClasses('name', !!errors.name)}
                   />
+                  {errors.name && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{errors.name.message}</p>
+                  )}
                 </div>
                 {scope === 'SUPER' && (
                   <div>
@@ -555,17 +578,21 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     </label>
                     <select 
                       id="municipality"
-                      required
-                      value={formData.municipality}
-                      onChange={e => setFormData({ ...formData, municipality: e.target.value })}
+                      {...register('municipality')}
                       onFocus={() => setFocusedField('municipality')}
-                      onBlur={() => setFocusedField(null)}
-                      className={selectClasses('municipality')}
+                      onBlur={(e) => {
+                        setFocusedField(null);
+                        register('municipality').onBlur(e);
+                      }}
+                      className={selectClasses('municipality', !!errors.municipality)}
                       style={selectArrowStyle}
                     >
                       <option value="">{t('basicInfo.selectMunicipality')}</option>
                       {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
+                    {errors.municipality && (
+                      <p className="text-[var(--brand-red)] text-sm mt-1">{errors.municipality.message}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -578,14 +605,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <textarea 
                   id="description"
                   rows={4} 
-                  required
                   placeholder={t('basicInfo.descriptionPlaceholder')}
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  {...register('description')}
                   onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('description')} resize-none`}
+                  onBlur={(e) => {
+                    setFocusedField(null);
+                    register('description').onBlur(e);
+                  }}
+                  className={`${inputClasses('description', !!errors.description)} resize-none`}
                 />
+                {errors.description && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{errors.description.message}</p>
+                )}
               </div>
 
               {/* Categories */}
@@ -613,10 +644,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {/* Logo / Avatar */}
                 <div>
-                  <label className={labelClasses}>{t('basicInfo.logoAvatar')}</label>
+                  <label className={labelClasses}>
+                    {t('basicInfo.logoAvatar')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
+                  </label>
                   <div className="flex items-start gap-4">
                     <div 
-                      className="relative group w-20 h-20 border-2 border-dashed border-[var(--dark-500)] rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      className={`relative group w-20 h-20 border-2 border-dashed ${fileErrors.avatar ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-full bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
                       onClick={() => avatarRef.current?.click()}
                     >
                       {avatarPreview ? (
@@ -653,17 +686,25 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                         )}
                       </div>
                       <p className="text-xs text-[var(--brand-light)]/40">{t('basicInfo.avatarHint')}</p>
+                      {fileErrors.avatar && (
+                        <p className="text-[var(--brand-red)] text-xs mt-1">{fileErrors.avatar}</p>
+                      )}
                     </div>
-                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'avatar')} />
+                    <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => {
+                      handleFileChange(e, 'avatar');
+                      setFileErrors({...fileErrors, avatar: undefined});
+                    }} />
                   </div>
                 </div>
 
                 {/* Hero Image */}
                 <div>
-                  <label className={labelClasses}>{t('basicInfo.heroImage')}</label>
+                  <label className={labelClasses}>
+                    {t('basicInfo.heroImage')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
+                  </label>
                   <div className="flex items-start gap-4">
                     <div 
-                      className="relative group w-24 h-16 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                      className={`relative group w-24 h-16 border-2 border-dashed ${fileErrors.hero ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
                       onClick={() => heroRef.current?.click()}
                     >
                       {heroPreview ? (
@@ -700,8 +741,14 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                         )}
                       </div>
                       <p className="text-xs text-[var(--brand-light)]/40">{t('basicInfo.heroHint')}</p>
+                      {fileErrors.hero && (
+                        <p className="text-[var(--brand-red)] text-xs mt-1">{fileErrors.hero}</p>
+                      )}
                     </div>
-                    <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e, 'hero')} />
+                    <input ref={heroRef} type="file" accept="image/*" className="hidden" onChange={e => {
+                      handleFileChange(e, 'hero');
+                      setFileErrors({...fileErrors, hero: undefined});
+                    }} />
                   </div>
                 </div>
               </div>
@@ -734,14 +781,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <input 
                     id="email"
                     type="email"
-                    required
                     placeholder={t('contactLocation.emailPlaceholder')}
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    {...register('email')}
                     onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('email')}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('email').onBlur(e);
+                    }}
+                    className={inputClasses('email', !!errors.email)}
                   />
+                  {errors.email && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{errors.email.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="phone" className={labelClasses}>
@@ -751,14 +802,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <input 
                     id="phone"
                     type="tel"
-                    required
                     placeholder={t('contactLocation.phonePlaceholder')}
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    {...register('phone')}
                     onFocus={() => setFocusedField('phone')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('phone')}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('phone').onBlur(e);
+                    }}
+                    className={inputClasses('phone', !!errors.phone)}
                   />
+                  {errors.phone && (
+                    <p className="text-[var(--brand-red)] text-sm mt-1">{errors.phone.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -773,18 +828,23 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
               <div>
                 <label htmlFor="address" className={labelClasses}>
-                  {t('contactLocation.streetAddress')}
+                  {t('contactLocation.streetAddress')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <input 
                   id="address"
                   type="text"
                   placeholder={t('contactLocation.addressPlaceholder')}
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  {...register('address')}
                   onFocus={() => setFocusedField('address')}
-                  onBlur={() => setFocusedField(null)}
-                  className={inputClasses('address')}
+                  onBlur={(e) => {
+                    setFocusedField(null);
+                    register('address').onBlur(e);
+                  }}
+                  className={inputClasses('address', !!errors.address)}
                 />
+                {errors.address && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{errors.address.message}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-5">
@@ -1045,14 +1105,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <textarea 
                   id="terms_and_conditions"
                   rows={5} 
-                  required
                   placeholder={t('legalDocuments.termsPlaceholder')}
-                  value={formData.terms_and_conditions}
-                  onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
+                  {...register('terms_and_conditions')}
                   onFocus={() => setFocusedField('terms_and_conditions')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('terms_and_conditions')} resize-none`}
+                  onBlur={(e) => {
+                    setFocusedField(null);
+                    register('terms_and_conditions').onBlur(e);
+                  }}
+                  className={`${inputClasses('terms_and_conditions', !!errors.terms_and_conditions)} resize-none`}
                 />
+                {errors.terms_and_conditions && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{errors.terms_and_conditions.message}</p>
+                )}
               </div>
 
               <div>
@@ -1062,14 +1126,18 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <textarea 
                   id="club_policies"
                   rows={5} 
-                  required
                   placeholder={t('legalDocuments.policiesPlaceholder')}
-                  value={formData.club_policies}
-                  onChange={e => setFormData({ ...formData, club_policies: e.target.value })}
+                  {...register('club_policies')}
                   onFocus={() => setFocusedField('club_policies')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('club_policies')} resize-none`}
+                  onBlur={(e) => {
+                    setFocusedField(null);
+                    register('club_policies').onBlur(e);
+                  }}
+                  className={`${inputClasses('club_policies', !!errors.club_policies)} resize-none`}
                 />
+                {errors.club_policies && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{errors.club_policies.message}</p>
+                )}
               </div>
             </div>
           </div>

@@ -34,6 +34,12 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
+
   // Form State
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
@@ -47,6 +53,56 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
     specific_clubs: initialData?.specific_clubs || [],
     context: initialData?.context || 'USER_PROFILE',
   });
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let error = '';
+    
+    if (field === 'name') {
+      if (!value || value.toString().trim() === '') {
+        error = t('validation.nameRequired');
+      }
+    }
+    
+    return error;
+  };
+
+  // Handle field blur
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const value = formData[field as keyof typeof formData];
+    const error = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredFields = ['name'];
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   // Track component mount for portal
   useEffect(() => {
@@ -143,6 +199,11 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
     
     if ((formData.field_type === 'SINGLE_SELECT' || formData.field_type === 'MULTI_SELECT') && formData.options.length === 0) {
       error(t('validation.needOption'));
@@ -292,12 +353,25 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                 </label>
                 <input
                   type="text"
-                  required
+                  name="name"
                   placeholder={t('basicInfo.fieldLabelPlaceholder')}
                   value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className={inputClasses}
+                  onChange={e => {
+                    setFormData({...formData, name: e.target.value});
+                    if (validationErrors['name']) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors['name'];
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  onBlur={() => handleBlur('name')}
+                  className={`${inputClasses} ${touchedFields['name'] && validationErrors['name'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                 />
+                {touchedFields['name'] && validationErrors['name'] && (
+                  <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['name']}</p>
+                )}
               </div>
               <div>
                 <label className={labelClasses}>{t('basicInfo.helpText')}</label>
@@ -704,7 +778,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
           <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10 -mx-4 sm:mx-0 px-4 sm:px-0">
             <button
               type="button"
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] font-medium hover:bg-[var(--dark-600)] transition-all"
             >
               {t('buttons.cancel')}

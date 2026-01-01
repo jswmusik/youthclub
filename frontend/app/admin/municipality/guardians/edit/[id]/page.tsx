@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import GuardianForm from '@/app/components/GuardianForm';
 import { Users } from 'lucide-react';
 
 function EditPageContent() {
   const { id } = useParams() as { id: string };
-  const searchParams = useSearchParams();
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -18,20 +17,6 @@ function EditPageContent() {
       });
     }
   }, [id]);
-
-  const buildRedirectPath = () => {
-    const params = new URLSearchParams();
-    const page = searchParams.get('page');
-    const search = searchParams.get('search');
-    const status = searchParams.get('verification_status');
-    const gender = searchParams.get('legal_gender');
-    if (page && page !== '1') params.set('page', page);
-    if (search) params.set('search', search);
-    if (status) params.set('verification_status', status);
-    if (gender) params.set('legal_gender', gender);
-    const queryString = params.toString();
-    return queryString ? `/admin/municipality/guardians?${queryString}` : '/admin/municipality/guardians';
-  };
 
   if (!data) return (
     <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
@@ -44,9 +29,10 @@ function EditPageContent() {
     </div>
   );
 
+  // Pass the base path - the form will preserve URL params from its own searchParams
   return (
     <div>
-      <GuardianForm initialData={data} redirectPath={buildRedirectPath()} scope="MUNICIPALITY" />
+      <GuardianForm initialData={data} redirectPath="/admin/municipality/guardians" scope="MUNICIPALITY" />
     </div>
   );
 }

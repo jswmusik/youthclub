@@ -236,13 +236,26 @@ export default function TagManager({ basePath }: TagManagerProps) {
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
   
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const hasUserChangedFilters = useRef(false);
+  
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const { success, error, info, warning } = useToast();
 
-  // Debounce search input
+  // Debounce search input - only reset page when user actually changes search
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    
+    if (!searchChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       updateUrl('search', searchInput);
+      initialSearchRef.current = searchInput;
     }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
@@ -466,7 +479,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
                 <p className="text-[var(--brand-light)]/50 text-sm mt-0.5">{t('description')}</p>
               </div>
             </div>
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-5 py-2.5 transition-all">
                 <Plus className="h-4 w-4" /> {t('createTag')}
               </button>
@@ -550,7 +563,7 @@ export default function TagManager({ basePath }: TagManagerProps) {
             {hasFilters ? t('emptyState.adjustSearch') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('createTag')}
               </button>

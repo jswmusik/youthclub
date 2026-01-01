@@ -227,8 +227,24 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  // Debounced filter update
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialDateFromRef = useRef(searchParams.get('date_from') || '');
+  const initialDateToRef = useRef(searchParams.get('date_to') || '');
+  const hasUserChangedFilters = useRef(false);
+
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const dateFromChanged = dateFrom !== initialDateFromRef.current;
+    const dateToChanged = dateTo !== initialDateToRef.current;
+    
+    if (!searchChanged && !dateFromChanged && !dateToChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -236,9 +252,14 @@ export default function RewardClaimHistory({ rewardId, basePath }: RewardClaimHi
       if (dateTo) params.set('date_to', dateTo); else params.delete('date_to');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialDateFromRef.current = dateFrom;
+      initialDateToRef.current = dateTo;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, dateFrom, dateTo]);
+  }, [searchInput, dateFrom, dateTo, searchParams, pathname, router]);
 
   useEffect(() => {
     if (rewardId) {

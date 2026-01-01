@@ -22,6 +22,12 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
     const router = useRouter();
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState('settings');
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     const [prevTab, setPrevTab] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
@@ -125,7 +131,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
             if (activeTab === 'settings' && settingsFormRef.current) {
                 await settingsFormRef.current.handleSave(true);
             } else {
-                router.push(`${basePath}/courses`);
+                router.push(buildUrlWithParams(`${basePath}/courses`));
             }
         } catch (error) {
             console.error('Save failed', error);
@@ -264,7 +270,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                     <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
                         <button 
                             type="button" 
-                            onClick={() => router.push(`${basePath}/courses`)}
+                            onClick={() => router.push(buildUrlWithParams(`${basePath}/courses`))}
                             className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 bg-[var(--dark-700)] border border-[var(--dark-500)] hover:bg-[var(--dark-600)] font-medium transition-all"
                         >
                             {t('actions.cancel')}

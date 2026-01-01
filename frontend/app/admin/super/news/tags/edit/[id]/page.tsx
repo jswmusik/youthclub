@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Tag } from 'lucide-react';
 import api from '@/lib/api';
 import TagForm from '@/app/components/TagForm';
 
 function TagEditPageContent() {
   const { id } = useParams() as { id: string };
-  const searchParams = useSearchParams();
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -35,11 +34,10 @@ function TagEditPageContent() {
     </div>
   );
 
-  const redirectPathWithParams = `/admin/super/news/tags?${searchParams.toString()}`;
-
+  // Pass the base path - the form will preserve URL params from its own searchParams
   return (
     <div className="py-4 sm:py-6 md:py-8 px-0">
-      <TagForm initialData={data} redirectPath={redirectPathWithParams} />
+      <TagForm initialData={data} redirectPath="/admin/super/news/tags" />
     </div>
   );
 }

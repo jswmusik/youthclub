@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Search, X, ClipboardList, Users, Gift, Building2, EyeOff } from 'lucide-react';
 import api from '../../../lib/api';
 
@@ -8,9 +9,22 @@ interface QuestionnaireSettingsProps {
   data: any;
   onChange: (data: any) => void;
   scope: 'SUPER' | 'MUNICIPALITY' | 'CLUB';
+  validationErrors?: Record<string, string>;
+  touchedFields?: Record<string, boolean>;
+  onFieldBlur?: (field: string) => void;
+  onFieldChange?: (field: string) => void;
 }
 
-export default function QuestionnaireSettings({ data, onChange, scope }: QuestionnaireSettingsProps) {
+export default function QuestionnaireSettings({ 
+  data, 
+  onChange, 
+  scope, 
+  validationErrors = {}, 
+  touchedFields = {}, 
+  onFieldBlur, 
+  onFieldChange 
+}: QuestionnaireSettingsProps) {
+  const t = useTranslations('questionnairesAdmin.editor.settings');
   const [rewards, setRewards] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [municipalities, setMunicipalities] = useState<any[]>([]);
@@ -157,6 +171,10 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
 
   const handleChange = (field: string, value: any) => {
     onChange({ ...data, [field]: value });
+    // Clear validation error when user types
+    if (onFieldChange) {
+      onFieldChange(field);
+    }
   };
 
   // Rewards selection logic
@@ -237,8 +255,8 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <ClipboardList className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Basic Information</h2>
-              <p className="text-sm text-[var(--brand-light)]/50">Enter the questionnaire title, description, and dates</p>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">{t('basicInfo.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -246,37 +264,50 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
         <div className="p-4 sm:p-6 space-y-6">
           {/* Title */}
           <div>
-            <label className={labelClasses}>Title <span className="text-[var(--brand-red)]">*</span></label>
+            <label className={labelClasses}>{t('basicInfo.titleLabel')} <span className="text-[var(--brand-red)]">*</span></label>
             <input
               type="text"
-              required
-              placeholder="Enter questionnaire title..."
-              className={inputClasses('title')}
+              name="title"
+              placeholder={t('basicInfo.titlePlaceholder')}
+              className={`${inputClasses('title')} ${touchedFields['title'] && validationErrors['title'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
               value={data.title || ''}
               onChange={(e) => handleChange('title', e.target.value)}
               onFocus={() => setFocusedField('title')}
-              onBlur={() => setFocusedField(null)}
+              onBlur={() => {
+                setFocusedField(null);
+                if (onFieldBlur) onFieldBlur('title');
+              }}
             />
+            {touchedFields['title'] && validationErrors['title'] && (
+              <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['title']}</p>
+            )}
           </div>
 
           {/* Description */}
           <div>
-            <label className={labelClasses}>Description</label>
+            <label className={labelClasses}>{t('basicInfo.descriptionLabel')} <span className="text-[var(--brand-red)]">*</span></label>
             <textarea
               rows={3}
-              placeholder="Enter a description for this questionnaire..."
-              className={textareaClasses('description')}
+              name="description"
+              placeholder={t('basicInfo.descriptionPlaceholder')}
+              className={`${textareaClasses('description')} ${touchedFields['description'] && validationErrors['description'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
               value={data.description || ''}
               onChange={(e) => handleChange('description', e.target.value)}
               onFocus={() => setFocusedField('description')}
-              onBlur={() => setFocusedField(null)}
+              onBlur={() => {
+                setFocusedField(null);
+                if (onFieldBlur) onFieldBlur('description');
+              }}
             />
+            {touchedFields['description'] && validationErrors['description'] && (
+              <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+            )}
           </div>
 
           {/* Schedule Publish Date */}
           <div>
             <label className={labelClasses}>
-              Schedule Publish Date (Optional)
+              {t('basicInfo.schedulePublishLabel')}
             </label>
             <input
               type="datetime-local"
@@ -287,24 +318,30 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               onBlur={() => setFocusedField(null)}
             />
             <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-              Leave empty to publish immediately when you click "Publish"
+              {t('basicInfo.schedulePublishHint')}
             </p>
           </div>
 
           {/* Expiration Date */}
           <div>
             <label className={labelClasses}>
-              Expiration Date <span className="text-[var(--brand-red)]">*</span>
+              {t('basicInfo.expirationLabel')} <span className="text-[var(--brand-red)]">*</span>
             </label>
             <input
               type="datetime-local"
-              required
-              className={inputClasses('expiration_date')}
+              name="expiration_date"
+              className={`${inputClasses('expiration_date')} ${touchedFields['expiration_date'] && validationErrors['expiration_date'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
               value={data.expiration_date ? data.expiration_date.slice(0, 16) : ''}
               onChange={(e) => handleChange('expiration_date', e.target.value)}
               onFocus={() => setFocusedField('expiration_date')}
-              onBlur={() => setFocusedField(null)}
+              onBlur={() => {
+                setFocusedField(null);
+                if (onFieldBlur) onFieldBlur('expiration_date');
+              }}
             />
+            {touchedFields['expiration_date'] && validationErrors['expiration_date'] && (
+              <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['expiration_date']}</p>
+            )}
           </div>
 
           {/* Anonymous Toggle */}
@@ -331,9 +368,9 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <EyeOff className="w-4 h-4 text-[var(--brand-purple)]" />
-                  <span className="font-semibold text-[var(--brand-light)]">Anonymous Responses</span>
+                  <span className="font-semibold text-[var(--brand-light)]">{t('anonymous.title')}</span>
                 </div>
-                <p className="text-sm text-[var(--brand-light)]/50 mt-1">Admins cannot see who answered</p>
+                <p className="text-sm text-[var(--brand-light)]/50 mt-1">{t('anonymous.description')}</p>
               </div>
             </div>
           </div>
@@ -348,8 +385,8 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <Users className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Target Audience</h2>
-              <p className="text-sm text-[var(--brand-light)]/50">Configure who can see and answer this questionnaire</p>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">{t('targetAudience.description')}</p>
             </div>
           </div>
         </div>
@@ -361,7 +398,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <label className={labelClasses}>
                 <span className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-[var(--brand-light)]/50" />
-                  Municipality (Optional - Limits scope)
+                  {t('targetAudience.municipalityLabel')}
                 </span>
               </label>
               <select 
@@ -372,7 +409,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 onFocus={() => setFocusedField('municipality')}
                 onBlur={() => setFocusedField(null)}
               >
-                <option value="">All / Global</option>
+                <option value="">{t('targetAudience.allGlobal')}</option>
                 {municipalities.map(m => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
@@ -385,7 +422,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <label className={labelClasses}>
                 <span className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-[var(--brand-light)]/50" />
-                  Club (Optional - Limits scope)
+                  {t('targetAudience.clubLabel')}
                 </span>
               </label>
               <select 
@@ -397,7 +434,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 onFocus={() => setFocusedField('club')}
                 onBlur={() => setFocusedField(null)}
               >
-                <option value="">All in Scope</option>
+                <option value="">{t('targetAudience.clubAll')}</option>
                 {filteredClubs.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -410,7 +447,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
 
           {/* Role / Group Selection */}
           <div>
-            <label className={labelClasses}>Who can answer?</label>
+            <label className={labelClasses}>{t('targetAudience.whoCanAnswer')}</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <select
                 className={`${selectClasses('target_audience')} ${data.visibility_group ? 'opacity-50' : ''}`}
@@ -421,9 +458,10 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 onFocus={() => setFocusedField('target_audience')}
                 onBlur={() => setFocusedField(null)}
               >
-                <option value="YOUTH">Youth Members</option>
-                <option value="GUARDIAN">Guardians</option>
-                <option value="BOTH">Both</option>
+                <option value="YOUTH">{t('targetAudience.youthMembers')}</option>
+                {/* Guardian options temporarily disabled - feature not yet implemented */}
+                {/* <option value="GUARDIAN">Guardians</option> */}
+                {/* <option value="BOTH">Both</option> */}
               </select>
               
               <select
@@ -434,7 +472,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 onFocus={() => setFocusedField('visibility_group')}
                 onBlur={() => setFocusedField(null)}
               >
-                <option value="">-- Or Target Specific Group --</option>
+                <option value="">{t('targetAudience.selectGroup')}</option>
                 {filteredGroups.map(g => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
@@ -449,7 +487,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                   : "No groups available."}
               </p>
             )}
-            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Note: Selecting a Group overrides the Youth/Guardian setting.</p>
+            <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('targetAudience.groupNote')}</p>
           </div>
         </div>
       </div>
@@ -462,15 +500,15 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
               <Gift className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--brand-light)]">Rewards (Optional)</h2>
-              <p className="text-sm text-[var(--brand-light)]/50">Select rewards to give to users who complete this questionnaire</p>
+              <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('rewards.title')}</h2>
+              <p className="text-sm text-[var(--brand-light)]/50">{t('rewards.description')}</p>
             </div>
           </div>
         </div>
 
         <div className="p-4 sm:p-6 space-y-6">
           <div>
-            <label className={labelClasses}>Select Reward(s)</label>
+            <label className={labelClasses}>{t('rewards.selectLabel')}</label>
             
             {/* Selected Rewards Display */}
             {getSelectedRewards().length > 0 && (
@@ -500,7 +538,7 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
                 <input
                   type="text"
-                  placeholder="Search rewards by name..."
+                  placeholder={t('rewards.searchPlaceholder')}
                   value={rewardSearchTerm}
                   onChange={(e) => {
                     setRewardSearchTerm(e.target.value);
@@ -552,17 +590,17 @@ export default function QuestionnaireSettings({ data, onChange, scope }: Questio
 
           {/* Limit Field */}
           <div>
-            <label className={labelClasses}>Limit (Optional)</label>
+            <label className={labelClasses}>{t('rewards.limitLabel')}</label>
             <input
               type="number"
-              placeholder="e.g. First 10 users only"
+              placeholder={t('rewards.limitPlaceholder')}
               className={inputClasses('benefit_limit')}
               value={data.benefit_limit || ''}
               onChange={(e) => handleChange('benefit_limit', parseInt(e.target.value) || null)}
               onFocus={() => setFocusedField('benefit_limit')}
               onBlur={() => setFocusedField(null)}
             />
-            <p className="text-xs text-[var(--brand-light)]/40 mt-2">Leave empty for unlimited rewards</p>
+            <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('rewards.limitHint')}</p>
           </div>
         </div>
       </div>

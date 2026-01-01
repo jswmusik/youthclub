@@ -28,6 +28,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
     const tStatus = useTranslations('eventsAdmin.status');
     const [loading, setLoading] = useState(false);
     const { success, error, info, warning } = useToast();
+
+    // Build URL preserving pagination params
+    const buildUrlWithParams = (path: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        return params.toString() ? `${path}?${params.toString()}` : path;
+    };
     const [clubDetails, setClubDetails] = useState<any>(null); // Store club details to get municipality
     
     // Super Admin & Municipality Admin Organization Selection States
@@ -128,6 +134,111 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
         twitter_description: '',
         ...initialData
     });
+
+    // Validation state
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+    const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+    // Helper function to strip HTML tags
+    const stripHtml = (html: string): string => {
+        return html
+            .replace(/<[^>]*>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .trim();
+    };
+
+    // Validate individual field
+    const validateField = (field: string, value: any) => {
+        let error = '';
+        
+        switch (field) {
+            case 'title':
+                if (!value || value.trim() === '') {
+                    error = t('validation.titleRequired');
+                }
+                break;
+            case 'description':
+                if (!value || stripHtml(value).length === 0) {
+                    error = t('validation.descriptionRequired');
+                }
+                break;
+            case 'start_date':
+                if (!value || value.trim() === '') {
+                    error = t('validation.startDateRequired');
+                }
+                break;
+            case 'end_date':
+                if (!value || value.trim() === '') {
+                    error = t('validation.endDateRequired');
+                } else if (formData.start_date && value) {
+                    const start = new Date(formData.start_date);
+                    const end = new Date(value);
+                    if (end <= start) {
+                        error = t('validation.endDateAfterStart');
+                    }
+                }
+                break;
+            case 'location_name':
+                if (!value || value.trim() === '') {
+                    error = t('validation.locationNameRequired');
+                }
+                break;
+            case 'address':
+                if (!value || value.trim() === '') {
+                    error = t('validation.addressRequired');
+                }
+                break;
+            case 'registration_close_date':
+                if (value && formData.start_date) {
+                    const closeDate = new Date(value);
+                    const startDate = new Date(formData.start_date);
+                    if (closeDate >= startDate) {
+                        error = t('validation.registrationCloseDateBeforeStart');
+                    }
+                }
+                break;
+        }
+        
+        return error;
+    };
+
+    // Handle field blur
+    const handleBlur = (field: string) => {
+        setTouchedFields(prev => ({ ...prev, [field]: true }));
+        const value = formData[field as keyof Event];
+        const error = validateField(field, value);
+        setValidationErrors(prev => ({...prev, [field]: error }));
+    };
+
+    // Validate all required fields
+    const validateForm = (): boolean => {
+        const errors: Record<string, string> = {};
+        const requiredFields = ['title', 'description', 'start_date', 'end_date', 'location_name', 'address'];
+        
+        // Mark all required fields as touched
+        const touched: Record<string, boolean> = {};
+        requiredFields.forEach(field => {
+            touched[field] = true;
+        });
+        setTouchedFields(touched);
+        
+        // Validate required fields
+        requiredFields.forEach(field => {
+            const value = formData[field as keyof Event];
+            const error = validateField(field, value);
+            if (error) {
+                errors[field] = error;
+            }
+        });
+        
+        // Validate cover image (required but stored in state, not formData)
+        if (!coverFile && !coverPreview) {
+            errors['cover_image'] = t('validation.coverImageRequired');
+        }
+        
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
 
     // Fetch interests list
     useEffect(() => {
@@ -510,6 +621,33 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             
             return updated;
         });
+        
+        // Clear validation error for this field when it's changed
+        if (validationErrors[field as string]) {
+            setValidationErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[field as string];
+                return newErrors;
+            });
+        }
+        
+        // Re-validate related fields
+        if (field === 'start_date' && formData.end_date) {
+            const error = validateField('end_date', formData.end_date);
+            setValidationErrors(prev => ({ ...prev, end_date: error }));
+        }
+        if (field === 'end_date' && value) {
+            const error = validateField('end_date', value);
+            setValidationErrors(prev => ({ ...prev, end_date: error }));
+        }
+        if (field === 'start_date' && formData.registration_close_date) {
+            const error = validateField('registration_close_date', formData.registration_close_date);
+            setValidationErrors(prev => ({ ...prev, registration_close_date: error }));
+        }
+        if (field === 'registration_close_date' && value) {
+            const error = validateField('registration_close_date', value);
+            setValidationErrors(prev => ({ ...prev, registration_close_date: error }));
+        }
     };
     
     // Handle slug change (mark as manually edited)
@@ -576,6 +714,18 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
         setLoading(true);
         
         try {
+            // Validate form
+            if (!validateForm()) {
+                setLoading(false);
+                // Scroll to first error
+                const firstErrorField = Object.keys(validationErrors)[0];
+                const element = document.querySelector(`[name="${firstErrorField}"]`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+            
             // Validate recurrence settings
             if (formData.is_recurring) {
                 if (!formData.recurrence_pattern || formData.recurrence_pattern === 'NONE') {
@@ -1291,21 +1441,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
 
     // Build redirect path
     const basePath = `/admin/${scope.toLowerCase()}/events`;
-    const page = searchParams.get('page');
-    const search = searchParams.get('search');
-    const status = searchParams.get('status');
-    const recurring = searchParams.get('recurring');
-    const club = searchParams.get('club');
-    
-    const params = new URLSearchParams();
-    if (page) params.set('page', page);
-    if (search) params.set('search', search);
-    if (status) params.set('status', status);
-    if (recurring) params.set('recurring', recurring);
-    if (club) params.set('club', club);
-    
-    const queryString = params.toString();
-    const redirectPath = queryString ? `${basePath}?${queryString}` : basePath;
+    // Use buildUrlWithParams to preserve pagination and filter params
+    const redirectPath = buildUrlWithParams(basePath);
 
     // Helper classes for consistent styling
     const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
@@ -1360,11 +1497,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 
                 {/* Cover Image */}
                 <div className="space-y-2">
-                    <label className={labelClasses}>{t('sections.media.coverImage')}</label>
+                    <label className={labelClasses}>{t('sections.media.coverImage')} <span className="text-[var(--brand-red)]">*</span></label>
                     <div className="flex flex-col sm:flex-row gap-4 items-start">
                         <div 
-                            className="relative group w-full sm:w-64 h-40 border-2 border-dashed border-[var(--dark-500)] rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0"
+                            className={`relative group w-full sm:w-64 h-40 border-2 border-dashed ${touchedFields['cover_image'] && !coverFile && !coverPreview ? 'border-[var(--brand-red)]' : 'border-[var(--dark-500)]'} rounded-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all cursor-pointer flex-shrink-0`}
                             onClick={() => {
+                                setTouchedFields(prev => ({ ...prev, cover_image: true }));
                                 const input = document.createElement('input');
                                 input.type = 'file';
                                 input.accept = 'image/*';
@@ -1376,6 +1514,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         }
                                         setCoverFile(file);
                                         setCoverPreview(URL.createObjectURL(file));
+                                        // Clear error
+                                        setValidationErrors(prev => {
+                                            const newErrors = { ...prev };
+                                            delete newErrors['cover_image'];
+                                            return newErrors;
+                                        });
                                     }
                                 };
                                 input.click();
@@ -1436,6 +1580,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
                         </div>
                     </div>
+                    {touchedFields['cover_image'] && validationErrors['cover_image'] && (
+                        <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['cover_image']}</p>
+                    )}
                 </div>
 
                 {/* Image Gallery */}
@@ -1534,23 +1681,32 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         <div className="md:col-span-2 space-y-2">
                             <label className={labelClasses}>{t('sections.basicInfo.eventTitle')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
-                                required 
+                                name="title"
                                 type="text" 
-                                className={inputClasses}
+                                className={`${inputClasses} ${touchedFields['title'] && validationErrors['title'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                 placeholder={t('sections.basicInfo.eventTitlePlaceholder')}
                                 value={formData.title} 
                                 onChange={e => handleChange('title', e.target.value)}
+                                onBlur={() => handleBlur('title')}
                             />
+                            {touchedFields['title'] && validationErrors['title'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['title']}</p>
+                            )}
                         </div>
                         
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>{t('sections.basicInfo.description')}</label>
-                            <DarkRichTextEditor
-                                value={formData.description || ''}
-                                onChange={(content) => handleChange('description', content)}
-                                placeholder={t('sections.basicInfo.descriptionPlaceholder')}
-                                minHeight="200px"
-                            />
+                            <label className={labelClasses}>{t('sections.basicInfo.description')} <span className="text-[var(--brand-red)]">*</span></label>
+                            <div onBlur={() => handleBlur('description')}>
+                                <DarkRichTextEditor
+                                    value={formData.description || ''}
+                                    onChange={(content) => handleChange('description', content)}
+                                    placeholder={t('sections.basicInfo.descriptionPlaceholder')}
+                                    minHeight="200px"
+                                />
+                            </div>
+                            {touchedFields['description'] && validationErrors['description'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['description']}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -1617,22 +1773,30 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                         <div className="space-y-2">
                             <label className={labelClasses}>{t('sections.when.startDate')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
-                                required 
+                                name="start_date"
                                 type="datetime-local" 
-                                className={inputClasses}
+                                className={`${inputClasses} ${touchedFields['start_date'] && validationErrors['start_date'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                 value={formatDateForInput(formData.start_date)}
                                 onChange={e => handleChange('start_date', e.target.value)}
+                                onBlur={() => handleBlur('start_date')}
                             />
+                            {touchedFields['start_date'] && validationErrors['start_date'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['start_date']}</p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <label className={labelClasses}>{t('sections.when.endDate')} <span className="text-[var(--brand-red)]">*</span></label>
                             <input 
-                                required 
+                                name="end_date"
                                 type="datetime-local" 
-                                className={inputClasses}
+                                className={`${inputClasses} ${touchedFields['end_date'] && validationErrors['end_date'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                 value={formatDateForInput(formData.end_date)}
                                 onChange={e => handleChange('end_date', e.target.value)}
+                                onBlur={() => handleBlur('end_date')}
                             />
+                            {touchedFields['end_date'] && validationErrors['end_date'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['end_date']}</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1977,15 +2141,33 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2 space-y-2">
                             <label className={labelClasses}>{t('sections.location.locationName')} <span className="text-[var(--brand-red)]">*</span></label>
-                            <input required type="text" className={inputClasses}
+                            <input 
+                                name="location_name"
+                                type="text" 
+                                className={`${inputClasses} ${touchedFields['location_name'] && validationErrors['location_name'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                 placeholder={t('sections.location.locationNamePlaceholder')}
-                                value={formData.location_name} onChange={e => handleChange('location_name', e.target.value)} />
+                                value={formData.location_name} 
+                                onChange={e => handleChange('location_name', e.target.value)}
+                                onBlur={() => handleBlur('location_name')}
+                            />
+                            {touchedFields['location_name'] && validationErrors['location_name'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['location_name']}</p>
+                            )}
                         </div>
                         <div className="md:col-span-2 space-y-2">
-                            <label className={labelClasses}>{t('sections.location.address')}</label>
-                            <input type="text" className={inputClasses}
+                            <label className={labelClasses}>{t('sections.location.address')} <span className="text-[var(--brand-red)]">*</span></label>
+                            <input 
+                                name="address"
+                                type="text" 
+                                className={`${inputClasses} ${touchedFields['address'] && validationErrors['address'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                 placeholder={t('sections.location.addressPlaceholder')}
-                                value={formData.address} onChange={e => handleChange('address', e.target.value)} />
+                                value={formData.address} 
+                                onChange={e => handleChange('address', e.target.value)}
+                                onBlur={() => handleBlur('address')}
+                            />
+                            {touchedFields['address'] && validationErrors['address'] && (
+                                <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['address']}</p>
+                            )}
                         </div>
                         
                         <div className="space-y-2">
@@ -2434,12 +2616,17 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             <div className="space-y-2">
                                 <label className={labelClasses}>{t('sections.registration.registrationCloses')}</label>
                                 <input 
+                                    name="registration_close_date"
                                     type="datetime-local" 
-                                    className={inputClasses}
+                                    className={`${inputClasses} ${touchedFields['registration_close_date'] && validationErrors['registration_close_date'] ? 'border-[var(--brand-red)] focus:border-[var(--brand-red)]' : ''}`}
                                     value={formatDateForInput(formData.registration_close_date)}
                                     onChange={e => handleChange('registration_close_date', e.target.value)}
+                                    onBlur={() => handleBlur('registration_close_date')}
                                     max={formData.start_date ? formatDateForInput(formData.start_date) : undefined}
                                 />
+                                {touchedFields['registration_close_date'] && validationErrors['registration_close_date'] && (
+                                    <p className="text-[var(--brand-red)] text-sm mt-1">{validationErrors['registration_close_date']}</p>
+                                )}
                                 <p className="text-xs text-[var(--brand-light)]/50">
                                     {formData.registration_close_date 
                                         ? t('sections.registration.registrationClosesHint')

@@ -24,6 +24,12 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Build URL preserving search params (for pagination persistence)
+  const buildUrlWithParams = (path: string) => {
+    const queryString = searchParams.toString();
+    return queryString ? `${path}?${queryString}` : path;
+  };
+
   useEffect(() => {
     if (municipalityId) {
       fetchData();
@@ -69,7 +75,7 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
           </div>
           <p className="text-[var(--brand-red)]">{t('detail.municipalityNotFound')}</p>
           <Link 
-            href={basePath}
+            href={buildUrlWithParams(basePath)}
             className="text-sm text-[var(--brand-primary)] hover:underline"
           >
             {t('detail.backToMunicipalitiesList')}
@@ -88,13 +94,13 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
       {/* Navigation Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0">
         <Link 
-          href={basePath}
+          href={buildUrlWithParams(basePath)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" /> {t('detail.backToList')}
         </Link>
         <Link 
-          href={`${basePath}/edit/${municipality.id}`}
+          href={buildUrlWithParams(`${basePath}/edit/${municipality.id}`)}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
         >
           <Edit className="h-4 w-4" /> {t('detail.editMunicipality')}

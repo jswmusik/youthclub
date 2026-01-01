@@ -549,7 +549,21 @@ export const removeClubFollower = async (clubId: number | string, userId: number
 
 export const users = {
   // Search for users (typically used for manual check-in)
-  search: (query: string) => api.get(`/users/?search=${query}&role=YOUTH_MEMBER`),
+  // If query is empty, returns all youth members sorted by first name
+  // Only returns active (non-deleted) users
+  search: (query: string, options?: { includeInactive?: boolean }) => {
+    const params = new URLSearchParams();
+    params.append('role', 'YOUTH_MEMBER');
+    params.append('ordering', 'first_name');
+    params.append('page_size', '500'); // Get more results for the member list
+    if (!options?.includeInactive) {
+      params.append('is_active', 'true'); // Only get active users by default
+    }
+    if (query.trim()) {
+      params.append('search', query);
+    }
+    return api.get(`/users/?${params.toString()}`);
+  },
 };
 
 // --- VISITS ENDPOINTS ---

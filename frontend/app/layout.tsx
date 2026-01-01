@@ -7,6 +7,7 @@ import { IntlProviderWrapper } from "../context/IntlProvider";
 import SystemAlert from "./components/SystemAlert";
 import { RootLayoutClient } from "./RootLayoutClient";
 import { ToastProvider } from "./components/ToastProvider";
+import { ThemeProvider } from "../components/ThemeProvider";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -40,22 +41,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="overflow-x-hidden">
+    <html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} ${inter.className} overflow-x-hidden max-w-full`}>
-        <AuthProvider>
-          <LocaleProvider>
-            <IntlProviderWrapper>
-              <RootLayoutClient>
-                <ToastProvider>
-                  <SystemAlert />
-                  <div className="min-w-0 max-w-full overflow-x-hidden" style={{ paddingTop: 'var(--system-alert-height, 0px)' }}>
-                    {children}
-                  </div>
-                </ToastProvider>
-              </RootLayoutClient>
-            </IntlProviderWrapper>
-          </LocaleProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <LocaleProvider>
+              <IntlProviderWrapper>
+                <RootLayoutClient>
+                  <ToastProvider>
+                    <SystemAlert />
+                    <div className="min-w-0 max-w-full overflow-x-hidden" style={{ paddingTop: 'var(--system-alert-height, 0px)' }}>
+                      {children}
+                    </div>
+                  </ToastProvider>
+                </RootLayoutClient>
+              </IntlProviderWrapper>
+            </LocaleProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

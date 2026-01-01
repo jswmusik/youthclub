@@ -15,6 +15,7 @@ import {
     ChevronRight,
     Bell
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface GuardianSidebarProps {
     unfinishedCount?: number; // For questionnaires or notifications
@@ -195,6 +196,13 @@ export default function GuardianSidebar({ unfinishedCount = 0, pendingApprovalsC
                     />
                 ))}
             </nav>
+
+            {/* Theme Toggle */}
+            <div className={`mt-6 pt-4 ${
+                darkMode ? 'border-t border-[var(--dark-600)]' : 'border-t border-gray-100'
+            }`}>
+                <ThemeToggle showLabel className="w-full justify-center" />
+            </div>
         </div>
     );
 }

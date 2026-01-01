@@ -1305,6 +1305,49 @@
         "questionnaires": "Frågeformulär"
       }
     },
+    "dashboard": {
+      "welcome": "Välkommen tillbaka, {name}!",
+      "yourMunicipality": "Din kommun",
+      "refresh": "Uppdatera",
+      "stats": {
+        "totalClubs": "Antal fritidsgårdar",
+        "totalMembers": "Totalt medlemmar",
+        "pendingBookings": "Väntande bokningar",
+        "pendingRegistrations": "Väntande anmälningar",
+        "unreadMessages": "Olästa meddelanden",
+        "upcomingEvents": "Kommande evenemang"
+      },
+      "clubs": {
+        "title": "Dina fritidsgårdar",
+        "members": "medlemmar",
+        "checkedIn": "incheckade",
+        "pending": "väntande",
+        "noClubs": "Inga fritidsgårdar i din kommun"
+      },
+      "actionItems": {
+        "title": "Att göra",
+        "allCaughtUp": "Du är i kapp!",
+        "noPendingItems": "Inga väntande ärenden kräver din uppmärksamhet."
+      },
+      "actions": {
+        "bookingRequest": "Bokningsförfrågan för {resource}",
+        "eventRegistration": "Anmälan till {event}",
+        "newMessage": "Nytt meddelande",
+        "noPreview": "Ingen förhandsgranskning tillgänglig"
+      },
+      "upcomingEvents": {
+        "title": "Kommande evenemang",
+        "registered": "anmälda",
+        "noEvents": "Inga kommande evenemang"
+      },
+      "quickActions": {
+        "title": "Snabbåtgärder",
+        "manageClubs": "Hantera fritidsgårdar",
+        "manageMembers": "Hantera medlemmar",
+        "createEvent": "Skapa evenemang",
+        "sendMessage": "Skicka meddelande"
+      }
+    },
     "msgboard": {
       "title": "Meddelandetavla",
       "description": "Hantera systemmeddelanden och annonser.",
@@ -1406,6 +1449,52 @@
         "messageBoard": "Meddelandetavla",
         "customFields": "Anpassade fält",
         "questionnaires": "Frågeformulär"
+      }
+    },
+    "dashboard": {
+      "welcome": "Välkommen tillbaka, {name}!",
+      "yourClub": "Din fritidsgård",
+      "refresh": "Uppdatera",
+      "today": "Idag",
+      "tomorrow": "Imorgon",
+      "stats": {
+        "checkedIn": "Incheckade",
+        "pendingBookings": "Väntande bokningar",
+        "unreadMessages": "Olästa meddelanden",
+        "pendingRegistrations": "Väntande anmälningar",
+        "totalMembers": "Totalt medlemmar",
+        "weeklyVisits": "Veckans besök",
+        "todayBookings": "Dagens bokningar",
+        "upcomingEvents": "Kommande evenemang"
+      },
+      "actionItems": {
+        "title": "Att göra",
+        "allCaughtUp": "Du är i kapp!",
+        "noPendingItems": "Inga väntande ärenden kräver din uppmärksamhet."
+      },
+      "actions": {
+        "bookingRequest": "Bokningsförfrågan för {resource}",
+        "eventRegistration": "Anmälan till {event}",
+        "newMessage": "Nytt meddelande",
+        "noPreview": "Ingen förhandsgranskning tillgänglig"
+      },
+      "upcomingEvents": {
+        "title": "Kommande evenemang",
+        "registered": "anmälda",
+        "noEvents": "Inga kommande evenemang",
+        "createEvent": "Skapa ett evenemang"
+      },
+      "checkedIn": {
+        "title": "Just nu incheckade",
+        "currentlyInClub": "{count, plural, =0 {Ingen} =1 {1 medlem} other {# medlemmar}} på fritidsgården just nu",
+        "noOneCheckedIn": "Ingen är incheckad just nu"
+      },
+      "quickActions": {
+        "title": "Snabbåtgärder",
+        "openKiosk": "Öppna kiosk",
+        "createEvent": "Skapa evenemang",
+        "sendMessage": "Skicka meddelande",
+        "createPost": "Skapa inlägg"
       }
     },
     "msgboard": {
@@ -2403,6 +2492,14 @@
         "updateEvent": "Uppdatera evenemang"
       },
       "validation": {
+        "coverImageRequired": "Omslagsbild krävs",
+        "titleRequired": "Evenemangstitel krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "startDateRequired": "Startdatum och tid krävs",
+        "endDateRequired": "Slutdatum och tid krävs",
+        "endDateAfterStart": "Slutdatum måste vara efter startdatum",
+        "locationNameRequired": "Platsnamn krävs",
+        "addressRequired": "Adress krävs",
         "recurrencePatternRequired": "Vänligen välj ett upprepningsmönster (Dagligen, Veckovis eller Månadsvis) när du skapar ett återkommande evenemang.",
         "recurrenceEndDateRequired": "Vänligen ange ett slutdatum för den återkommande evenemangsserien.",
         "registrationCloseDateBeforeStart": "Registreringsstängningsdatum måste vara före evenemangets startdatum.",
@@ -2834,6 +2931,13 @@
         "groupUpdated": "Grupp uppdaterad framgångsrikt!",
         "operationFailed": "Åtgärden misslyckades. Kontrollera dina inmatningar."
       },
+      "validation": {
+        "nameRequired": "Gruppnamn krävs",
+        "groupTypeRequired": "Grupptyp krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "coverImageRequired": "Omslagsbild krävs",
+        "avatarRequired": "Profilbild krävs"
+      },
       "customRuleBuilder": {
         "loading": "Laddar fält...",
         "noFieldsAvailable": "Inga anpassade fält tillgängliga",
@@ -3215,6 +3319,11 @@
         "rewardCreated": "Belöning skapad!",
         "rewardUpdated": "Belöning uppdaterad!",
         "operationFailed": "Åtgärden misslyckades."
+      },
+      "validation": {
+        "nameRequired": "Belöningsrubrik krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "imageRequired": "Belöningsbild krävs"
       }
     },
     "detail": {
@@ -3474,6 +3583,14 @@
         "itemCreated": "Artikel skapad framgångsrikt!",
         "itemsCreated": "Artiklar skapade framgångsrikt!",
         "failedToSave": "Kunde inte spara artikel."
+      },
+      "validation": {
+        "titleRequired": "Artikeltitel krävs",
+        "clubRequired": "Vänligen tilldela till en fritidsgård",
+        "categoryRequired": "Kategori krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "imageRequired": "Artikelbild krävs",
+        "statusRequired": "Status krävs"
       }
     },
     "detail": {
@@ -4069,6 +4186,16 @@
           "resourceCreated": "Resurs skapad framgångsrikt!",
           "resourceUpdated": "Resurs uppdaterad framgångsrikt!",
           "errorSaving": "Fel vid sparande av resurs."
+        },
+        "validation": {
+          "clubRequired": "Vänligen tilldela till en fritidsgård",
+          "nameRequired": "Namn krävs",
+          "typeRequired": "Typ krävs",
+          "descriptionRequired": "Beskrivning krävs",
+          "imageRequired": "Resursbild krävs",
+          "maxParticipantsRequired": "Max antal deltagare krävs",
+          "bookingWindowRequired": "Bokningsfönster krävs",
+          "maxBookingsRequired": "Max bokningar per användare krävs"
         }
       }
     },
@@ -4711,11 +4838,19 @@
     "hero": {
       "title": "Hero-sektion",
       "description": "Anpassa innehållet som visas i hero-sektionen på startsidan.",
-      "backgroundImage": "Bakgrundsbild",
+      "backgroundImage": "Bakgrundsbild (Reserv)",
       "clickToUpload": "Klicka för att ladda upp",
       "recommendedSize": "Rekommenderad storlek: 1920x1080px",
       "format": "Format: JPG, PNG, WebP",
+      "imageFallbackNote": "Används som reserv när video inte är tillgänglig",
       "newImageSelected": "Ny bild vald (sparas vid \"Spara\")",
+      "backgroundVideo": "Bakgrundsvideo (Primär)",
+      "clickToUploadVideo": "Klicka för att ladda upp video",
+      "videoRecommendedSize": "Rekommenderat: 1920x1080px, max 50MB",
+      "videoFormat": "Format: MP4, WebM, MOV",
+      "videoNote": "Video används som primär bakgrund",
+      "videoTooLarge": "Videofilen är för stor. Maximal storlek är 50MB.",
+      "newVideoSelected": "Ny video vald (sparas vid \"Spara\")",
       "heading": "Rubrik",
       "headingPlaceholder": "Hitta din grej!",
       "subheading": "Underrubrik",
@@ -4940,6 +5075,15 @@
       "tip1": "Använd den officiella ISO 3166-1 alpha-2 landskoden (t.ex. SE för Sverige)",
       "tip2": "Valutakoder följer ISO 4217-standard (t.ex. SEK, EUR, USD)",
       "tip3": "Tidszoner använder IANA-format (t.ex. Europe/Stockholm)",
+      "validation": {
+        "nameRequired": "Landsnamn krävs",
+        "countryCodeRequired": "Landskod krävs",
+        "countryCodeMaxLength": "Landskod får vara max 5 tecken",
+        "descriptionRequired": "Beskrivning krävs",
+        "currencyRequired": "Valutakod krävs",
+        "languageRequired": "Standardspråk krävs",
+        "timezoneRequired": "Tidszon krävs"
+      },
       "toast": {
         "successTitle": "Land skapat!",
         "successMessage": "{name} har lagts till på din plattform.",
@@ -5236,141 +5380,110 @@
         "longitude": "Longitud",
         "longitudePlaceholder": "18.0686"
       },
-      "title": "Öppettider",
-      "description": "Definiera när fritidsgården är öppen och eventuella begränsningar",
-      "addNewTimeSlot": "Lägg till ny tidslucka",
-      "optionalTitle": "Valfri titel",
-      "titlePlaceholder": "t.ex. Tonårsnatt",
-      "genderRestriction": "Könsbegränsning",
-      "restrictionMode": "Begränsningsläge",
-      "noRestriction": "Ingen begränsning",
-      "ageRange": "Åldersintervall",
-      "gradeRange": "Årskursintervall",
-      "from": "Från",
-      "to": "Till",
-      "min": "Min",
-      "max": "Max",
-      "addTimeSlot": "Lägg till tidslucka",
-      "noHoursAdded": "Inga öppettider tillagda ännu",
-      "useFormAbove": "Använd formuläret ovan för att lägga till tidsluckor",
-      "closeTimeAfterOpen": "Stängningstid måste vara efter öppningstid.",
-      "overlapDetected": "Överlappning upptäckt med befintlig tid: {time} ({cycle})",
-      "weekdays": {
-        "monday": "Måndag",
-        "tuesday": "Tisdag",
-        "wednesday": "Onsdag",
-        "thursday": "Torsdag",
-        "friday": "Fredag",
-        "saturday": "Lördag",
-        "sunday": "Söndag"
+      "openingHours": {
+        "title": "Öppettider",
+        "description": "Definiera när fritidsgården är öppen och eventuella begränsningar",
+        "addNewTimeSlot": "Lägg till ny tidslucka",
+        "optionalTitle": "Valfri titel",
+        "titlePlaceholder": "t.ex. Tonårsnatt",
+        "genderRestriction": "Könsbegränsning",
+        "restrictionMode": "Begränsningsläge",
+        "noRestriction": "Ingen begränsning",
+        "ageRange": "Åldersintervall",
+        "gradeRange": "Årskursintervall",
+        "from": "Från",
+        "to": "Till",
+        "min": "Min",
+        "max": "Max",
+        "addTimeSlot": "Lägg till tidslucka",
+        "noHoursAdded": "Inga öppettider tillagda ännu",
+        "useFormAbove": "Använd formuläret ovan för att lägga till tidsluckor",
+        "closeTimeAfterOpen": "Stängningstid måste vara efter öppningstid.",
+        "overlapDetected": "Överlappning upptäckt med befintlig tid: {time} ({cycle})",
+        "restrictionLabels": {
+          "age": "Ålder",
+          "grade": "Årskurs"
+        },
+        "weekdays": {
+          "monday": "Måndag",
+          "tuesday": "Tisdag",
+          "wednesday": "Onsdag",
+          "thursday": "Torsdag",
+          "friday": "Fredag",
+          "saturday": "Lördag",
+          "sunday": "Söndag"
+        },
+        "cycles": {
+          "all": "Varje vecka",
+          "odd": "Udda veckor",
+          "even": "Jämna veckor"
+        },
+        "genderRestrictions": {
+          "all": "Alla kön",
+          "boys": "Endast pojkar",
+          "girls": "Endast flickor",
+          "other": "Annat"
+        }
       },
-      "cycles": {
-        "all": "Varje vecka",
-        "odd": "Udda veckor",
-        "even": "Jämna veckor"
+      "legalDocuments": {
+        "title": "Juridiska dokument",
+        "description": "Villkor, bestämmelser och policyer för fritidsgårdsmedlemmar",
+        "termsConditions": "Villkor & Bestämmelser",
+        "termsPlaceholder": "Ange villkor och bestämmelser för fritidsgårdsmedlemskap...",
+        "clubPolicies": "Fritidsgårdspolicyer",
+        "policiesPlaceholder": "Ange fritidsgårdspolicyer och riktlinjer..."
       },
-      "genderRestrictions": {
-        "all": "Alla kön",
-        "boys": "Endast pojkar",
-        "girls": "Endast flickor",
-        "other": "Annat"
+      "registrationSettings": {
+        "title": "Registreringsinställningar",
+        "description": "Åsidosätt standardinställningar för kommunen för denna fritidsgård",
+        "selfRegistration": "Självregistrering",
+        "overrideMunicipalityDefault": "Åsidosätt kommunstandard",
+        "requireGuardian": "Kräv vårdnadshavare",
+        "useDefault": "Använd standard",
+        "yesAllow": "Ja, tillåt",
+        "noBlock": "Nej, blockera",
+        "yesRequire": "Ja, kräv",
+        "noOptional": "Nej, valfritt"
       },
-      "restrictionLabels": {
-        "age": "Ålder",
-        "grade": "Årskurs"
-      }
-    },
-    "legalDocuments": {
-      "title": "Juridiska dokument",
-      "description": "Villkor, bestämmelser och policyer för fritidsgårdsmedlemmar",
-      "termsConditions": "Villkor & Bestämmelser",
-      "termsPlaceholder": "Ange villkor och bestämmelser för fritidsgårdsmedlemskap...",
-      "clubPolicies": "Fritidsgårdspolicyer",
-      "policiesPlaceholder": "Ange fritidsgårdspolicyer och riktlinjer..."
-    },
-    "registrationSettings": {
-      "title": "Registreringsinställningar",
-      "description": "Åsidosätt standardinställningar för kommunen för denna fritidsgård",
-      "selfRegistration": "Självregistrering",
-      "overrideMunicipalityDefault": "Åsidosätt kommunstandard",
-      "requireGuardian": "Kräv vårdnadshavare",
-      "useDefault": "Använd standard",
-      "yesAllow": "Ja, tillåt",
-      "noBlock": "Nej, blockera",
-      "yesRequire": "Ja, kräv",
-      "noOptional": "Nej, valfritt"
-    },
-    "formActions": {
-      "cancel": "Avbryt",
-      "saving": "Sparar...",
-      "saveChanges": "Spara ändringar",
-      "createClub": "Skapa fritidsgård"
-    },
-    "quickTips": {
-      "title": "Snabbtips",
-      "tip1": "Lägg till öppettider så att användare vet när fritidsgården är tillgänglig",
-      "tip2": "Använd ålders- eller årskursbegränsningar för att rikta in dig på specifika ungdomsgrupper",
-      "tip3": "Åsidosätt registreringsinställningar endast om denna fritidsgård behöver andra regler än kommunstandard",
-      "tip4": "Kategorier hjälper användare att upptäcka din fritidsgård när de söker"
-    },
-    "validation": {
-      "missingFields": "Vänligen fyll i: {fields}",
-      "missingFieldsTitle": "Saknade fält",
-      "operationFailed": "Åtgärden misslyckades",
-      "failedToSave": "Kunde inte spara. Kontrollera inmatningar.",
-      "municipalityNotAssigned": "Kommun (inte tilldelad till ditt konto)"
-    },
-    "formToast": {
+      "formActions": {
+        "cancel": "Avbryt",
+        "saving": "Sparar...",
+        "saveChanges": "Spara ändringar",
+        "createClub": "Skapa fritidsgård"
+      },
+      "quickTips": {
+        "title": "Snabbtips",
+        "tip1": "Lägg till öppettider så att användare vet när fritidsgården är tillgänglig",
+        "tip2": "Använd ålders- eller årskursbegränsningar för att rikta in dig på specifika ungdomsgrupper",
+        "tip3": "Åsidosätt registreringsinställningar endast om denna fritidsgård behöver andra regler än kommunstandard",
+        "tip4": "Kategorier hjälper användare att upptäcka din fritidsgård när de söker"
+      },
+      "validation": {
+        "missingFields": "Vänligen fyll i: {fields}",
+        "missingFieldsTitle": "Saknade fält",
+        "operationFailed": "Åtgärden misslyckades",
+        "failedToSave": "Kunde inte spara. Kontrollera inmatningar.",
+        "municipalityNotAssigned": "Kommun (inte tilldelad till ditt konto)",
+        "nameRequired": "Fritidsgårdsnamn krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "emailRequired": "E-post krävs",
+        "invalidEmail": "Vänligen ange en giltig e-postadress",
+        "phoneRequired": "Telefonnummer krävs",
+        "addressRequired": "Gatuadress krävs",
+        "termsRequired": "Villkor & Bestämmelser krävs",
+        "policiesRequired": "Fritidsgårdspolicyer krävs",
+        "municipalityRequired": "Kommun krävs",
+        "avatarRequired": "Fritidsgårds logotyp/avatar krävs",
+        "heroRequired": "Herobild krävs"
+      },
+      "formToast": {
       "clubCreated": "{name} har lagts till på din plattform.",
       "clubCreatedTitle": "Fritidsgård skapad!",
       "clubUpdated": "{name} har uppdaterats med dina ändringar.",
       "clubUpdatedTitle": "Fritidsgård uppdaterad!"
     }
-  },
-  "detail": {
-    "loadingDetails": "Laddar fritidsgårdsdetaljer...",
-    "loading": "Laddar...",
-    "clubNotFound": "Fritidsgård hittades inte.",
-    "backToClubsList": "← Tillbaka till listan över fritidsgårdar",
-    "backToList": "Tillbaka till lista",
-    "viewVisitors": "Visa besökare",
-    "visitors": "Besökare",
-    "viewFollowers": "Visa följare",
-    "followers": "Följare",
-    "editClub": "Redigera fritidsgård",
-    "about": "Om",
-    "noDescription": "Ingen beskrivning angiven.",
-    "openingHours": "Öppettider",
-    "noOpeningHours": "Inga öppettider definierade",
-    "today": "Idag",
-    "oddWeeks": "Udda veckor",
-    "evenWeeks": "Jämna veckor",
-    "girlsOnly": "Endast flickor",
-    "boysOnly": "Endast pojkar",
-    "otherGender": "Annat kön",
-    "age": "Ålder",
-    "grades": "Årskurser",
-    "termsConditions": "Villkor & Bestämmelser",
-    "clubPolicies": "Fritidsgårdspolicyer",
-    "noneProvided": "Ingen angiven",
-    "contact": "Kontakt",
-    "noContactInfo": "Ingen kontaktinformation",
-    "location": "Plats",
-    "loadingMap": "Laddar karta...",
-    "mapUnavailable": "Kartförhandsvisning otillgänglig",
-    "apiKeyNotConfigured": "API-nyckel inte konfigurerad",
-    "openInGoogleMaps": "Öppna i Google Maps",
-    "weekdays": {
-      "monday": "Måndag",
-      "tuesday": "Tisdag",
-      "wednesday": "Onsdag",
-      "thursday": "Torsdag",
-      "friday": "Fredag",
-      "saturday": "Lördag",
-      "sunday": "Söndag"
-    }
-  },
-  "openingHours": {
+    },
+    "openingHours": {
     "loading": "Laddar öppettider...",
     "noClubAssigned": "Ingen fritidsgård tilldelad. Vänligen kontakta din administratör.",
     "backToDetails": "Tillbaka till fritidsgårdsdetaljer",
@@ -5442,6 +5555,50 @@
       "loadFailed": "Kunde inte ladda öppettider",
       "updateSuccess": "Öppettider uppdaterade framgångsrikt!",
       "updateFailed": "Kunde inte uppdatera öppettider."
+    }
+  }
+  },
+  "detail": {
+    "loadingDetails": "Laddar fritidsgårdsdetaljer...",
+    "loading": "Laddar...",
+    "clubNotFound": "Fritidsgård hittades inte.",
+    "backToClubsList": "← Tillbaka till listan över fritidsgårdar",
+    "backToList": "Tillbaka till lista",
+    "viewVisitors": "Visa besökare",
+    "visitors": "Besökare",
+    "viewFollowers": "Visa följare",
+    "followers": "Följare",
+    "editClub": "Redigera fritidsgård",
+    "about": "Om",
+    "noDescription": "Ingen beskrivning angiven.",
+    "openingHours": "Öppettider",
+    "noOpeningHours": "Inga öppettider definierade",
+    "today": "Idag",
+    "oddWeeks": "Udda veckor",
+    "evenWeeks": "Jämna veckor",
+    "girlsOnly": "Endast flickor",
+    "boysOnly": "Endast pojkar",
+    "otherGender": "Annat kön",
+    "age": "Ålder",
+    "grades": "Årskurser",
+    "termsConditions": "Villkor & Bestämmelser",
+    "clubPolicies": "Fritidsgårdspolicyer",
+    "noneProvided": "Ingen angiven",
+    "contact": "Kontakt",
+    "noContactInfo": "Ingen kontaktinformation",
+    "location": "Plats",
+    "loadingMap": "Laddar karta...",
+    "mapUnavailable": "Kartförhandsvisning otillgänglig",
+    "apiKeyNotConfigured": "API-nyckel inte konfigurerad",
+    "openInGoogleMaps": "Öppna i Google Maps",
+    "weekdays": {
+      "monday": "Måndag",
+      "tuesday": "Tisdag",
+      "wednesday": "Onsdag",
+      "thursday": "Torsdag",
+      "friday": "Fredag",
+      "saturday": "Lördag",
+      "sunday": "Söndag"
     }
   },
   "clubSettings": {
@@ -5575,8 +5732,8 @@
     "checkIn": "Incheckning",
     "manualCheckInModal": {
       "title": "Manuell incheckning",
-      "description": "Sök efter en medlem efter namn eller e-post för att checka in dem.",
-      "searchPlaceholder": "Skriv namn eller e-post (t.ex. 'Alice')",
+      "description": "Välj en medlem från listan eller sök på namn för att checka in.",
+      "searchPlaceholder": "Sök på namn eller e-post...",
       "noMembersFound": "Inga medlemmar hittades.",
       "readyToCheckIn": "Redo att checka in",
       "cancel": "Avbryt",
@@ -5584,7 +5741,11 @@
       "confirmCheckIn": "Bekräfta incheckning",
       "failedToCheckIn": "Misslyckades med att checka in",
       "alreadyCheckedIn": "{name} är redan incheckad på denna fritidsgård.",
-      "checkedInSuccess": "Checkade in {name}"
+      "checkedInSuccess": "Checkade in {name}",
+      "loadingMembers": "Laddar medlemmar...",
+      "totalMembers": "{count} medlemmar",
+      "showingFiltered": "Visar {count} av {total}",
+      "clearSearch": "Rensa sökning"
     },
     "loadingClubName": "Laddar...",
     "tabs": {
@@ -5807,6 +5968,56 @@
       "questionnaires": "Frågeformulär",
       "manageInterests": "Hantera intressen",
       "systemMessages": "Systemmeddelanden"
+    }
+  },
+  "superAdmin": {
+    "dashboard": {
+      "welcome": "Välkommen tillbaka, {name}!",
+      "platformOverview": "Plattformsöversikt",
+      "refresh": "Uppdatera",
+      "stats": {
+        "municipalities": "Kommuner",
+        "clubs": "Fritidsgårdar",
+        "members": "Medlemmar",
+        "activeLicenses": "Aktiva licenser",
+        "newThisWeek": "Nya denna vecka",
+        "admins": "Administratörer",
+        "pendingBookings": "Väntande bokningar",
+        "pendingRegistrations": "Väntande anmälningar"
+      },
+      "municipalities": {
+        "title": "Kommuner",
+        "clubs": "fritidsgårdar",
+        "members": "medlemmar",
+        "active": "Aktiv",
+        "inactive": "Inaktiv",
+        "noMunicipalities": "Inga kommuner registrerade",
+        "addMunicipality": "Lägg till kommun"
+      },
+      "actionItems": {
+        "title": "Att göra",
+        "allCaughtUp": "Du är i kapp!",
+        "noPendingItems": "Inga väntande ärenden kräver din uppmärksamhet."
+      },
+      "actions": {
+        "bookingRequest": "Bokningsförfrågan för {resource}",
+        "eventRegistration": "Anmälan till {event}",
+        "newMessage": "Nytt meddelande",
+        "noPreview": "Ingen förhandsgranskning tillgänglig"
+      },
+      "quickActions": {
+        "title": "Snabbåtgärder",
+        "manageMunicipalities": "Kommuner",
+        "manageClubs": "Fritidsgårdar",
+        "manageLicenses": "Licenser",
+        "viewAnalytics": "Analys"
+      },
+      "systemHealth": {
+        "title": "Systemhälsa",
+        "apiStatus": "API-status",
+        "database": "Databas",
+        "operational": "Operativ"
+      }
     }
   },
   "plans": {
@@ -6256,6 +6467,14 @@
       "clubAdmins": "Fritidsgårdsadministratörer hanterar aktiviteter och medlemmar för sin tilldelade fritidsgård",
       "passwordStrength": "Starka lösenord bör innehålla bokstäver, siffror och specialtecken"
     },
+    "validation": {
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "emailRequired": "E-post krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "passwordRequired": "Lösenord krävs",
+      "genderRequired": "Kön krävs"
+    },
     "toast": {
       "adminUpdated": "{firstName} {lastName} har uppdaterats.",
       "adminCreated": "{firstName} {lastName} har lagts till som administratör.",
@@ -6466,6 +6685,18 @@
       "assignGuardians": "Tilldela vårdnadshavare för att möjliggöra föräldraövervakning",
       "selectInterests": "Välj intressen för att hjälpa till att matcha aktiviteter",
       "setVerification": "Ange verifieringsstatus baserat på identitetsbekräftelse"
+    },
+    "validation": {
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "emailRequired": "E-post krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "passwordRequired": "Lösenord krävs",
+      "phoneRequired": "Telefonnummer krävs",
+      "dateOfBirthRequired": "Födelsedatum krävs",
+      "gradeRequired": "Årskurs krävs",
+      "legalGenderRequired": "Juridiskt kön krävs",
+      "preferredClubRequired": "Föredragen fritidsgård krävs"
     },
     "actions": {
       "cancel": "Avbryt",
@@ -6813,6 +7044,15 @@
       "tip2": "Verifierade vårdnadshavare har full åtkomst till sina länkade ungdomsmedlemmars information",
       "tip3": "Telefonnummer hjälper vid nödsituationer"
     },
+    "validation": {
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "emailRequired": "E-post krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "passwordRequired": "Lösenord krävs",
+      "phoneRequired": "Telefonnummer krävs",
+      "legalGenderRequired": "Juridiskt kön krävs"
+    },
     "actions": {
       "cancel": "Avbryt",
       "saving": "Sparar...",
@@ -6826,10 +7066,11 @@
     },
     "relationshipCard": {
       "primary": "Primär",
+      "grade": "Årskurs {grade}",
       "status": {
-        "active": "AKTIV",
-        "pending": "VÄNTANDE",
-        "rejected": "AVVISAD"
+        "active": "Aktiv",
+        "pending": "Väntande",
+        "rejected": "Avvisad"
       },
       "verify": "Verifiera",
       "reject": "Avvisa",
@@ -7505,6 +7746,10 @@
         "failedToSave": "Kunde inte spara inlägg.",
         "municipalityCannotCreateGlobal": "Kommunadministratörer kan inte skapa globala inlägg."
       },
+      "validation": {
+        "titleRequired": "Rubrik krävs",
+        "contentRequired": "Innehåll krävs"
+      },
       "loading": "Laddar inläggsdata..."
     },
     "quickPost": {
@@ -7573,6 +7818,7 @@
       },
       "templateSettings": {
         "title": "Mallinställningar",
+        "willBeApplied": "Dessa inställningar kommer att tillämpas från \"{name}\"",
         "targetAudience": "Målgrupp",
         "settings": "Inställningar",
         "willBePinned": "Kommer att fästas",
@@ -7589,6 +7835,11 @@
         "postCreated": "Inlägg skapat framgångsrikt!",
         "failedToCreate": "Kunde inte skapa inlägg.",
         "selectTemplate": "Vänligen välj en mall"
+      },
+      "validation": {
+        "templateRequired": "Vänligen välj en mall",
+        "titleRequired": "Rubrik krävs",
+        "contentRequired": "Innehåll krävs"
       },
       "loading": "Laddar snabbinlägg..."
     },
@@ -7887,6 +8138,9 @@
         "templateUpdated": "Mall uppdaterad framgångsrikt!",
         "templateCreated": "Mall skapad framgångsrikt!",
         "failedToSave": "Kunde inte spara mall."
+      },
+      "validation": {
+        "nameRequired": "Mallnamn krävs"
       }
     }
   },
@@ -8465,6 +8719,7 @@
       },
       "buttons": {
         "back": "Tillbaka",
+        "cancel": "Avbryt",
         "saveDraft": "Spara utkast",
         "publish": "Publicera",
         "unpublish": "Avpublicera",
@@ -8494,6 +8749,50 @@
         "updateSuccess": "Ändringar sparade!",
         "createSuccess": "Frågeformulär skapat!",
         "deleteSuccess": "Fråga raderad"
+      },
+      "validation": {
+        "titleRequired": "Titel krävs",
+        "descriptionRequired": "Beskrivning krävs",
+        "expirationDateRequired": "Utgångsdatum krävs"
+      },
+      "settings": {
+        "basicInfo": {
+          "title": "Grundläggande information",
+          "subtitle": "Ange frågeformulärets titel, beskrivning och datum",
+          "titleLabel": "Titel",
+          "titlePlaceholder": "Ange frågeformulärets titel...",
+          "descriptionLabel": "Beskrivning",
+          "descriptionPlaceholder": "Ange en beskrivning för detta frågeformulär...",
+          "schedulePublishLabel": "Schema för publiceringsdatum (Valfritt)",
+          "schedulePublishHint": "Lämna tomt för att publicera omedelbart när du klickar på \"Publicera\"",
+          "expirationLabel": "Utgångsdatum"
+        },
+        "anonymous": {
+          "title": "Anonyma svar",
+          "description": "Administratörer kan inte se vem som svarade"
+        },
+        "targetAudience": {
+          "title": "Målgrupp",
+          "description": "Konfigurera vem som kan se och svara på detta frågeformulär",
+          "municipalityLabel": "Kommun (Valfritt - Begränsar omfattning)",
+          "allGlobal": "Alla / Global",
+          "clubLabel": "Fritidsgård (Valfritt - Begränsar omfattning)",
+          "clubAll": "Alla inom omfattningen",
+          "whoCanAnswer": "Vem kan svara?",
+          "youthMembers": "Ungdomar",
+          "guardians": "Vårdnadshavare",
+          "selectGroup": "-- Eller välj specifik grupp --",
+          "groupNote": "Obs: Att välja en grupp åsidosätter inställningen för Ungdom/Vårdnadshavare."
+        },
+        "rewards": {
+          "title": "Belöningar (Valfritt)",
+          "description": "Välj belöningar att ge till användare som slutför detta frågeformulär",
+          "selectLabel": "Välj belöning(ar)",
+          "searchPlaceholder": "Sök belöningar efter namn...",
+          "limitLabel": "Begränsning (Valfritt)",
+          "limitPlaceholder": "t.ex. Endast de första 10 användarna",
+          "limitHint": "Lämna tomt för obegränsade belöningar"
+        }
       },
       "questionModal": {
         "addTitle": "Lägg till fråga",
@@ -8914,7 +9213,8 @@
         "addOption": "Lägg till minst ett alternativ för att fortsätta",
         "selectRole": "Välj minst en roll",
         "needOption": "Lägg till minst ett alternativ.",
-        "needRole": "Välj minst en målroll."
+        "needRole": "Välj minst en målroll.",
+        "nameRequired": "Fältetikett krävs"
       }
     },
     "detail": {

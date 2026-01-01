@@ -1306,6 +1306,49 @@
         "questionnaires": "Questionnaires"
       }
     },
+    "dashboard": {
+      "welcome": "Welcome back, {name}!",
+      "yourMunicipality": "Your Municipality",
+      "refresh": "Refresh",
+      "stats": {
+        "totalClubs": "Total Clubs",
+        "totalMembers": "Total Members",
+        "pendingBookings": "Pending Bookings",
+        "pendingRegistrations": "Pending Registrations",
+        "unreadMessages": "Unread Messages",
+        "upcomingEvents": "Upcoming Events"
+      },
+      "clubs": {
+        "title": "Your Clubs",
+        "members": "members",
+        "checkedIn": "checked in",
+        "pending": "pending",
+        "noClubs": "No clubs in your municipality"
+      },
+      "actionItems": {
+        "title": "Action Items",
+        "allCaughtUp": "You're all caught up!",
+        "noPendingItems": "No pending items require your attention."
+      },
+      "actions": {
+        "bookingRequest": "Booking request for {resource}",
+        "eventRegistration": "Registration for {event}",
+        "newMessage": "New message",
+        "noPreview": "No preview available"
+      },
+      "upcomingEvents": {
+        "title": "Upcoming Events",
+        "registered": "registered",
+        "noEvents": "No upcoming events"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "manageClubs": "Manage Clubs",
+        "manageMembers": "Manage Members",
+        "createEvent": "Create Event",
+        "sendMessage": "Send Message"
+      }
+    },
     "msgboard": {
       "title": "Message Board",
       "description": "Manage system messages and announcements.",
@@ -1407,6 +1450,52 @@
         "messageBoard": "Message Board",
         "customFields": "Custom Fields",
         "questionnaires": "Questionnaires"
+      }
+    },
+    "dashboard": {
+      "welcome": "Welcome back, {name}!",
+      "yourClub": "Your Club",
+      "refresh": "Refresh",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "stats": {
+        "checkedIn": "Checked In",
+        "pendingBookings": "Pending Bookings",
+        "unreadMessages": "Unread Messages",
+        "pendingRegistrations": "Pending Registrations",
+        "totalMembers": "Total Members",
+        "weeklyVisits": "Weekly Visits",
+        "todayBookings": "Today's Bookings",
+        "upcomingEvents": "Upcoming Events"
+      },
+      "actionItems": {
+        "title": "Action Items",
+        "allCaughtUp": "You're all caught up!",
+        "noPendingItems": "No pending items require your attention."
+      },
+      "actions": {
+        "bookingRequest": "Booking request for {resource}",
+        "eventRegistration": "Registration for {event}",
+        "newMessage": "New message",
+        "noPreview": "No preview available"
+      },
+      "upcomingEvents": {
+        "title": "Upcoming Events",
+        "registered": "registered",
+        "noEvents": "No upcoming events",
+        "createEvent": "Create an event"
+      },
+      "checkedIn": {
+        "title": "Currently Checked In",
+        "currentlyInClub": "{count, plural, =0 {No one} =1 {1 member} other {# members}} currently in the club",
+        "noOneCheckedIn": "No one is currently checked in"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "openKiosk": "Open Kiosk",
+        "createEvent": "Create Event",
+        "sendMessage": "Send Message",
+        "createPost": "Create Post"
       }
     },
     "msgboard": {
@@ -2193,6 +2282,15 @@
       "tip1": "Use the official ISO 3166-1 alpha-2 country code (e.g., SE for Sweden)",
       "tip2": "Currency codes follow ISO 4217 standard (e.g., SEK, EUR, USD)",
       "tip3": "Timezones use IANA format (e.g., Europe/Stockholm)",
+      "validation": {
+        "nameRequired": "Country name is required",
+        "countryCodeRequired": "Country code is required",
+        "countryCodeMaxLength": "Country code must be 5 characters or less",
+        "descriptionRequired": "Description is required",
+        "currencyRequired": "Currency code is required",
+        "languageRequired": "Default language is required",
+        "timezoneRequired": "Timezone is required"
+      },
       "toast": {
         "successTitle": "Country Created!",
         "successMessage": "{name} has been added to your platform.",
@@ -2489,96 +2587,110 @@
         "longitude": "Longitude",
         "longitudePlaceholder": "18.0686"
       },
-      "addNewTimeSlot": "Add New Time Slot",
-      "optionalTitle": "Optional Title",
-      "titlePlaceholder": "e.g. Teen Night",
-      "genderRestriction": "Gender Restriction",
-      "restrictionMode": "Restriction Mode",
-      "noRestriction": "No Restriction",
-      "ageRange": "Age Range",
-      "gradeRange": "Grade Range",
-      "from": "From",
-      "to": "To",
-      "min": "Min",
-      "max": "Max",
-      "addTimeSlot": "Add Time Slot",
-      "noHoursAdded": "No opening hours added yet",
-      "useFormAbove": "Use the form above to add time slots",
-      "closeTimeAfterOpen": "Close time must be after Open time.",
-      "overlapDetected": "Overlap detected with existing hour: {time} ({cycle})",
-      "weekdays": {
-        "monday": "Monday",
-        "tuesday": "Tuesday",
-        "wednesday": "Wednesday",
-        "thursday": "Thursday",
-        "friday": "Friday",
-        "saturday": "Saturday",
-        "sunday": "Sunday"
+      "openingHours": {
+        "title": "Opening Hours",
+        "description": "Set your club's weekly schedule and session restrictions",
+        "addNewTimeSlot": "Add New Time Slot",
+        "optionalTitle": "Optional Title",
+        "titlePlaceholder": "e.g. Teen Night",
+        "genderRestriction": "Gender Restriction",
+        "restrictionMode": "Restriction Mode",
+        "noRestriction": "No Restriction",
+        "ageRange": "Age Range",
+        "gradeRange": "Grade Range",
+        "from": "From",
+        "to": "To",
+        "min": "Min",
+        "max": "Max",
+        "addTimeSlot": "Add Time Slot",
+        "noHoursAdded": "No opening hours added yet",
+        "useFormAbove": "Use the form above to add time slots",
+        "closeTimeAfterOpen": "Close time must be after Open time.",
+        "overlapDetected": "Overlap detected with existing hour: {time} ({cycle})",
+        "restrictionLabels": {
+          "age": "Age",
+          "grade": "Grade"
+        },
+        "weekdays": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
+        "cycles": {
+          "all": "Every Week",
+          "odd": "Odd Weeks",
+          "even": "Even Weeks"
+        },
+        "genderRestrictions": {
+          "all": "All Genders",
+          "boys": "Boys Only",
+          "girls": "Girls Only",
+          "other": "Other"
+        }
       },
-      "cycles": {
-        "all": "Every Week",
-        "odd": "Odd Weeks",
-        "even": "Even Weeks"
+      "legalDocuments": {
+        "title": "Legal Documents",
+        "description": "Terms, conditions, and policies for club members",
+        "termsConditions": "Terms & Conditions",
+        "termsPlaceholder": "Enter terms and conditions for club membership...",
+        "clubPolicies": "Club Policies",
+        "policiesPlaceholder": "Enter club policies and guidelines..."
       },
-      "genderRestrictions": {
-        "all": "All Genders",
-        "boys": "Boys Only",
-        "girls": "Girls Only",
-        "other": "Other"
+      "registrationSettings": {
+        "title": "Registration Settings",
+        "description": "Override default municipality settings for this club",
+        "selfRegistration": "Self Registration",
+        "overrideMunicipalityDefault": "Override municipality default",
+        "requireGuardian": "Require Guardian",
+        "useDefault": "Use Default",
+        "yesAllow": "Yes, Allow",
+        "noBlock": "No, Block",
+        "yesRequire": "Yes, Require",
+        "noOptional": "No, Optional"
       },
-      "restrictionLabels": {
-        "age": "Age",
-        "grade": "Grade"
-      }
-    },
-    "legalDocuments": {
-      "title": "Legal Documents",
-      "description": "Terms, conditions, and policies for club members",
-      "termsConditions": "Terms & Conditions",
-      "termsPlaceholder": "Enter terms and conditions for club membership...",
-      "clubPolicies": "Club Policies",
-      "policiesPlaceholder": "Enter club policies and guidelines..."
-    },
-    "registrationSettings": {
-      "title": "Registration Settings",
-      "description": "Override default municipality settings for this club",
-      "selfRegistration": "Self Registration",
-      "overrideMunicipalityDefault": "Override municipality default",
-      "requireGuardian": "Require Guardian",
-      "useDefault": "Use Default",
-      "yesAllow": "Yes, Allow",
-      "noBlock": "No, Block",
-      "yesRequire": "Yes, Require",
-      "noOptional": "No, Optional"
-    },
-    "formActions": {
-      "cancel": "Cancel",
-      "saving": "Saving...",
-      "saveChanges": "Save Changes",
-      "createClub": "Create Club"
-    },
-    "quickTips": {
-      "title": "Quick Tips",
-      "tip1": "Add opening hours to let users know when the club is available",
-      "tip2": "Use age or grade restrictions to target specific youth groups",
-      "tip3": "Override registration settings only if this club needs different rules than the municipality default",
-      "tip4": "Categories help users discover your club when searching"
-    },
-    "validation": {
-      "missingFields": "Please fill in: {fields}",
-      "missingFieldsTitle": "Missing Fields",
-      "operationFailed": "Operation Failed",
-      "failedToSave": "Failed to save. Check inputs.",
-      "municipalityNotAssigned": "Municipality (not assigned to your account)"
-    },
-    "formToast": {
+      "formActions": {
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "saveChanges": "Save Changes",
+        "createClub": "Create Club"
+      },
+      "quickTips": {
+        "title": "Quick Tips",
+        "tip1": "Add opening hours to let users know when the club is available",
+        "tip2": "Use age or grade restrictions to target specific youth groups",
+        "tip3": "Override registration settings only if this club needs different rules than the municipality default",
+        "tip4": "Categories help users discover your club when searching"
+      },
+      "validation": {
+        "missingFields": "Please fill in: {fields}",
+        "missingFieldsTitle": "Missing Fields",
+        "operationFailed": "Operation Failed",
+        "failedToSave": "Failed to save. Check inputs.",
+        "municipalityNotAssigned": "Municipality (not assigned to your account)",
+        "nameRequired": "Club name is required",
+        "descriptionRequired": "Description is required",
+        "emailRequired": "Email is required",
+        "invalidEmail": "Please enter a valid email address",
+        "phoneRequired": "Phone number is required",
+        "addressRequired": "Street address is required",
+        "termsRequired": "Terms & Conditions are required",
+        "policiesRequired": "Club Policies are required",
+        "municipalityRequired": "Municipality is required",
+        "avatarRequired": "Club logo/avatar is required",
+        "heroRequired": "Hero image is required"
+      },
+      "formToast": {
       "clubCreated": "{name} has been added to your platform.",
       "clubCreatedTitle": "Club Created!",
       "clubUpdated": "{name} has been updated with your changes.",
       "clubUpdatedTitle": "Club Updated!"
     }
-  },
-  "openingHours": {
+    },
+    "openingHours": {
     "loading": "Loading opening hours...",
     "noClubAssigned": "No club assigned. Please contact your administrator.",
     "backToDetails": "Back to Club Details",
@@ -2651,6 +2763,7 @@
       "updateSuccess": "Opening hours updated successfully!",
       "updateFailed": "Failed to update opening hours."
     }
+  }
   },
   "detail": {
     "loadingDetails": "Loading club details...",
@@ -2826,8 +2939,8 @@
     "checkIn": "Check-in",
     "manualCheckInModal": {
       "title": "Manual Check-in",
-      "description": "Search for a member by name or email to check them in.",
-      "searchPlaceholder": "Type name or email (e.g. 'Alice')",
+      "description": "Select a member from the list or search by name to check them in.",
+      "searchPlaceholder": "Search by name or email...",
       "noMembersFound": "No members found.",
       "readyToCheckIn": "Ready to check in",
       "cancel": "Cancel",
@@ -2835,7 +2948,11 @@
       "confirmCheckIn": "Confirm Check-in",
       "failedToCheckIn": "Failed to check in",
       "alreadyCheckedIn": "{name} is already checked in to this club.",
-      "checkedInSuccess": "Checked in {name}"
+      "checkedInSuccess": "Checked in {name}",
+      "loadingMembers": "Loading members...",
+      "totalMembers": "{count} members",
+      "showingFiltered": "Showing {count} of {total}",
+      "clearSearch": "Clear search"
     },
     "loadingClubName": "Loading...",
     "tabs": {
@@ -3058,6 +3175,56 @@
       "questionnaires": "Questionnaires",
       "manageInterests": "Manage Interests",
       "systemMessages": "System Messages"
+    }
+  },
+  "superAdmin": {
+    "dashboard": {
+      "welcome": "Welcome back, {name}!",
+      "platformOverview": "Platform Overview",
+      "refresh": "Refresh",
+      "stats": {
+        "municipalities": "Municipalities",
+        "clubs": "Clubs",
+        "members": "Members",
+        "activeLicenses": "Active Licenses",
+        "newThisWeek": "New This Week",
+        "admins": "Admins",
+        "pendingBookings": "Pending Bookings",
+        "pendingRegistrations": "Pending Registrations"
+      },
+      "municipalities": {
+        "title": "Municipalities",
+        "clubs": "clubs",
+        "members": "members",
+        "active": "Active",
+        "inactive": "Inactive",
+        "noMunicipalities": "No municipalities registered",
+        "addMunicipality": "Add Municipality"
+      },
+      "actionItems": {
+        "title": "Action Items",
+        "allCaughtUp": "You're all caught up!",
+        "noPendingItems": "No pending items require your attention."
+      },
+      "actions": {
+        "bookingRequest": "Booking request for {resource}",
+        "eventRegistration": "Registration for {event}",
+        "newMessage": "New message",
+        "noPreview": "No preview available"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "manageMunicipalities": "Municipalities",
+        "manageClubs": "Clubs",
+        "manageLicenses": "Licenses",
+        "viewAnalytics": "Analytics"
+      },
+      "systemHealth": {
+        "title": "System Health",
+        "apiStatus": "API Status",
+        "database": "Database",
+        "operational": "Operational"
+      }
     }
   },
   "plans": {
@@ -3507,6 +3674,14 @@
       "clubAdmins": "Club Admins manage activities and members for their assigned club",
       "passwordStrength": "Strong passwords should include letters, numbers, and special characters"
     },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "genderRequired": "Gender is required"
+    },
     "toast": {
       "adminUpdated": "{firstName} {lastName} has been updated.",
       "adminCreated": "{firstName} {lastName} has been added as an admin.",
@@ -3717,6 +3892,18 @@
       "assignGuardians": "Assign guardians to enable parental oversight",
       "selectInterests": "Select interests to help match activities",
       "setVerification": "Set verification status based on identity confirmation"
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "phoneRequired": "Phone number is required",
+      "dateOfBirthRequired": "Date of birth is required",
+      "gradeRequired": "Grade is required",
+      "legalGenderRequired": "Legal gender is required",
+      "preferredClubRequired": "Preferred club is required"
     },
     "actions": {
       "cancel": "Cancel",
@@ -4064,6 +4251,15 @@
       "tip2": "Verified guardians have full access to their linked youth's information",
       "tip3": "Phone numbers help with emergency contact situations"
     },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "emailRequired": "Email is required",
+      "invalidEmail": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "phoneRequired": "Phone number is required",
+      "legalGenderRequired": "Legal gender is required"
+    },
     "actions": {
       "cancel": "Cancel",
       "saving": "Saving...",
@@ -4079,9 +4275,9 @@
       "primary": "Primary",
       "grade": "Grade {grade}",
       "status": {
-        "active": "ACTIVE",
-        "pending": "PENDING",
-        "rejected": "REJECTED"
+        "active": "Active",
+        "pending": "Pending",
+        "rejected": "Rejected"
       },
       "verify": "Verify",
       "reject": "Reject",
@@ -4757,6 +4953,10 @@
         "failedToSave": "Failed to save post.",
         "municipalityCannotCreateGlobal": "Municipality admins cannot create global posts."
       },
+      "validation": {
+        "titleRequired": "Title is required",
+        "contentRequired": "Content is required"
+      },
       "loading": "Loading post data..."
     },
     "quickPost": {
@@ -4825,6 +5025,7 @@
       },
       "templateSettings": {
         "title": "Template Settings",
+        "willBeApplied": "These settings will be applied from \"{name}\"",
         "targetAudience": "Target Audience",
         "settings": "Settings",
         "willBePinned": "Will be pinned",
@@ -4841,6 +5042,11 @@
         "postCreated": "Post created successfully!",
         "failedToCreate": "Failed to create post.",
         "selectTemplate": "Please select a template"
+      },
+      "validation": {
+        "templateRequired": "Please select a template",
+        "titleRequired": "Title is required",
+        "contentRequired": "Content is required"
       },
       "loading": "Loading quick post..."
     },
@@ -5139,6 +5345,9 @@
         "templateUpdated": "Template updated successfully!",
         "templateCreated": "Template created successfully!",
         "failedToSave": "Failed to save template."
+      },
+      "validation": {
+        "nameRequired": "Template name is required"
       }
     }
   },
@@ -5420,6 +5629,14 @@
         "updateEvent": "Update Event"
       },
       "validation": {
+        "coverImageRequired": "Cover image is required",
+        "titleRequired": "Event title is required",
+        "descriptionRequired": "Description is required",
+        "startDateRequired": "Start date and time is required",
+        "endDateRequired": "End date and time is required",
+        "endDateAfterStart": "End date must be after start date",
+        "locationNameRequired": "Location name is required",
+        "addressRequired": "Address is required",
         "recurrencePatternRequired": "Please select a recurrence pattern (Daily, Weekly, or Monthly) when creating a recurring event.",
         "recurrenceEndDateRequired": "Please set an end date for the recurring event series.",
         "registrationCloseDateBeforeStart": "Registration close date must be before the event start date.",
@@ -5851,6 +6068,13 @@
         "groupUpdated": "Group updated successfully!",
         "operationFailed": "Operation failed. Please check your inputs."
       },
+      "validation": {
+        "nameRequired": "Group name is required",
+        "groupTypeRequired": "Group type is required",
+        "descriptionRequired": "Description is required",
+        "coverImageRequired": "Cover image is required",
+        "avatarRequired": "Avatar is required"
+      },
       "customRuleBuilder": {
         "loading": "Loading fields...",
         "noFieldsAvailable": "No custom fields available",
@@ -6232,6 +6456,11 @@
         "rewardCreated": "Reward created!",
         "rewardUpdated": "Reward updated!",
         "operationFailed": "Operation failed."
+      },
+      "validation": {
+        "nameRequired": "Reward title is required",
+        "descriptionRequired": "Description is required",
+        "imageRequired": "Reward image is required"
       }
     },
     "detail": {
@@ -6491,6 +6720,14 @@
         "itemCreated": "Item created successfully!",
         "itemsCreated": "Items created successfully!",
         "failedToSave": "Failed to save item."
+      },
+      "validation": {
+        "titleRequired": "Item title is required",
+        "clubRequired": "Please assign to a club",
+        "categoryRequired": "Category is required",
+        "descriptionRequired": "Description is required",
+        "imageRequired": "Item image is required",
+        "statusRequired": "Status is required"
       }
     },
     "detail": {
@@ -7086,6 +7323,16 @@
           "resourceCreated": "Resource created successfully!",
           "resourceUpdated": "Resource updated successfully!",
           "errorSaving": "Error saving resource."
+        },
+        "validation": {
+          "clubRequired": "Please assign to a club",
+          "nameRequired": "Name is required",
+          "typeRequired": "Type is required",
+          "descriptionRequired": "Description is required",
+          "imageRequired": "Resource image is required",
+          "maxParticipantsRequired": "Max participants is required",
+          "bookingWindowRequired": "Booking window is required",
+          "maxBookingsRequired": "Max bookings per user is required"
         }
       }
     },
@@ -7728,11 +7975,19 @@
     "hero": {
       "title": "Hero Section",
       "description": "Customize the content displayed in the hero section on the homepage.",
-      "backgroundImage": "Background Image",
+      "backgroundImage": "Background Image (Fallback)",
       "clickToUpload": "Click to upload",
       "recommendedSize": "Recommended size: 1920x1080px",
       "format": "Format: JPG, PNG, WebP",
+      "imageFallbackNote": "Used as fallback when video is not available",
       "newImageSelected": "New image selected (saved on \"Save\")",
+      "backgroundVideo": "Background Video (Primary)",
+      "clickToUploadVideo": "Click to upload video",
+      "videoRecommendedSize": "Recommended: 1920x1080px, max 50MB",
+      "videoFormat": "Format: MP4, WebM, MOV",
+      "videoNote": "Video will be used as primary background",
+      "videoTooLarge": "Video file is too large. Maximum size is 50MB.",
+      "newVideoSelected": "New video selected (saved on \"Save\")",
       "heading": "Heading",
       "headingPlaceholder": "Find your thing!",
       "subheading": "Subheading",
@@ -8467,6 +8722,7 @@
       },
       "buttons": {
         "back": "Back",
+        "cancel": "Cancel",
         "saveDraft": "Save Draft",
         "publish": "Publish",
         "unpublish": "Unpublish",
@@ -8496,6 +8752,50 @@
         "updateSuccess": "Changes saved successfully!",
         "createSuccess": "Questionnaire created successfully!",
         "deleteSuccess": "Question deleted"
+      },
+      "validation": {
+        "titleRequired": "Title is required",
+        "descriptionRequired": "Description is required",
+        "expirationDateRequired": "Expiration date is required"
+      },
+      "settings": {
+        "basicInfo": {
+          "title": "Basic Information",
+          "subtitle": "Enter the questionnaire title, description, and dates",
+          "titleLabel": "Title",
+          "titlePlaceholder": "Enter questionnaire title...",
+          "descriptionLabel": "Description",
+          "descriptionPlaceholder": "Enter a description for this questionnaire...",
+          "schedulePublishLabel": "Schedule Publish Date (Optional)",
+          "schedulePublishHint": "Leave empty to publish immediately when you click \"Publish\"",
+          "expirationLabel": "Expiration Date"
+        },
+        "anonymous": {
+          "title": "Anonymous Responses",
+          "description": "Admins cannot see who answered"
+        },
+        "targetAudience": {
+          "title": "Target Audience",
+          "description": "Configure who can see and answer this questionnaire",
+          "municipalityLabel": "Municipality (Optional - Limits scope)",
+          "allGlobal": "All / Global",
+          "clubLabel": "Club (Optional - Limits scope)",
+          "clubAll": "All in Scope",
+          "whoCanAnswer": "Who can answer?",
+          "youthMembers": "Youth Members",
+          "guardians": "Guardians",
+          "selectGroup": "-- Or Target Specific Group --",
+          "groupNote": "Note: Selecting a Group overrides the Youth/Guardian setting."
+        },
+        "rewards": {
+          "title": "Rewards (Optional)",
+          "description": "Select rewards to give to users who complete this questionnaire",
+          "selectLabel": "Select Reward(s)",
+          "searchPlaceholder": "Search rewards by name...",
+          "limitLabel": "Limit (Optional)",
+          "limitPlaceholder": "e.g. First 10 users only",
+          "limitHint": "Leave empty for unlimited rewards"
+        }
       },
       "questionModal": {
         "addTitle": "Add Question",
@@ -8900,6 +9200,13 @@
         "createSuccess": "Field created successfully!",
         "updateSuccess": "Field updated successfully!"
       },
+      "validation": {
+        "nameRequired": "Field label is required",
+        "addOption": "Add at least one option to continue",
+        "selectRole": "Please select at least one role",
+        "needOption": "Please add at least one option.",
+        "needRole": "Please select at least one target role."
+      },
       "buttons": {
         "cancel": "Cancel",
         "create": "Create Field",
@@ -8911,12 +9218,6 @@
         "tip1": "• Use clear, descriptive labels for better user understanding",
         "tip2": "• Add helpful text to guide users on what to enter",
         "tip3": "• Only mark fields as required if truly necessary"
-      },
-      "validation": {
-        "addOption": "Add at least one option to continue",
-        "selectRole": "Please select at least one role",
-        "needOption": "Please add at least one option.",
-        "needRole": "Please select at least one target role."
       }
     },
     "analytics": {

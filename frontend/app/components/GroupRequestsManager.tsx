@@ -262,8 +262,24 @@ export default function GroupRequestsManager() {
   const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
   const [clubFilter, setClubFilter] = useState(searchParams.get('club') || '');
 
-  // Debounced filter update
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialMunicipalityRef = useRef(searchParams.get('municipality') || '');
+  const initialClubRef = useRef(searchParams.get('club') || '');
+  const hasUserChangedFilters = useRef(false);
+
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
+    const clubChanged = clubFilter !== initialClubRef.current;
+    
+    if (!searchChanged && !municipalityChanged && !clubChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -271,9 +287,14 @@ export default function GroupRequestsManager() {
       if (clubFilter) params.set('club', clubFilter); else params.delete('club');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialMunicipalityRef.current = municipalityFilter;
+      initialClubRef.current = clubFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, municipalityFilter, clubFilter]);
+  }, [searchInput, municipalityFilter, clubFilter, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchDropdowns();

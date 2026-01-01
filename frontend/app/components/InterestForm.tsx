@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Upload, X, Heart, Image, Smile, Lightbulb } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -17,9 +17,16 @@ interface InterestFormProps {
 export default function InterestForm({ initialData, redirectPath }: InterestFormProps) {
   const t = useTranslations('interests.form');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -109,7 +116,7 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
         success(t('toasts.createSuccess'));
       }
 
-      setTimeout(() => router.push(redirectPath), 1000);
+      setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
 
     } catch (err: any) {
       console.error(err);
@@ -314,7 +321,7 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pt-4 pb-8">
             <button 
               type="button"
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               disabled={loading}
               className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all disabled:opacity-50"
             >

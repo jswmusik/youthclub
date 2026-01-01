@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Lock,
@@ -17,6 +19,7 @@ import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 import { fetchGuardianRelationships, verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
 import ConfirmationModal from './ConfirmationModal';
+import { createGuardianSchema, type GuardianFormData } from '@/lib/validations/guardian';
 
 interface YouthOption { id: number; first_name: string; last_name: string; email: string; grade?: number; }
 
@@ -52,19 +55,35 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(initialData?.avatar ? getMediaUrl(initialData.avatar) : null);
 
-  // Main Form Data
-  const [formData, setFormData] = useState({
-    email: initialData?.email || '',
-    password: '',
-    first_name: initialData?.first_name || '',
-    last_name: initialData?.last_name || '',
-    phone_number: initialData?.phone_number || '',
-    legal_gender: initialData?.legal_gender || 'MALE',
-    verification_status: initialData?.verification_status || 'UNVERIFIED',
-    youth_members: initialData?.youth_members 
-      ? initialData.youth_members.map((item: any) => typeof item === 'object' && item !== null ? item.id : item).filter((id: any) => id != null)
-      : [], 
+  // Create the schema with translations
+  const guardianSchema = createGuardianSchema(t, !!initialData);
+
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    formState: { errors },
+    setValue,
+  } = useForm<GuardianFormData>({
+    resolver: zodResolver(guardianSchema),
+    defaultValues: {
+      first_name: initialData?.first_name || '',
+      last_name: initialData?.last_name || '',
+      email: initialData?.email || '',
+      password: '',
+      phone_number: initialData?.phone_number || '',
+      legal_gender: initialData?.legal_gender || 'MALE',
+      verification_status: initialData?.verification_status || 'UNVERIFIED',
+      youth_members: initialData?.youth_members 
+        ? initialData.youth_members.map((item: any) => typeof item === 'object' && item !== null ? item.id : item).filter((id: any) => id != null)
+        : [],
+    },
+    mode: 'onBlur',
   });
+
+  // Watch form values
+  const formData = watch();
 
   // Custom Fields State
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
@@ -122,6 +141,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
       formData.first_name,
       formData.last_name,
       formData.email,
+      formData.phone_number,
+      formData.legal_gender,
       ...(initialData ? [] : [formData.password]),
     ];
     const filled = requiredFields.filter(f => f && f.toString().trim()).length;
@@ -171,20 +192,19 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
 
   // Youth Link Logic
   const toggleYouth = (id: number) => {
-    setFormData(prev => {
-      const exists = prev.youth_members.includes(id);
-      if (exists) return { ...prev, youth_members: prev.youth_members.filter((i: number) => i !== id) };
-      return { ...prev, youth_members: [...prev.youth_members, id] };
-    });
+    const currentYouth = formData.youth_members || [];
+    const exists = currentYouth.includes(id);
+    const newYouth = exists 
+      ? currentYouth.filter((i: number) => i !== id)
+      : [...currentYouth, id];
+    setValue('youth_members', newYouth);
     setYouthSearchTerm('');
     setShowYouthDropdown(false);
   };
 
   const removeYouth = (id: number) => {
-    setFormData(prev => ({
-      ...prev,
-      youth_members: prev.youth_members.filter((i: number) => i !== id)
-    }));
+    const currentYouth = formData.youth_members || [];
+    setValue('youth_members', currentYouth.filter((i: number) => i !== id));
   };
 
   const getSelectedYouth = () => {
@@ -199,15 +219,14 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
            !formData.youth_members.includes(y.id);
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (validatedData: GuardianFormData) => {
     setLoading(true);
 
     try {
       const data = new FormData();
       const guardianExcludedFields = ['grade', 'preferred_club', 'interests', 'assigned_club', 'assigned_municipality'];
       
-      Object.entries(formData).forEach(([key, value]) => {
+      Object.entries(validatedData).forEach(([key, value]) => {
         if (key === 'password' && !value) return;
         if (key === 'youth_members') return;
         if (guardianExcludedFields.includes(key)) return;
@@ -222,8 +241,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
         data.append(key, value.toString());
       });
 
-      if (formData.youth_members && formData.youth_members.length > 0) {
-        formData.youth_members.forEach((item: any) => {
+      if (validatedData.youth_members && validatedData.youth_members.length > 0) {
+        validatedData.youth_members.forEach((item: any) => {
           const id = typeof item === 'object' && item !== null ? item.id : item;
           if (id && !isNaN(Number(id))) {
             data.append('youth_members', id.toString());
@@ -259,7 +278,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
         }
       }
 
-      setTimeout(() => router.push(redirectPath), 1000);
+      setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
     } catch (err: any) {
       console.error(err);
       let errorMsg = t('toast.operationFailed');
@@ -394,7 +413,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit(handleSubmit)}>
           
           {/* Profile Visuals Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
@@ -477,40 +496,52 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <label className={labelClasses}>{t('identity.firstName')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="text"
-                    required
-                    value={formData.first_name}
-                    onChange={e => setFormData({...formData, first_name: e.target.value})}
+                    {...register('first_name')}
                     onFocus={() => setFocusedField('first_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('first_name').onBlur(e);
+                    }}
                     className={inputClasses('first_name')}
                     placeholder={t('identity.firstNamePlaceholder')}
                   />
+                  {errors.first_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.first_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelClasses}>{t('identity.lastName')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="text"
-                    required
-                    value={formData.last_name}
-                    onChange={e => setFormData({...formData, last_name: e.target.value})}
+                    {...register('last_name')}
                     onFocus={() => setFocusedField('last_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('last_name').onBlur(e);
+                    }}
                     className={inputClasses('last_name')}
                     placeholder={t('identity.lastNamePlaceholder')}
                   />
+                  {errors.last_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.last_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelClasses}>{t('identity.email')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="email"
-                    required
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    {...register('email')}
                     onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('email').onBlur(e);
+                    }}
                     className={inputClasses('email')}
                     placeholder={t('identity.emailPlaceholder')}
                   />
+                  {errors.email && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.email.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className={labelClasses}>
@@ -519,34 +550,45 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   </label>
                   <input 
                     type="password"
-                    required={!initialData}
-                    value={formData.password}
-                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    {...register('password')}
                     onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('password').onBlur(e);
+                    }}
                     className={inputClasses('password')}
                     placeholder={initialData ? t('identity.passwordPlaceholderEdit') : t('identity.passwordPlaceholder')}
                   />
+                  {errors.password && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.password.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className={labelClasses}>{t('identity.phoneNumber')}</label>
+                  <label className={labelClasses}>{t('identity.phoneNumber')} <span className="text-[var(--brand-red)]">*</span></label>
                   <input 
                     type="tel"
-                    value={formData.phone_number}
-                    onChange={e => setFormData({...formData, phone_number: e.target.value})}
+                    {...register('phone_number')}
                     onFocus={() => setFocusedField('phone')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('phone_number').onBlur(e);
+                    }}
                     className={inputClasses('phone')}
                     placeholder={t('identity.phonePlaceholder')}
                   />
+                  {errors.phone_number && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.phone_number.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className={labelClasses}>{t('identity.legalGender')}</label>
+                  <label className={labelClasses}>{t('identity.legalGender')} <span className="text-[var(--brand-red)]">*</span></label>
                   <select 
-                    value={formData.legal_gender}
-                    onChange={e => setFormData({...formData, legal_gender: e.target.value})}
+                    {...register('legal_gender')}
                     onFocus={() => setFocusedField('gender')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('legal_gender').onBlur(e);
+                    }}
                     className={selectClasses('gender')}
                     style={selectArrowStyle}
                   >
@@ -554,6 +596,9 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                     <option value="FEMALE">{t('identity.genderOptions.female')}</option>
                     <option value="OTHER">{t('identity.genderOptions.other')}</option>
                   </select>
+                  {errors.legal_gender && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.legal_gender.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -583,7 +628,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   <button
                     key={status.value}
                     type="button"
-                    onClick={() => setFormData({...formData, verification_status: status.value})}
+                    onClick={() => setValue('verification_status', status.value)}
                     className={`px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
                       formData.verification_status === status.value
                         ? 'text-[var(--dark-900)]'
@@ -822,7 +867,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="flex flex-col sm:flex-row justify-end gap-3 px-4 sm:px-0 pb-8">
             <button 
               type="button"
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               className="w-full sm:w-auto px-6 py-3 rounded-xl font-semibold text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
             >
               {t('actions.cancel')}

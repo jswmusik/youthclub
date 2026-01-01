@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Globe, Mail, Phone, 
@@ -50,6 +50,7 @@ interface FormData {
 export default function MunicipalityForm({ initialData, redirectPath }: MunicipalityFormProps) {
   const t = useTranslations('municipalitiesAdmin');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,12 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
   
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<any[]>([]);
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
   const [plans, setPlans] = useState<Plan[]>([]);
   const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -194,7 +201,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
           2500
         );
       }
-      router.push(redirectPath);
+      router.push(buildUrlWithParams(redirectPath));
     } catch (err: any) {
       console.error(err);
       error(t('create.toast.errorMessage'), t('create.toast.errorTitle')
@@ -254,7 +261,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
         {/* Header with Back Button */}
         <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
           <Link 
-            href={redirectPath}
+            href={buildUrlWithParams(redirectPath)}
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -876,7 +883,7 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
             <div className="px-6 py-5 flex flex-col sm:flex-row justify-end gap-3">
               <button 
                 type="button" 
-                onClick={() => router.push(redirectPath)} 
+                onClick={() => router.push(buildUrlWithParams(redirectPath))} 
                 className="px-6 py-3 text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] font-medium rounded-xl hover:bg-[var(--dark-600)] transition-all"
               >
                 {t('create.cancel')}

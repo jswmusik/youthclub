@@ -40,7 +40,7 @@ function SuperAdminClubFollowersPageContent() {
     <div className="py-4 sm:py-8 px-0 space-y-6">
       {/* Navigation Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0">
-        <BackButton href={`/admin/super/clubs/${clubId}`} translationKey="backToClub" />
+        <BackButton href={`/admin/super/clubs/${clubId}`} translationKey="clubFollowers.backToClub" />
       </div>
 
       {/* Hero Card */}

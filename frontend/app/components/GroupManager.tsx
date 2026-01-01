@@ -293,6 +293,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
   const [municipalityFilter, setMunicipalityFilter] = useState(searchParams.get('municipality') || '');
   const [clubFilter, setClubFilter] = useState(searchParams.get('club') || '');
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '');
+
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialMunicipalityRef = useRef(searchParams.get('municipality') || '');
+  const initialClubRef = useRef(searchParams.get('club') || '');
+  const initialTypeRef = useRef(searchParams.get('type') || '');
+  const hasUserChangedFilters = useRef(false);
   
   useEffect(() => {
     const totalMembers = allGroups.reduce((sum, g) => {
@@ -316,8 +323,19 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
   const [showDelete, setShowDelete] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   
-  // Debounced Filter Update
+  // Debounced Filter Update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
+    const clubChanged = clubFilter !== initialClubRef.current;
+    const typeChanged = typeFilter !== initialTypeRef.current;
+    
+    if (!searchChanged && !municipalityChanged && !clubChanged && !typeChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -326,9 +344,15 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       if (typeFilter) params.set('type', typeFilter); else params.delete('type');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialMunicipalityRef.current = municipalityFilter;
+      initialClubRef.current = clubFilter;
+      initialTypeRef.current = typeFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, municipalityFilter, clubFilter, typeFilter]);
+  }, [searchInput, municipalityFilter, clubFilter, typeFilter, searchParams, pathname, router]);
 
   const buildUrlWithParams = (path: string) => {
     const params = new URLSearchParams();
@@ -553,7 +577,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
           </div>
           <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
         </div>
-        <Link href={`${basePath}/create`}>
+        <Link href={buildUrlWithParams(`${basePath}/create`)}>
           <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
             <Plus className="h-4 w-4" /> {t('addGroup')}
           </button>
@@ -731,7 +755,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
             {hasFilters ? t('emptyState.adjustFilters') : t('emptyState.getStarted')}
           </p>
           {!hasFilters && (
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="inline-flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
                 <Plus className="h-4 w-4" /> {t('addGroup')}
               </button>

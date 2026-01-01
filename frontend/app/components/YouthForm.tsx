@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Calendar,
@@ -15,6 +17,7 @@ import { getMediaUrl } from '../utils';
 import { useToast } from '../../hooks/useToast';
 import CustomFieldsForm from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
+import { createYouthSchema, type YouthFormData } from '@/lib/validations/youth';
 
 interface Option { id: number; name: string; }
 interface GuardianOption { id: number; first_name: string; last_name: string; email: string; }
@@ -59,23 +62,39 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const [bgPreview, setBgPreview] = useState<string | null>(initialData?.background_image ? getMediaUrl(initialData.background_image) : null);
   const [mood, setMood] = useState(initialData?.mood_status || '');
 
-  // Main Form Data
-  const [formData, setFormData] = useState({
-    email: initialData?.email || '',
-    password: '',
-    first_name: initialData?.first_name || '',
-    last_name: initialData?.last_name || '',
-    nickname: initialData?.nickname || '',
-    legal_gender: initialData?.legal_gender || 'MALE',
-    preferred_gender: initialData?.preferred_gender || '',
-    phone_number: initialData?.phone_number || '',
-    date_of_birth: initialData?.date_of_birth || '',
-    grade: initialData?.grade || '',
-    preferred_club: initialData?.preferred_club ? (typeof initialData.preferred_club === 'object' ? initialData.preferred_club.id : initialData.preferred_club) : '',
-    verification_status: initialData?.verification_status || 'UNVERIFIED',
-    interests: initialData?.interests ? initialData.interests.map((i: any) => typeof i === 'object' ? i.id : i) : [],
-    guardians: initialData?.guardians ? initialData.guardians.map((g: any) => typeof g === 'object' ? g.id : g) : [],
+  // Create the schema with translations
+  const youthSchema = createYouthSchema(t, !!initialData);
+
+  // React Hook Form with Zod validation
+  const {
+    register,
+    handleSubmit: handleFormSubmit,
+    watch,
+    formState: { errors },
+    setValue,
+  } = useForm<YouthFormData>({
+    resolver: zodResolver(youthSchema),
+    defaultValues: {
+      first_name: initialData?.first_name || '',
+      last_name: initialData?.last_name || '',
+      email: initialData?.email || '',
+      password: '',
+      phone_number: initialData?.phone_number || '',
+      date_of_birth: initialData?.date_of_birth || '',
+      grade: initialData?.grade || '',
+      legal_gender: initialData?.legal_gender || 'MALE',
+      preferred_club: initialData?.preferred_club ? (typeof initialData.preferred_club === 'object' ? initialData.preferred_club.id.toString() : initialData.preferred_club.toString()) : '',
+      nickname: initialData?.nickname || '',
+      preferred_gender: initialData?.preferred_gender || '',
+      verification_status: initialData?.verification_status || 'UNVERIFIED',
+      interests: initialData?.interests ? initialData.interests.map((i: any) => typeof i === 'object' ? i.id : i) : [],
+      guardians: initialData?.guardians ? initialData.guardians.map((g: any) => typeof g === 'object' ? g.id : g) : [],
+    },
+    mode: 'onBlur',
   });
+
+  // Watch form values
+  const formData = watch();
 
   // Custom Fields State
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
@@ -125,6 +144,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       formData.first_name,
       formData.last_name,
       formData.email,
+      formData.phone_number,
+      formData.date_of_birth,
+      formData.grade,
+      formData.legal_gender,
+      formData.preferred_club,
       ...(initialData ? [] : [formData.password]),
     ];
     const filled = requiredFields.filter(f => f && f.toString().trim()).length;
@@ -187,22 +211,19 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
   // Interest Logic
   const toggleInterest = (id: number) => {
-    setFormData(prev => {
-      const exists = prev.interests.includes(id);
-      return { 
-        ...prev, 
-        interests: exists ? prev.interests.filter((i: number) => i !== id) : [...prev.interests, id] 
-      };
-    });
+    const currentInterests = formData.interests || [];
+    const exists = currentInterests.includes(id);
+    const newInterests = exists 
+      ? currentInterests.filter((i: number) => i !== id) 
+      : [...currentInterests, id];
+    setValue('interests', newInterests);
     setInterestSearchTerm('');
     setShowInterestDropdown(false);
   };
 
   const removeInterest = (id: number) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.filter((i: number) => i !== id)
-    }));
+    const currentInterests = formData.interests || [];
+    setValue('interests', currentInterests.filter((i: number) => i !== id));
   };
 
   const getSelectedInterests = () => formData.interests.map((id: number) => interestsList.find(i => i.id === id)).filter(Boolean) as Option[];
@@ -213,22 +234,19 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
   // Guardian Logic
   const toggleGuardian = (id: number) => {
-    setFormData(prev => {
-      const exists = prev.guardians.includes(id);
-      return { 
-        ...prev, 
-        guardians: exists ? prev.guardians.filter((g: number) => g !== id) : [...prev.guardians, id] 
-      };
-    });
+    const currentGuardians = formData.guardians || [];
+    const exists = currentGuardians.includes(id);
+    const newGuardians = exists 
+      ? currentGuardians.filter((g: number) => g !== id) 
+      : [...currentGuardians, id];
+    setValue('guardians', newGuardians);
     setGuardianSearchTerm('');
     setShowGuardianDropdown(false);
   };
 
   const removeGuardian = (id: number) => {
-    setFormData(prev => ({
-      ...prev,
-      guardians: prev.guardians.filter((g: number) => g !== id)
-    }));
+    const currentGuardians = formData.guardians || [];
+    setValue('guardians', currentGuardians.filter((g: number) => g !== id));
   };
 
   const getSelectedGuardians = () => formData.guardians.map((id: number) => guardiansList.find(g => g.id === id)).filter(Boolean) as GuardianOption[];
@@ -239,21 +257,26 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
     return match && !formData.guardians.includes(g.id);
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (validatedData: YouthFormData) => {
     setLoading(true);
 
     try {
       const data = new FormData();
       
-      Object.entries(formData).forEach(([key, value]) => {
+      Object.entries(validatedData).forEach(([key, value]) => {
         if (key === 'password' && !value) return;
         if (key === 'interests' || key === 'guardians') return;
-        data.append(key, value.toString());
+        if (value !== undefined && value !== null) {
+          data.append(key, value.toString());
+        }
       });
 
-      formData.interests.forEach((id: number) => data.append('interests', id.toString()));
-      formData.guardians.forEach((id: number) => data.append('guardians', id.toString()));
+      if (validatedData.interests) {
+        validatedData.interests.forEach((id: number) => data.append('interests', id.toString()));
+      }
+      if (validatedData.guardians) {
+        validatedData.guardians.forEach((id: number) => data.append('guardians', id.toString()));
+      }
       
       data.append('role', 'YOUTH_MEMBER');
       
@@ -261,7 +284,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
       if (bgFile) data.append('background_image', bgFile);
       if (mood !== undefined) data.append('mood_status', mood);
 
-      if (scope === 'CLUB' && currentUser?.assigned_club && !formData.preferred_club) {
+      if (scope === 'CLUB' && currentUser?.assigned_club && !validatedData.preferred_club) {
         const clubId = typeof currentUser.assigned_club === 'object' ? currentUser.assigned_club.id : currentUser.assigned_club;
         data.append('preferred_club', clubId.toString());
       }
@@ -286,7 +309,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
         });
       }
 
-      setTimeout(() => router.push(redirectPath), 1000);
+      setTimeout(() => router.push(buildUrlWithParams(redirectPath)), 1000);
     } catch (err) {
       console.error(err);
       error(t('toast.operationFailed'));
@@ -407,7 +430,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleFormSubmit(handleSubmit)}>
           
           {/* Profile Visuals Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
@@ -565,14 +588,18 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <input 
                     id="first_name"
                     type="text"
-                    required
                     placeholder={t('identity.placeholders.firstName')}
-                    value={formData.first_name}
-                    onChange={e => setFormData({...formData, first_name: e.target.value})}
+                    {...register('first_name')}
                     onFocus={() => setFocusedField('first_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('first_name').onBlur(e);
+                    }}
                     className={inputClasses('first_name')}
                   />
+                  {errors.first_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.first_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="last_name" className={labelClasses}>
@@ -581,14 +608,18 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <input 
                     id="last_name"
                     type="text"
-                    required
                     placeholder={t('identity.placeholders.lastName')}
-                    value={formData.last_name}
-                    onChange={e => setFormData({...formData, last_name: e.target.value})}
+                    {...register('last_name')}
                     onFocus={() => setFocusedField('last_name')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('last_name').onBlur(e);
+                    }}
                     className={inputClasses('last_name')}
                   />
+                  {errors.last_name && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.last_name.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="nickname" className={labelClasses}>
@@ -598,12 +629,17 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     id="nickname"
                     type="text"
                     placeholder={t('identity.placeholders.nickname')}
-                    value={formData.nickname}
-                    onChange={e => setFormData({...formData, nickname: e.target.value})}
+                    {...register('nickname')}
                     onFocus={() => setFocusedField('nickname')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('nickname').onBlur(e);
+                    }}
                     className={inputClasses('nickname')}
                   />
+                  {errors.nickname && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.nickname.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="email" className={labelClasses}>
@@ -613,14 +649,18 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <input 
                     id="email"
                     type="email"
-                    required
                     placeholder={t('identity.placeholders.email')}
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    {...register('email')}
                     onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('email').onBlur(e);
+                    }}
                     className={inputClasses('email')}
                   />
+                  {errors.email && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.email.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="password" className={labelClasses}>
@@ -630,30 +670,39 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                   <input 
                     id="password"
                     type="password"
-                    required={!initialData}
                     placeholder={t('identity.placeholders.password')}
-                    value={formData.password}
-                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    {...register('password')}
                     onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('password').onBlur(e);
+                    }}
                     className={inputClasses('password')}
                   />
+                  {errors.password && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.password.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="phone_number" className={labelClasses}>
                     <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                    {t('identity.phone')}
+                    {t('identity.phone')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="phone_number"
                     type="tel"
                     placeholder={t('identity.placeholders.phone')}
-                    value={formData.phone_number}
-                    onChange={e => setFormData({...formData, phone_number: e.target.value})}
+                    {...register('phone_number')}
                     onFocus={() => setFocusedField('phone_number')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('phone_number').onBlur(e);
+                    }}
                     className={inputClasses('phone_number')}
                   />
+                  {errors.phone_number && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.phone_number.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -686,7 +735,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     <button
                       key={status}
                       type="button"
-                      onClick={() => setFormData({...formData, verification_status: status})}
+                      onClick={() => setValue('verification_status', status)}
                       className={`px-4 py-2.5 rounded-xl border-2 font-medium text-sm transition-all ${
                         isSelected 
                           ? colors[status as keyof typeof colors]
@@ -719,43 +768,55 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label htmlFor="date_of_birth" className={labelClasses}>
-                    {t('demographics.dateOfBirth')}
+                    {t('demographics.dateOfBirth')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="date_of_birth"
                     type="date"
-                    value={formData.date_of_birth}
-                    onChange={e => setFormData({...formData, date_of_birth: e.target.value})}
+                    {...register('date_of_birth')}
                     onFocus={() => setFocusedField('date_of_birth')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('date_of_birth').onBlur(e);
+                    }}
                     className={inputClasses('date_of_birth')}
                   />
+                  {errors.date_of_birth && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.date_of_birth.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="grade" className={labelClasses}>
-                    {t('demographics.grade')}
+                    {t('demographics.grade')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input 
                     id="grade"
                     type="number"
                     placeholder={t('demographics.gradePlaceholder')}
-                    value={formData.grade}
-                    onChange={e => setFormData({...formData, grade: e.target.value})}
+                    {...register('grade')}
                     onFocus={() => setFocusedField('grade')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('grade').onBlur(e);
+                    }}
                     className={inputClasses('grade')}
                   />
+                  {errors.grade && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.grade.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="legal_gender" className={labelClasses}>
-                    {t('demographics.legalGender')}
+                    {t('demographics.legalGender')} <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select 
                     id="legal_gender"
-                    value={formData.legal_gender}
-                    onChange={e => setFormData({...formData, legal_gender: e.target.value})}
+                    {...register('legal_gender')}
                     onFocus={() => setFocusedField('legal_gender')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('legal_gender').onBlur(e);
+                    }}
                     className={selectClasses('legal_gender')}
                     style={selectArrowStyle}
                   >
@@ -763,6 +824,9 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     <option value="FEMALE">{t('genders.FEMALE')}</option>
                     <option value="OTHER">{t('genders.OTHER')}</option>
                   </select>
+                  {errors.legal_gender && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.legal_gender.message}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="preferred_gender" className={labelClasses}>
@@ -772,12 +836,17 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     id="preferred_gender"
                     type="text"
                     placeholder={t('demographics.preferredGenderPlaceholder')}
-                    value={formData.preferred_gender}
-                    onChange={e => setFormData({...formData, preferred_gender: e.target.value})}
+                    {...register('preferred_gender')}
                     onFocus={() => setFocusedField('preferred_gender')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('preferred_gender').onBlur(e);
+                    }}
                     className={inputClasses('preferred_gender')}
                   />
+                  {errors.preferred_gender && (
+                    <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.preferred_gender.message}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -802,20 +871,25 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
               <div>
                 <label htmlFor="preferred_club" className={labelClasses}>
                   <Building className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
-                  {t('clubGuardiansInterests.preferredClub')}
+                  {t('clubGuardiansInterests.preferredClub')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
                 <select 
                   id="preferred_club"
-                  value={formData.preferred_club}
-                  onChange={e => setFormData({...formData, preferred_club: e.target.value})}
+                  {...register('preferred_club')}
                   onFocus={() => setFocusedField('preferred_club')}
-                  onBlur={() => setFocusedField(null)}
+                  onBlur={(e) => {
+                    setFocusedField(null);
+                    register('preferred_club').onBlur(e);
+                  }}
                   className={selectClasses('preferred_club')}
                   style={selectArrowStyle}
                 >
                   <option value="">{t('clubGuardiansInterests.selectClub')}</option>
                   {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                {errors.preferred_club && (
+                  <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.preferred_club.message}</p>
+                )}
               </div>
 
               {/* Divider */}
@@ -1032,7 +1106,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10 px-4 sm:px-0">
             <button 
               type="button" 
-              onClick={() => router.push(redirectPath)}
+              onClick={() => router.push(buildUrlWithParams(redirectPath))}
               className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)] transition-all"
             >
               {t('actions.cancel')}

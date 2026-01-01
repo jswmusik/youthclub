@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -68,11 +68,29 @@ export default function MuniInventoryPage() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [selectedStatus, setSelectedStatus] = useState(searchParams.get('status') || '');
   
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialClubRef = useRef(searchParams.get('club') || '');
+  const initialCategoryRef = useRef(searchParams.get('category') || '');
+  const initialStatusRef = useRef(searchParams.get('status') || '');
+  const hasUserChangedFilters = useRef(false);
+  
   const currentPage = Number(searchParams.get('page')) || 1;
   const pageSize = 10;
 
-  // Debounced filter update
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const clubChanged = selectedClub !== initialClubRef.current;
+    const categoryChanged = selectedCategory !== initialCategoryRef.current;
+    const statusChanged = selectedStatus !== initialStatusRef.current;
+    
+    if (!searchChanged && !clubChanged && !categoryChanged && !statusChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -81,9 +99,15 @@ export default function MuniInventoryPage() {
       if (selectedStatus) params.set('status', selectedStatus); else params.delete('status');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialClubRef.current = selectedClub;
+      initialCategoryRef.current = selectedCategory;
+      initialStatusRef.current = selectedStatus;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, selectedClub, selectedCategory, selectedStatus]);
+  }, [searchInput, selectedClub, selectedCategory, selectedStatus, searchParams, pathname, router]);
 
   useEffect(() => {
     loadClubs();
@@ -262,7 +286,7 @@ export default function MuniInventoryPage() {
               {t('actions.borrowed')}
             </button>
           </Link>
-          <Link href="/admin/municipality/inventory/create">
+          <Link href={buildUrlWithParams("/admin/municipality/inventory/create")}>
             <button className="flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--brand-900)] font-bold rounded-xl px-4 py-2.5 transition-all text-sm">
               <Plus className="h-4 w-4" /> {t('actions.addItem')}
             </button>

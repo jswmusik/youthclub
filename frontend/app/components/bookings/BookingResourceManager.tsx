@@ -164,6 +164,12 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
+  // Build URL preserving pagination params
+  const buildUrlWithParams = (path: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    return params.toString() ? `${path}?${params.toString()}` : path;
+  };
   
   const [resources, setResources] = useState<any[]>([]);
   const [allResources, setAllResources] = useState<any[]>([]);
@@ -179,14 +185,30 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
   const [selectedClub, setSelectedClub] = useState(searchParams.get('club') || '');
   const [selectedType, setSelectedType] = useState(searchParams.get('resource_type') || '');
   
+  // Track initial values to detect actual user changes
+  const initialSearchRef = useRef(searchParams.get('search') || '');
+  const initialClubRef = useRef(searchParams.get('club') || '');
+  const initialTypeRef = useRef(searchParams.get('resource_type') || '');
+  const hasUserChangedFilters = useRef(false);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
 
-  // Debounced filter update
+  // Debounced filter update - only reset page when user actually changes filters
   useEffect(() => {
+    const searchChanged = searchInput !== initialSearchRef.current;
+    const clubChanged = selectedClub !== initialClubRef.current;
+    const typeChanged = selectedType !== initialTypeRef.current;
+    
+    if (!searchChanged && !clubChanged && !typeChanged && !hasUserChangedFilters.current) {
+      return;
+    }
+    
+    hasUserChangedFilters.current = true;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (searchInput) params.set('search', searchInput); else params.delete('search');
@@ -194,9 +216,14 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
       if (selectedType) params.set('resource_type', selectedType); else params.delete('resource_type');
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
+      
+      // Update refs to current values
+      initialSearchRef.current = searchInput;
+      initialClubRef.current = selectedClub;
+      initialTypeRef.current = selectedType;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, selectedClub, selectedType]);
+  }, [searchInput, selectedClub, selectedType, searchParams, pathname, router]);
 
   useEffect(() => {
     fetchDropdowns();
@@ -384,7 +411,7 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                 <Calendar className="h-4 w-4" /> {t('calendar')}
               </button>
             </Link>
-            <Link href={`${basePath}/create`}>
+            <Link href={buildUrlWithParams(`${basePath}/create`)}>
               <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-2 transition-all">
                 <Plus className="h-4 w-4" /> {t('newResource')}
               </button>
@@ -585,8 +612,8 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                 return (
                   <SwipeableCard 
                     key={res.id}
-                    onSchedule={() => router.push(`${basePath}/${res.id}/schedule`)}
-                    onEdit={() => router.push(`${basePath}/edit/${res.id}`)}
+                    onSchedule={() => router.push(buildUrlWithParams(`${basePath}/${res.id}/schedule`))}
+                    onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${res.id}`))}
                     onDelete={() => setItemToDelete(res)}
                   >
                     <div className="border-y border-[var(--dark-600)] p-4">
@@ -717,12 +744,12 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Link href={`${basePath}/${res.id}/schedule`}>
+                            <Link href={buildUrlWithParams(`${basePath}/${res.id}/schedule`)}>
                               <button className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-all flex items-center justify-center">
                                 <Clock className="h-4 w-4" />
                               </button>
                             </Link>
-                            <Link href={`${basePath}/edit/${res.id}`}>
+                            <Link href={buildUrlWithParams(`${basePath}/edit/${res.id}`)}>
                               <button className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center">
                                 <Edit className="h-4 w-4" />
                               </button>

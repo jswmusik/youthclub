@@ -47,6 +47,75 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
   const { success, error, info, warning } = useToast();
 
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+
+  // Validate individual field
+  const validateField = (field: string, value: any) => {
+    let errorMsg = '';
+    
+    if (field === 'title') {
+      if (!value || value.toString().trim() === '') {
+        errorMsg = t('validation.titleRequired');
+      }
+    } else if (field === 'description') {
+      if (!value || value.toString().trim() === '') {
+        errorMsg = t('validation.descriptionRequired');
+      }
+    } else if (field === 'expiration_date') {
+      if (!value || value.toString().trim() === '') {
+        errorMsg = t('validation.expirationDateRequired');
+      }
+    }
+    
+    return errorMsg;
+  };
+
+  // Handle field blur
+  const handleFieldBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const value = formData[field as keyof typeof formData];
+    const errorMsg = validateField(field, value);
+    setValidationErrors(prev => ({ ...prev, [field]: errorMsg }));
+  };
+
+  // Validate all required fields
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredFields = ['title', 'description', 'expiration_date'];
+    
+    // Mark all required fields as touched
+    const touched: Record<string, boolean> = {};
+    requiredFields.forEach(field => {
+      touched[field] = true;
+    });
+    setTouchedFields(touched);
+    
+    // Validate required fields
+    requiredFields.forEach(field => {
+      const value = formData[field as keyof typeof formData];
+      const errorMsg = validateField(field, value);
+      if (errorMsg) {
+        errors[field] = errorMsg;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Clear validation error for a field
+  const clearFieldError = (field: string) => {
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
   // Track component mount for portal
   useEffect(() => {
     setIsMounted(true);
@@ -144,6 +213,12 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
   };
 
   const handleSave = async () => {
+    // Validate form
+    if (!validateForm()) {
+      error(t('toasts.saveFailed'));
+      return;
+    }
+
     setLoading(true);
     try {
         if (!formData.title) {
@@ -431,7 +506,15 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
 
         {/* Content */}
         {activeTab === 'SETTINGS' ? (
-          <QuestionnaireSettings data={formData} onChange={setFormData} scope={scope} />
+          <QuestionnaireSettings 
+            data={formData} 
+            onChange={setFormData} 
+            scope={scope}
+            validationErrors={validationErrors}
+            touchedFields={touchedFields}
+            onFieldBlur={handleFieldBlur}
+            onFieldChange={clearFieldError}
+          />
         ) : (
           <div className="space-y-6">
             {/* Empty State */}
@@ -593,7 +676,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             }}
             className="w-full sm:w-auto px-6 py-3 rounded-xl text-[var(--brand-light)]/70 font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all"
           >
-            Cancel
+            {t('buttons.cancel')}
           </button>
           
           <button
