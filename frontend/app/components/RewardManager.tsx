@@ -546,8 +546,8 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Gift className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Gift className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
@@ -568,8 +568,8 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
             className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--dark-900)]" />
               </div>
               <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
@@ -582,7 +582,7 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
               {/* Active Rewards */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
@@ -593,8 +593,8 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
               {/* Total Created */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Gift className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Gift className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                 </div>
@@ -604,8 +604,8 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
               {/* Total Claims */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                    <TrendingUp className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.claims')}</span>
                 </div>
@@ -615,8 +615,8 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
               {/* Claims (7 Days) */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                    <UserPlus className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.sevenDays')}</span>
                 </div>
@@ -760,9 +760,9 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                 <div className="border-y border-[var(--dark-600)] p-4">
                   <div className="flex items-start gap-3">
                     {/* Image */}
-                    <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center">
                       {reward.image ? (
-                        <img src={getMediaUrl(reward.image) || ''} alt="" className="w-full h-full object-cover" />
+                        <img src={getMediaUrl(reward.image) || ''} alt="" className="w-full h-full object-cover rounded-full" />
                       ) : (
                         <Gift className="w-5 h-5 text-[var(--brand-primary)]" />
                       )}
@@ -830,9 +830,9 @@ export default function RewardManager({ basePath }: RewardManagerProps) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center">
                           {reward.image ? (
-                            <img src={getMediaUrl(reward.image) || ''} alt="" className="w-full h-full object-cover" />
+                            <img src={getMediaUrl(reward.image) || ''} alt="" className="w-full h-full object-cover rounded-full" />
                           ) : (
                             <Gift className="w-4 h-4 text-[var(--brand-primary)]" />
                           )}

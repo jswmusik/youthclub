@@ -3354,9 +3354,9 @@
                 "pending": "معلق",
                 "unverified": "غير مؤكد",
                 "allIdDocStatus": "كل حالات مستند الهوية",
-                "pendingReview": "⏳ قيد المراجعة",
-                "approved": "✓ موافق عليه",
-                "rejected": "✗ مرفوض",
+                "pendingReview": "قيد المراجعة",
+                "approved": "موافق عليه",
+                "rejected": "مرفوض",
                 "notSubmitted": "لم يتم التقديم",
                 "allMunicipalities": "كل البلديات"
               },
@@ -3555,6 +3555,11 @@
                   "rejectionReasonRequired": "يرجى تقديم سبب للرفض"
                 }
               }
+            },
+            "customFieldsDisplay": {
+              "noAdditionalInfo": "لا توجد معلومات إضافية متاحة",
+              "yes": "نعم",
+              "no": "لا"
             },
             "guardianDetail": {
               "loading": "جار تحميل تفاصيل ولي الأمر...",

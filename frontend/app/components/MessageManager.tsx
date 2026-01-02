@@ -287,7 +287,8 @@ export default function MessageManager({ basePath }: MessageManagerProps) {
       initialStatusRef.current = statusFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, typeFilter, statusFilter, searchParams, pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, typeFilter, statusFilter]);
 
   useEffect(() => {
     fetchMessages();

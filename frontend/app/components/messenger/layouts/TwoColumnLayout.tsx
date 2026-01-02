@@ -42,20 +42,20 @@ export default function TwoColumnLayout({
         <div className={`flex h-full md:rounded-2xl overflow-hidden max-h-full w-full md:max-w-6xl lg:max-w-7xl md:mx-auto overflow-x-hidden ${
             darkMode 
                 ? 'bg-[var(--dark-800)] md:border md:border-[var(--dark-500)]' 
-                : 'bg-white md:shadow-sm md:border md:border-gray-200'
+                : 'bg-white md:shadow-sm md:border md:border-[#4D4DA4]/15'
         }`}>
             
             {/* LEFT COLUMN: Inbox List */}
             {/* On Mobile: Hide this column if a thread is selected */}
             <div className={`
                 flex-shrink-0 w-full md:w-80 lg:w-96 flex flex-col h-full
-                ${darkMode ? 'border-r border-[var(--dark-500)]' : 'border-r border-gray-200'}
+                ${darkMode ? 'border-r border-[var(--dark-500)]' : 'border-r border-[#4D4DA4]/15'}
                 ${selectedThreadId ? 'hidden md:flex' : 'flex'}
             `}>
                 <div className={`p-3 sm:p-4 border-b flex-shrink-0 ${
                     darkMode 
                         ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
-                        : 'border-gray-100 bg-gray-50'
+                        : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
                 }`}>
                     <div className="flex justify-between items-center mb-3">
                         <h2 className={`font-bold text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{t('title')}</h2>
@@ -130,7 +130,7 @@ export default function TwoColumnLayout({
             {/* On Mobile: Hide this column if NO thread is selected */}
             <div className={`
                 flex-1 flex flex-col min-h-0 h-full
-                ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}
+                ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}
                 ${!selectedThreadId ? 'hidden md:flex' : 'flex'}
             `}>
                 {selectedThreadId ? (

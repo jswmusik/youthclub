@@ -538,8 +538,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Layers className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Layers className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
@@ -691,8 +691,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
@@ -818,8 +818,8 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Target className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('membershipRules.title')}</h2>
@@ -912,7 +912,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                           onClick={() => toggleGrade(grade)}
                           className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
                             formData.grades.includes(grade) 
-                              ? 'bg-[var(--brand-primary)] text-white shadow-lg' 
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] shadow-lg' 
                               : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
                           }`}
                         >
@@ -971,7 +971,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
                 {formData.interests.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] mb-3">
                     {getSelectedInterests().map(interest => (
-                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium">
+                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-[var(--dark-900)] text-sm font-medium">
                         {interest.name}
                         <button
                           type="button"
@@ -1061,7 +1061,7 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                   <UserPlus className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
@@ -1123,11 +1123,11 @@ export default function GroupForm({ initialData, redirectPath }: GroupFormProps)
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
                   {t('actions.save')}
                 </>
               ) : (

@@ -48,14 +48,18 @@ class TwoFactorService:
         if user.role in cls.NO_2FA_ROLES:
             return False, 'no_2fa_required'
         
+        # Get or create 2FA settings
+        settings_2fa = UserTwoFactorSettings.get_or_create_for_user(user)
+        
+        # Check for admin bypass (temporary bypass set by superadmin)
+        if settings_2fa.bypass_until and timezone.now() < settings_2fa.bypass_until:
+            return False, 'admin_bypass'
+        
         # Check if there's a valid trusted device token
         if trusted_device_token:
             trusted_device = TrustedDevice.verify_token(user, trusted_device_token)
             if trusted_device:
                 return False, 'trusted_device'
-        
-        # Get or create 2FA settings
-        settings_2fa = UserTwoFactorSettings.get_or_create_for_user(user)
         
         # Super Admins and Municipality Admins: Always require 2FA
         if user.role in cls.MANDATORY_ALWAYS:

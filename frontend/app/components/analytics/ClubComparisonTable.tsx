@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { ComparisonData } from '@/lib/analytics-api';
 import { Building2, TrendingUp, Users, Calendar, UserPlus, Trophy } from 'lucide-react';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function ClubComparisonTable({ data }: Props) {
+  const t = useTranslations('analyticsAdmin.clubComparison');
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
@@ -38,13 +40,13 @@ export default function ClubComparisonTable({ data }: Props) {
             <Trophy className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--brand-light)]">Club Comparison</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">Performance rankings across all clubs</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
         <span className="text-xs text-[var(--brand-light)]/50 bg-[var(--dark-700)] px-3 py-1.5 rounded-full border border-[var(--dark-500)] flex items-center gap-2 w-fit">
           <TrendingUp className="w-3 h-3" />
-          Ranked by Traffic
+          {t('rankedByTraffic')}
         </span>
       </div>
 
@@ -72,7 +74,7 @@ export default function ClubComparisonTable({ data }: Props) {
             {/* Visit Progress Bar */}
             <div className="mb-3">
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-[var(--brand-light)]/50">Total Visits</span>
+                <span className="text-[var(--brand-light)]/50">{t('totalVisits')}</span>
                 <span className="font-bold text-[var(--brand-light)]">{club.visits}</span>
               </div>
               <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
@@ -86,7 +88,7 @@ export default function ClubComparisonTable({ data }: Props) {
             {/* Stats Grid */}
             <div className="grid grid-cols-4 gap-2 text-center">
               <div className="bg-[var(--dark-700)] rounded-lg p-2">
-                <p className="text-xs text-[var(--brand-light)]/50 mb-1">Users</p>
+                <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('users')}</p>
                 <p className="text-sm font-bold text-[var(--brand-light)]">{club.unique_users}</p>
               </div>
               <div className="bg-[var(--dark-700)] rounded-lg p-2">
@@ -94,11 +96,11 @@ export default function ClubComparisonTable({ data }: Props) {
                 <p className="text-sm font-bold text-[var(--brand-light)]">{club.utilization}</p>
               </div>
               <div className="bg-[var(--dark-700)] rounded-lg p-2">
-                <p className="text-xs text-[var(--brand-light)]/50 mb-1">Events</p>
+                <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('events')}</p>
                 <p className="text-sm font-bold text-[var(--brand-purple)]">{club.events_count}</p>
               </div>
               <div className="bg-[var(--dark-700)] rounded-lg p-2">
-                <p className="text-xs text-[var(--brand-light)]/50 mb-1">New</p>
+                <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('new')}</p>
                 <p className="text-sm font-bold text-[var(--brand-green)]">
                   {club.new_members > 0 ? `+${club.new_members}` : '-'}
                 </p>
@@ -116,32 +118,32 @@ export default function ClubComparisonTable({ data }: Props) {
               <th className="px-6 py-4">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
-                  Club Name
+                  {t('clubName')}
                 </div>
               </th>
               <th className="px-4 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <TrendingUp className="w-4 h-4" />
-                  Total Visits
+                  {t('totalVisits')}
                 </div>
               </th>
               <th className="px-4 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <Users className="w-4 h-4" />
-                  Unique Youths
+                  {t('uniqueYouths')}
                 </div>
               </th>
-              <th className="px-4 py-4 text-right">Visits/User</th>
+              <th className="px-4 py-4 text-right">{t('visitsPerUser')}</th>
               <th className="px-4 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <Calendar className="w-4 h-4" />
-                  Events
+                  {t('events')}
                 </div>
               </th>
               <th className="px-4 py-4 text-right">
                 <div className="flex items-center justify-end gap-2">
                   <UserPlus className="w-4 h-4" />
-                  New Members
+                  {t('newMembers')}
                 </div>
               </th>
             </tr>
@@ -197,9 +199,9 @@ export default function ClubComparisonTable({ data }: Props) {
       {/* Footer */}
       <div className="p-4 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--brand-light)]/40">
-          <span>Showing {data.length} clubs</span>
+          <span>{t('showingClubs', { count: data.length })}</span>
           <span>
-            Total visits: <span className="text-[var(--brand-primary)] font-semibold">{data.reduce((a, b) => a + b.visits, 0)}</span>
+            {t('totalVisitsSum', { count: '' })} <span className="text-[var(--brand-primary)] font-semibold">{data.reduce((a, b) => a + b.visits, 0)}</span>
           </span>
         </div>
       </div>

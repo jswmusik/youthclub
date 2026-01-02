@@ -156,7 +156,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
             <div className={`rounded-2xl p-4 mb-6 ${
                 darkMode
                     ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]'
-                    : 'bg-white shadow-lg border border-gray-200'
+                    : 'bg-white border border-[#4D4DA4]/15 shadow-sm'
             }`}>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className={`text-lg font-bold ${
@@ -207,7 +207,7 @@ export default function RecommendedClubs({ darkMode }: RecommendedClubsProps = {
                             className={`rounded-lg overflow-hidden transition-all cursor-pointer ${
                                 darkMode
                                     ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40'
-                                    : 'border border-gray-200 hover:border-[#4D4DA4]/40 bg-white'
+                                    : 'bg-white border border-[#4D4DA4]/10 hover:border-[#4D4DA4]/30 shadow-sm'
                             }`}
                             onClick={() => router.push(`/dashboard/youth/club/${club.id}`)}
                         >

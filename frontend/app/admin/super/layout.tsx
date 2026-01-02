@@ -51,7 +51,9 @@ import {
   Sparkles,
   Cookie,
   Crown,
-  Trash2
+  Trash2,
+  CreditCard,
+  Phone
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -338,6 +340,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { name: t('items.navigation'), href: '/admin/super/cms/navigation', icon: Navigation },
         { name: t('items.features'), href: '/admin/super/cms/features', icon: Sparkles },
         { name: t('items.cookieConsent'), href: '/admin/super/cms/cookies', icon: Cookie },
+        { name: t('items.pricingPage'), href: '/admin/super/cms/pricing', icon: CreditCard },
+        { name: t('items.contactPage'), href: '/admin/super/cms/contact', icon: Phone },
       ]
     },
     {
@@ -347,6 +351,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       items: [
         { name: t('items.dataRetention'), href: '/admin/super/settings/data-retention', icon: Trash2 },
         { name: t('items.emailTemplates'), href: '/admin/super/settings/email-templates', icon: Mail },
+        { name: t('items.boilerplates'), href: '/admin/super/settings/boilerplates', icon: FileText },
         { name: t('items.customFields'), href: '/admin/super/custom-fields', icon: Wrench },
         { name: t('items.questionnaires'), href: '/admin/super/questionnaires', icon: FileText },
         { name: t('items.manageInterests'), href: '/admin/super/interests', icon: HelpCircle },

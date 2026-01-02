@@ -577,8 +577,8 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center shadow-lg">
-              <Settings2 className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg">
+              <Settings2 className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -586,7 +586,7 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
             </div>
           </div>
           <Link href={buildUrlWithParams(`${basePath}/create`)}>
-            <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+            <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
               {t('addField')}
             </button>
@@ -612,8 +612,8 @@ export default function CustomFieldManager({ basePath, scope }: CustomFieldManag
                 {/* Total Fields */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--brand-primary)]/30 hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <Settings2 className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                      <Settings2 className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.totalFields')}</span>
                   </div>

@@ -42,6 +42,10 @@
       "deleting": "Raderar..."
     }
   },
+  "navigation": {
+    "backToList": "Tillbaka till listan",
+    "backToEvents": "Tillbaka till evenemang"
+  },
   "auth": {
     "login": "Logga in",
     "logout": "Logga ut",
@@ -1213,7 +1217,8 @@
       "description": "Allmän information synlig i hela appen.",
       "municipalityName": "Kommunnamn",
       "municipalityCode": "Kommunkod",
-      "descriptionLabel": "Beskrivning"
+      "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Beskriv din kommun..."
     },
     "contactSocials": {
       "title": "Kontakt & Sociala medier",
@@ -1228,7 +1233,21 @@
       "title": "Inställningar",
       "description": "Kontrollera medlemsregistrering och policyer.",
       "allowSelfRegistration": "Tillåt ungdomar/vårdnadshavare att självregistrera sig för verifiering",
-      "termsAndConditions": "Villkor"
+      "termsAndConditions": "Villkor",
+      "termsPlaceholder": "Ange villkor och regler för din kommun...",
+      "insertTemplate": "Infoga mall"
+    },
+    "trialPeriod": {
+      "title": "Provperiod för nya användare",
+      "description": "Ge nya ungdomar tillgång till plattformen innan verifiering.",
+      "infoText": "Nya ungdomar kan använda plattformen under provperioden innan de verifieras av personalen på fritidsgården.",
+      "infoSubtext": "Ställ in 0 dagar för att kräva verifiering direkt vid registrering.",
+      "daysLabel": "Antal dagar",
+      "days": "dagar",
+      "disabledHint": "Provperioden är inaktiverad. Ungdomar måste verifieras innan de kan logga in.",
+      "enabledHint": "Nya ungdomar får {days} dagars tillgång innan verifiering krävs.",
+      "statusEnabled": "Provperiod aktiverad: {days} dagar",
+      "statusDisabled": "Provperiod inaktiverad - verifiering krävs direkt"
     },
     "dataRetention": {
       "title": "Datalagring (GDPR)",
@@ -2212,7 +2231,22 @@
     "openPdf": "Öppna PDF",
     "approved": "Godkänd",
     "rejected": "Avvisad",
-    "deleted": "Borttagen"
+    "deleted": "Borttagen",
+    "verificationRequiredTitle": "Verifiering krävs",
+    "verificationRequiredDescription": "Ditt konto måste verifieras av personalen på din fritidsgård innan du får tillgång till plattformen.",
+    "trialExpiredTitle": "Provperioden har gått ut",
+    "trialExpiredDescription": "Din provperiod har löpt ut. Kontakta din fritidsgård för att verifiera ditt konto och få full tillgång.",
+    "noClubTitle": "Ingen fritidsgård vald",
+    "noClubDescription": "Du har inte valt någon fritidsgård. Vänligen kontakta supporten för hjälp.",
+    "noClubHelp": "För att använda plattformen måste du vara kopplad till en fritidsgård. Kontakta supporten om du behöver hjälp.",
+    "yourClub": "Din fritidsgård",
+    "yourClubDefault": "din fritidsgård",
+    "contactClubMessage": "Besök din fritidsgård eller kontakta dem för att snabba på verifieringen. De kan verifiera ditt konto direkt!",
+    "contactSupportMessage": "Kontakta supporten för att få hjälp med att koppla ditt konto till en fritidsgård.",
+    "understood": "Jag förstår",
+    "trialDaysRemaining": "{days} dagar kvar av provperioden",
+    "lastDayWarning": "Sista dagen av provperioden!",
+    "getVerifiedMessage": "Besök {clubName} för att verifiera ditt konto"
   },
   "eventsAdmin": {
     "title": "Hantera evenemang",
@@ -2592,6 +2626,72 @@
         "status": "Status",
         "confirmed": "Bekräftad",
         "waitlistStatus": "Väntelista"
+      },
+      "participants": {
+        "loading": "Laddar deltagare...",
+        "total": "Totalt",
+        "filters": {
+          "all": "Alla",
+          "approved": "Godkända",
+          "waitlist": "Väntelista",
+          "pending": "Väntande"
+        },
+        "tableHeaders": {
+          "user": "Användare",
+          "date": "Datum",
+          "status": "Status",
+          "actions": "Åtgärder"
+        },
+        "status": {
+          "approved": "GODKÄND",
+          "waitlist": "VÄNTELISTA",
+          "pendingGuardian": "VÄNTAR PÅ VÅRDNADSHAVARE",
+          "pendingAdmin": "VÄNTAR PÅ ADMIN",
+          "rejected": "AVVISAD",
+          "cancelled": "AVBOKAD",
+          "attended": "DELTOG"
+        },
+        "actions": {
+          "approve": "Godkänn",
+          "reject": "Avvisa",
+          "waitingForParent": "Väntar på vårdnadshavare"
+        },
+        "customFields": {
+          "title": "Registreringssvar",
+          "viewResponses": "Visa svar",
+          "yes": "Ja",
+          "no": "Nej"
+        },
+        "emptyState": {
+          "noParticipants": "Inga deltagare hittades i denna kategori."
+        },
+        "pagination": {
+          "page": "Sida",
+          "of": "av",
+          "total": "totalt",
+          "prev": "Föregående",
+          "next": "Nästa"
+        },
+        "mobile": {
+          "registered": "Registrerad"
+        },
+        "confirmModal": {
+          "approveTitle": "Godkänn registrering?",
+          "rejectTitle": "Avvisa registrering?",
+          "confirmAction": "Bekräfta åtgärd",
+          "approveMessage": "Är du säker på att du vill godkänna {name}s registrering? De kommer att få en bekräftad plats.",
+          "rejectMessage": "Är du säker på att du vill avvisa {name}s registrering? Denna åtgärd kan inte ångras.",
+          "genericMessage": "Är du säker på att du vill fortsätta?",
+          "approve": "Godkänn",
+          "reject": "Avvisa",
+          "confirm": "Bekräfta",
+          "cancel": "Avbryt"
+        },
+        "toast": {
+          "approvedSuccess": "Registreringen godkändes",
+          "rejectedSuccess": "Registreringen avvisades",
+          "failedToLoad": "Kunde inte ladda deltagare"
+        }
       }
     },
     "calendar": {
@@ -3024,6 +3124,11 @@
           "status": "Status",
           "joined": "Gick med",
           "actions": "Åtgärder"
+        },
+        "status": {
+          "APPROVED": "Godkänd",
+          "PENDING": "Väntande",
+          "REJECTED": "Avvisad"
         },
         "actions": {
           "approve": "Godkänn medlem",
@@ -3704,6 +3809,7 @@
       "backToInventory": "Tillbaka till lager",
       "analyticsDashboard": "Analysöversikt",
       "analytics": {
+        "total": "Totalt",
         "totalBorrowed": "Totalt utlånade",
         "demographics": "Demografi",
         "male": "Man",
@@ -3985,7 +4091,7 @@
         "requested": "Begärd"
       },
       "emptyState": {
-        "noPendingRequests": "Inga väntande förfrågningar 🎉",
+        "noPendingRequests": "Inga väntande förfrågningar",
         "allProcessed": "Alla bokningsförfrågningar har behandlats."
       },
       "pagination": {
@@ -4036,6 +4142,13 @@
         "cancelBooking": "Är du säker på att du vill avbryta denna bokning? Tidsluckan blir tillgänglig igen.",
         "cancelThisInstance": "Avbryt endast denna förekomst? Resten av serien kommer att finnas kvar.",
         "cancelEntireSeries": "Avbryt denna förekomst och alla framtida förekomster? Detta kan inte ångras."
+      },
+      "confirmModal": {
+        "title": "Avbryt bokning",
+        "subtitle": "Denna åtgärd kan inte ångras",
+        "seriesWarning": "Detta kommer att avbryta alla framtida förekomster i serien. Denna åtgärd kan inte ångras.",
+        "cancel": "Gå tillbaka",
+        "confirm": "Avbryt bokning"
       },
       "toast": {
         "bookingApproved": "Bokning godkänd framgångsrikt!",
@@ -4311,6 +4424,8 @@
         "noBookingsHintGeneral": "Skapa en bokning eller välj en resurs för att visa dess schema."
       },
       "emptyState": {
+        "selectResource": "Välj en resurs för att visa bokningar",
+        "selectResourceHint": "Vänligen välj en klubb och resurs från filtren ovan för att visa tillgängliga tidsluckor och bokningar.",
         "noBookingsForResource": "Inga bokningar hittades för denna resurs denna vecka",
         "noBookingsForWeek": "Inga bokningar hittades denna vecka",
         "hintForResource": "Denna resurs har inga bokningar ännu. Klicka på \"Ny bokning\" för att skapa en, eller kontrollera sidan Schema för att säkerställa att tidsluckor är konfigurerade.",
@@ -4331,8 +4446,14 @@
         "date": "3. Datum",
         "timeSlot": "4. Tidslucka",
         "selectTimeSlot": "4. Välj tillgänglig tidslucka",
-        "recurringOptions": "5. Återkommande alternativ"
+        "extraParticipants": "5. Extra deltagare",
+        "recurringOptions": "6. Återkommande alternativ"
       },
+      "optional": "valfritt",
+      "extraParticipantsHint": "Lägg till upp till {max} extra deltagare som ska delta i denna bokning.",
+      "participantNamePlaceholder": "Ange deltagarens namn...",
+      "addParticipant": "Lägg till",
+      "maxParticipantsReachedHint": "Maximalt antal extra deltagare har nåtts.",
       "searchPlaceholder": "Sök efter namn eller e-post...",
       "change": "Ändra",
       "chooseResource": "-- Välj rum eller utrustning --",
@@ -4354,11 +4475,14 @@
       "creating": "Skapar...",
       "createBooking": "Skapa bokning",
       "toast": {
+        "success": "Bokning skapad framgångsrikt!",
         "specifyWeeks": "Vänligen ange antalet veckor för återkommande bokning.",
         "bookingCreated": "Bokning{recurringMessage} skapad framgångsrikt för {firstName} {lastName}!",
         "recurringForever": " (återkommande för alltid)",
         "recurringWeeks": " (återkommande i {weeks} veckor)",
-        "failedToCreate": "Kunde inte skapa bokning."
+        "failedToCreate": "Kunde inte skapa bokning.",
+        "maxParticipantsReached": "Maximalt antal deltagare har nåtts.",
+        "weeklyLimitReached": "Veckogräns för bokningar nådd. Max {max} bokning(ar) per vecka tillåtna. Användaren har för närvarande {current} bokning(ar) denna vecka."
       }
     }
   },
@@ -5221,7 +5345,8 @@
         "requireGuardian": "Kräv vårdnadshavare",
         "requireGuardianDescription": "Ungdomar måste koppla en vårdnadshavare vid registrering",
         "termsConditions": "Villkor & Regler",
-        "termsConditionsPlaceholder": "Juridisk text som visas för användare under registrering..."
+        "termsConditionsPlaceholder": "Juridisk text som visas för användare under registrering...",
+        "insertTemplate": "Infoga mall"
       },
       "license": {
         "title": "Licens & Begränsningar",
@@ -5284,7 +5409,9 @@
       "yes": "Ja",
       "no": "Nej",
       "created": "Skapad",
-      "updated": "Uppdaterad"
+      "updated": "Uppdaterad",
+      "termsAndConditions": "Villkor & Bestämmelser",
+      "clubPolicies": "Fritidsgårdspolicyer"
     }
   },
   "clubsAdmin": {
@@ -5431,7 +5558,8 @@
         "termsConditions": "Villkor & Bestämmelser",
         "termsPlaceholder": "Ange villkor och bestämmelser för fritidsgårdsmedlemskap...",
         "clubPolicies": "Fritidsgårdspolicyer",
-        "policiesPlaceholder": "Ange fritidsgårdspolicyer och riktlinjer..."
+        "policiesPlaceholder": "Ange fritidsgårdspolicyer och riktlinjer...",
+        "insertTemplate": "Infoga mall"
       },
       "registrationSettings": {
         "title": "Registreringsinställningar",
@@ -5614,6 +5742,7 @@
       "clubCategories": "Fritidsgårdskategorier",
       "categoriesPlaceholder": "t.ex. Sport, Konst, Musik",
       "descriptionLabel": "Beskrivning",
+      "descriptionPlaceholder": "Beskriv din fritidsgård...",
       "logoAvatar": "Logotyp / Avatar",
       "heroImage": "Hero-bild",
       "chooseFile": "Välj fil",
@@ -5637,7 +5766,24 @@
       "title": "Policyer",
       "description": "Juridiska dokument och riktlinjer för din fritidsgård.",
       "termsConditions": "Villkor & Bestämmelser",
-      "clubPolicies": "Fritidsgårdspolicyer"
+      "termsPlaceholder": "Ange villkor och bestämmelser för fritidsgårdsmedlemskap...",
+      "clubPolicies": "Fritidsgårdspolicyer",
+      "policiesPlaceholder": "Ange fritidsgårdspolicyer och riktlinjer...",
+      "insertTemplate": "Infoga mall"
+    },
+    "trialPeriod": {
+      "title": "Provperiod (Åsidosätt)",
+      "description": "Åsidosätt kommunens provperiodsinställning för denna fritidsgård.",
+      "infoText": "Nya ungdomar kan använda plattformen under provperioden innan de verifieras av personalen.",
+      "municipalityDefault": "Kommunens standard: {days} dagar",
+      "overrideLabel": "Åsidosätt kommunens provperiodsinställning",
+      "daysLabel": "Antal dagar",
+      "days": "dagar",
+      "disabledHint": "Provperioden är inaktiverad för denna fritidsgård. Ungdomar måste verifieras direkt.",
+      "enabledHint": "Nya ungdomar får {days} dagars tillgång innan verifiering krävs.",
+      "statusOverride": "Åsidosatt: {days} dagars provperiod",
+      "statusDefault": "Använder kommunens standard: {days} dagar",
+      "statusDisabled": "Provperiod inaktiverad - verifiering krävs direkt"
     },
     "buttons": {
       "cancel": "Avbryt",
@@ -5962,8 +6108,11 @@
       "navigation": "Navigation",
       "features": "Funktioner",
       "cookieConsent": "Cookie-samtycke",
+      "pricingPage": "Prissida",
+      "contactPage": "Kontaktsida",
       "dataRetention": "Datalagring",
       "emailTemplates": "E-postmallar",
+      "boilerplates": "Textmallar",
       "customFields": "Anpassade fält",
       "questionnaires": "Frågeformulär",
       "manageInterests": "Hantera intressen",
@@ -6636,6 +6785,10 @@
       "password": "Lösenord",
       "newPassword": "Nytt lösenord (Valfritt)",
       "phone": "Telefon",
+      "passwordRequirements": "Lösenordskrav",
+      "req8chars": "Minst 8 tecken",
+      "req1number": "Minst en siffra",
+      "req1special": "Minst ett specialtecken",
       "placeholders": {
         "firstName": "John",
         "lastName": "Doe",
@@ -6920,9 +7073,9 @@
       "pending": "Väntande",
       "unverified": "Overifierad",
       "allIdDocStatus": "Alla ID-dokumentstatus",
-      "pendingReview": "⏳ Väntar på granskning",
-      "approved": "✓ Godkänd",
-      "rejected": "✗ Avvisad",
+      "pendingReview": "Väntar på granskning",
+      "approved": "Godkänd",
+      "rejected": "Avvisad",
       "notSubmitted": "Inte inskickad",
       "allMunicipalities": "Alla kommuner"
     },
@@ -7130,6 +7283,11 @@
         "rejectionReasonRequired": "Ange en avvisningsorsak"
       }
     }
+  },
+  "customFieldsDisplay": {
+    "noAdditionalInfo": "Ingen ytterligare information tillgänglig",
+    "yes": "Ja",
+    "no": "Nej"
   },
   "guardianDetail": {
     "loading": "Laddar vårdnadshavardetaljer...",
@@ -7538,7 +7696,29 @@
     "title": "Nyhetsarkiv",
     "description": "Bläddra bland alla publicerade artiklar",
     "backToFeed": "Tillbaka till flöde",
-    "loading": "Laddar arkiv..."
+    "loading": "Laddar arkiv...",
+    "searching": "Söker i arkivet...",
+    "noArticlesFound": "Inga artiklar hittades som matchar dina filter.",
+    "noImage": "Ingen bild",
+    "byAuthor": "Av {author}",
+    "readFullArticle": "Läs hela artikeln",
+    "filters": {
+      "search": "Sök",
+      "searchPlaceholder": "Titel, utdrag eller författare...",
+      "tag": "Tagg",
+      "allTags": "Alla taggar",
+      "sortBy": "Sortera efter",
+      "newestFirst": "Nyast först",
+      "oldestFirst": "Äldst först",
+      "titleAZ": "Titel (A-Ö)",
+      "clear": "Rensa"
+    },
+    "pagination": {
+      "showing": "Visar {count} av {total} artiklar",
+      "previous": "Föregående",
+      "next": "Nästa",
+      "pageOf": "Sida {page} av {totalPages}"
+    }
   },
   "postsManager": {
     "title": "Hantera inlägg",
@@ -8003,6 +8183,7 @@
     "toast": {
       "templateDeleted": "Mall raderad framgångsrikt!",
       "failedToDelete": "Kunde inte radera mall.",
+      "templateAlreadyDeleted": "Mallen var redan raderad.",
       "templateDuplicated": "Mall duplicerad!",
       "failedToDuplicate": "Kunde inte duplicera mall.",
       "templateActivated": "Mall aktiverad!",
@@ -8349,7 +8530,11 @@
       }
     },
     "cookies": {
+      "pageTitle": "Cookie-samtycke",
+      "pageDescription": "Hantera cookiepolicyer och samtyckesbanderoller",
       "stats": {
+        "title": "Översikt",
+        "description": "Aktuell status för cookiepolicyer",
         "totalPolicies": "Totalt antal policyer",
         "activeVersion": "Aktiv version",
         "archived": "Arkiverade",
@@ -9329,6 +9514,59 @@
       "loadFailed": "Kunde inte ladda anpassade fält"
     }
   },
+  "boilerplates": {
+    "title": "Textmallar",
+    "subtitle": "Hantera återanvändbara textmallar för villkor, regler och policyer",
+    "createNew": "Ny mall",
+    "search": "Sök mallar...",
+    "filterByUsage": "Filtrera efter användning",
+    "allUsages": "Alla användningar",
+    "noBoilerplates": "Inga textmallar hittades",
+    "inactive": "Inaktiv",
+    "active": "Aktiv",
+    "name": "Namn",
+    "namePlaceholder": "Ange mallens namn...",
+    "description": "Beskrivning",
+    "descriptionPlaceholder": "Beskriv vad denna mall används till...",
+    "usage": "Användningsområde",
+    "order": "Ordning",
+    "status": "Status",
+    "activeStatus": "Aktiv",
+    "activeStatusDescription": "Inaktiva mallar visas inte vid val av mall",
+    "content": "Innehåll",
+    "contentPlaceholder": "Skriv mallens innehåll här...",
+    "contentPreview": "Innehållsförhandsvisning",
+    "noContent": "Inget innehåll ännu. Klicka på Redigera för att lägga till innehåll.",
+    "edit": "Redigera",
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "copy": "Kopiera",
+    "create": "Skapa",
+    "selectBoilerplate": {
+      "title": "Välj en textmall",
+      "subtitle": "Välj en textmall från listan för att visa eller redigera dess innehåll."
+    },
+    "createDialog": {
+      "title": "Skapa ny textmall",
+      "subtitle": "Skapa en ny återanvändbar textmall som kan användas i formulär."
+    },
+    "deleteModal": {
+      "title": "Radera textmall",
+      "message": "Är du säker på att du vill radera \"{name}\"? Denna åtgärd kan inte ångras.",
+      "confirm": "Radera",
+      "cancel": "Avbryt"
+    },
+    "toast": {
+      "loadFailed": "Kunde inte ladda textmallar",
+      "saveSuccess": "Textmallen har sparats",
+      "saveFailed": "Kunde inte spara textmallen",
+      "createSuccess": "Textmallen har skapats",
+      "createFailed": "Kunde inte skapa textmallen",
+      "deleteSuccess": "Textmallen har raderats",
+      "deleteFailed": "Kunde inte radera textmallen",
+      "copied": "Innehållet har kopierats till urklipp"
+    }
+  },
   "emailTemplates": {
     "title": "E-postmallar",
     "subtitle": "Hantera och anpassa e-postmeddelanden som skickas till användare",
@@ -9406,6 +9644,16 @@
       "previewFailed": "Kunde inte generera förhandsgranskning",
       "testSent": "Test-e-post skickat till {email}",
       "testFailed": "Kunde inte skicka test-e-post"
+    },
+    "languages": {
+      "swedish": "Svenska",
+      "english": "Engelska",
+      "arabic": "Arabiska",
+      "danish": "Danska",
+      "finnish": "Finska",
+      "norwegian": "Norska",
+      "dariPersian": "Dari/Persiska",
+      "somali": "Somaliska"
     }
   },
   "dataRetention": {
@@ -10011,6 +10259,272 @@
       "rejected": "Avvisad",
       "cancelled": "Inställd",
       "attended": "Deltog"
+    }
+  },
+  "analyticsAdmin": {
+    "title": "Statistik",
+    "municipalityTitle": "Kommunöversikt",
+    "clubTitle": "Statistik",
+    "subtitle": "Realtidsinsikter om besök, inventarier och engagemang",
+    "municipalitySubtitle": "Aggregerad statistik för alla klubbar",
+    "liveData": "Realtidsdata",
+    "failedToLoad": "Kunde inte ladda statistikdata.",
+    "failedToLoadRetry": "Kunde inte ladda statistikdata. Försök igen.",
+    "filters": {
+      "startDate": "Startdatum",
+      "endDate": "Slutdatum",
+      "club": "Klubb",
+      "allClubs": "Alla klubbar",
+      "group": "Grupp",
+      "groupActive": "(Aktiv)",
+      "allYouthMembers": "Alla ungdomar",
+      "municipalityWide": "(Kommunövergripande)",
+      "gender": "Kön",
+      "allGenders": "Alla kön",
+      "male": "Man",
+      "female": "Kvinna",
+      "other": "Annat",
+      "more": "Mer",
+      "loading": "Laddar...",
+      "update": "Uppdatera",
+      "active": "Aktiva:",
+      "grades": "årskurs(er)",
+      "interests": "intresse(n)",
+      "age": "Ålder:",
+      "clear": "Rensa",
+      "groupNote": "En grupp är vald. Filtren nedan är inaktiverade eftersom grupper är fördefinierade segment.",
+      "gradesLabel": "Årskurser",
+      "grade1": "Årskurs 1",
+      "grade2": "Årskurs 2",
+      "grade3": "Årskurs 3",
+      "grade4": "Årskurs 4",
+      "grade5": "Årskurs 5",
+      "grade6": "Årskurs 6",
+      "grade7": "Årskurs 7",
+      "grade8": "Årskurs 8",
+      "grade9": "Årskurs 9",
+      "ageRange": "Åldersintervall",
+      "min": "Min",
+      "max": "Max",
+      "interestsLabel": "Intressen",
+      "noInterestsDefined": "Inga intressen definierade",
+      "customFields": "Anpassade fält",
+      "noCustomFieldsAvailable": "Inga anpassade fält tillgängliga",
+      "all": "Alla"
+    },
+    "settings": {
+      "title": "Inställningar för statistik",
+      "sectionsVisible": "{visible} av {total} sektioner synliga",
+      "quickActions": "Snabbåtgärder",
+      "showAll": "Visa alla",
+      "hideAll": "Dölj alla",
+      "preferencesNote": "Dina inställningar sparas automatiskt och kommer att kommas ihåg vid nästa besök."
+    },
+    "sections": {
+      "keyMetrics": "Nyckeltal",
+      "keyMetricsDesc": "Medlemmar, besök, snittid, retention, lån",
+      "peakTrafficHours": "Högtrafiktider",
+      "peakTrafficHoursDesc": "Värmekarta som visar de mest aktiva tiderna",
+      "topBorrowedItems": "Mest utlånade saker",
+      "topBorrowedItemsDesc": "Mest populära inventarier",
+      "demographics": "Demografi",
+      "demographicsDesc": "Könsfördelning & årskursfördelning",
+      "topInterests": "Populära intressen",
+      "topInterestsDesc": "Mest populära medlemsintressen",
+      "insights": "Insikter",
+      "insightsDesc": "Retention- & nätverksinsikter",
+      "questionnaireAnalytics": "Enkätstatistik",
+      "questionnaireAnalyticsDesc": "Enkätdeltagande & demografi",
+      "bookingAnalytics": "Bokningsstatistik",
+      "bookingAnalyticsDesc": "Rum- & utrustningsbokningar",
+      "groupComparison": "Gruppjämförelse",
+      "groupComparisonDesc": "Jämför statistik mellan grupper",
+      "clubComparison": "Klubbjämförelse",
+      "clubComparisonDesc": "Jämför statistik mellan klubbar",
+      "eventAnalytics": "Evenemangsstatistik",
+      "eventAnalyticsDesc": "Evenemangsanmälningar & närvaro",
+      "topMemberInterests": "Populära medlemsintressen"
+    },
+    "metrics": {
+      "members": "Medlemmar",
+      "basedOnFilters": "Baserat på aktuella filter",
+      "visits": "Besök",
+      "uniqueYouths": "{count} unika ungdomar",
+      "avgStay": "Snittid",
+      "medianTime": "Mediantid per besök",
+      "retention": "Retention",
+      "returnedFromPrev": "Återkom från föregående period",
+      "nomads": "Nomader",
+      "visitMultipleClubs": "Besöker >1 klubb",
+      "loans": "Lån",
+      "itemsBorrowed": "Saker utlånade",
+      "unused": "{count} oanvända"
+    },
+    "insights": {
+      "retentionInsight": "Retentionsinsikt",
+      "retentionText": "av ungdomarna som besökte förra månaden kom tillbaka denna månad.",
+      "belowAverage": "Under genomsnittet. Överväg att organisera ett 'Kom tillbaka'-evenemang.",
+      "greatRetention": "Utmärkt retention!",
+      "networkInsight": "Nätverksinsikt",
+      "networkText": "av dina medlemmar besöker andra klubbar i kommunen.",
+      "connectedNetwork": "Bygger ett sammanlänkat ungdomsnätverk"
+    },
+    "ai": {
+      "title": "AI-rapportgenerator",
+      "subtitle": "Generera insikter med hjälp av AI",
+      "notConfigured": "Ej konfigurerad",
+      "notConfiguredTitle": "AI ej konfigurerad",
+      "notConfiguredMessage": "Ställ in {anthropicKey} eller {openaiKey} miljövariabel för att aktivera AI-rapporter.",
+      "whatToKnow": "Vad vill du veta?",
+      "placeholder": "t.ex. Skriv en sammanfattning av våra engagemangsmått och föreslå förbättringar...",
+      "examplePrompt1": "Sammanfatta våra nyckeltal och föreslå förbättringar",
+      "examplePrompt2": "Vilka områden behöver uppmärksamhet baserat på denna data?",
+      "examplePrompt3": "Analysera medlemsengagemang och retention",
+      "reportType": "Rapporttyp",
+      "quickSummary": "Snabb sammanfattning",
+      "quickSummaryDesc": "250-400 ord",
+      "monthlyReport": "Månadsrapport",
+      "monthlyReportDesc": "600-900 ord",
+      "trendAnalysis": "Trendanalys",
+      "trendAnalysisDesc": "500-700 ord",
+      "language": "Språk",
+      "english": "English",
+      "swedish": "Svenska",
+      "norwegian": "Norsk",
+      "aiModel": "AI-modell",
+      "claudeAnthropic": "Claude (Anthropic)",
+      "gpt4OpenAI": "GPT-4 (OpenAI)",
+      "generateReport": "Generera rapport",
+      "generating": "Genererar...",
+      "analyzingData": "Analyserar din data...",
+      "processingMetrics": "Bearbetar mätvärden...",
+      "generatingInsights": "Genererar insikter...",
+      "writingRecommendations": "Skriver rekommendationer...",
+      "finalizingReport": "Slutför rapport...",
+      "mayTake": "Detta kan ta 10-20 sekunder",
+      "enterRequest": "Ange en fråga eller förfrågan",
+      "failedToGenerate": "Kunde inte generera rapport",
+      "failedToGenerateRetry": "Kunde inte generera rapport. Försök igen.",
+      "generatedReport": "Genererad rapport",
+      "copied": "Kopierad!",
+      "copyToClipboard": "Kopiera till urklipp",
+      "downloadMarkdown": "Ladda ner som Markdown",
+      "clearReport": "Rensa rapport"
+    },
+    "clubComparison": {
+      "title": "Klubbjämförelse",
+      "subtitle": "Prestandarankning för alla klubbar",
+      "rankedByTraffic": "Rankad efter trafik",
+      "clubName": "Klubbnamn",
+      "totalVisits": "Totala besök",
+      "uniqueYouths": "Unika ungdomar",
+      "visitsPerUser": "Besök/användare",
+      "events": "Evenemang",
+      "newMembers": "Nya medlemmar",
+      "users": "Användare",
+      "new": "Nya",
+      "showingClubs": "Visar {count} klubbar",
+      "totalVisitsSum": "Totalt antal besök: {count}"
+    },
+    "heatmap": {
+      "title": "Högtrafiktider",
+      "days": {
+        "sun": "Sön",
+        "mon": "Mån",
+        "tue": "Tis",
+        "wed": "Ons",
+        "thu": "Tor",
+        "fri": "Fre",
+        "sat": "Lör"
+      },
+      "less": "Färre",
+      "more": "Fler",
+      "maxVisits": "Max: {count} besök",
+      "visitSingular": "besök",
+      "visitPlural": "besök",
+      "tooltipAt": "kl."
+    },
+    "inventory": {
+      "title": "Mest utlånade saker",
+      "total": "{count} totalt",
+      "noBorrowedItems": "Inga utlånade saker under denna period",
+      "showingTop": "Visar topp {count} saker",
+      "mostBorrowed": "Mest utlånad: {item}"
+    },
+    "demographics": {
+      "genderBalance": "Könsfördelning",
+      "membersByGrade": "Medlemmar per årskurs",
+      "noGenderData": "Ingen könsdata tillgänglig",
+      "noGradeData": "Ingen årskursdata tillgänglig",
+      "boys": "Pojkar",
+      "girls": "Flickor",
+      "other": "Annat",
+      "total": "totalt",
+      "totalMembers": "Totalt: {count} medlemmar",
+      "peakGrade": "Topp: årskurs {grade}",
+      "gradeLabel": "Åk {grade}"
+    },
+    "groupComparison": {
+      "title": "Gruppjämförelse",
+      "subtitle": "{count} grupper • {members} totalt antal medlemmar",
+      "newMembers": "+{count} nya",
+      "groupName": "Gruppnamn",
+      "members": "Medlemmar",
+      "checkIns": "Incheckningar",
+      "genderBalance": "Könsfördelning",
+      "new": "Nya",
+      "municipalityWide": "Kommunövergripande",
+      "totalGroups": "Totalt ({count} grupper)",
+      "male": "Man",
+      "female": "Kvinna",
+      "other": "Annat",
+      "sortedByMembers": "Sorterat efter totalt antal medlemmar"
+    },
+    "questionnaire": {
+      "title": "Enkätstatistik",
+      "subtitle": "Enkätdeltagande & demografi",
+      "questionnaires": "Enkäter",
+      "noQuestionnaires": "Inga enkäter under denna period",
+      "participationRate": "Deltagandegrad",
+      "responses": "svar",
+      "completed": "Slutförda",
+      "started": "Påbörjade",
+      "noResponse": "Inget svar",
+      "participantGender": "Deltagarnas kön",
+      "male": "Man",
+      "female": "Kvinna",
+      "other": "Annat",
+      "totalEligible": "Totalt antal berättigade medlemmar"
+    },
+    "booking": {
+      "title": "Bokningsstatistik",
+      "subtitle": "Rum- & utrustningsbokningar",
+      "totalBookings": "Totala bokningar",
+      "noBookings": "Inga bokningar under denna period",
+      "whosBooking": "Vem bokar?",
+      "male": "Man",
+      "female": "Kvinna",
+      "other": "Annat",
+      "uniqueBookers": "Unika bokare",
+      "bookingsPerPerson": "Bokningar/person",
+      "topMostBooked": "Topp 8 mest bokade",
+      "noResourcesBooked": "Inga resurser bokade"
+    },
+    "events": {
+      "title": "Evenemangsstatistik",
+      "subtitle": "Prestandaöversikt",
+      "eventsLabel": "Evenemang",
+      "registrations": "Anmälningar",
+      "showUpRate": "Närvarograd",
+      "avgCapacity": "Sn. kapacitet",
+      "registrationStatus": "Anmälningsstatus",
+      "attended": "NÄRVARANDE",
+      "approved": "GODKÄND",
+      "pending": "VÄNTANDE",
+      "cancelled": "AVBOKAD",
+      "topEvents": "Toppevenemang efter anmälningar",
+      "noEvents": "Inga evenemang under denna period",
+      "createEventHint": "Skapa ett evenemang för att börja spåra statistik"
     }
   }
 }

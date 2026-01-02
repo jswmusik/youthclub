@@ -37,7 +37,7 @@ export default function MyBookingCard({ booking, onClick, darkMode = false }: My
     switch (s) {
       case 'APPROVED': return 'bg-green-100 text-green-700 border-green-200';
       case 'REJECTED': return 'bg-red-100 text-red-700 border-red-200';
-      case 'CANCELLED': return 'bg-gray-100 text-gray-500 border-gray-200';
+      case 'CANCELLED': return 'bg-[#EBEBFE] text-gray-500 border-[#4D4DA4]/15';
       default: return 'bg-yellow-100 text-yellow-700 border-yellow-200';
     }
   };
@@ -48,7 +48,7 @@ export default function MyBookingCard({ booking, onClick, darkMode = false }: My
       className={`w-full p-4 flex flex-col gap-3 text-left transition-all cursor-pointer ${
         darkMode 
           ? 'bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 hover:bg-[var(--dark-700)]' 
-          : 'bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md'
+          : 'bg-white rounded-xl border border-[#4D4DA4]/10 shadow-sm hover:shadow-md'
       }`}
     >
       <div className="flex justify-between items-start">
@@ -67,7 +67,7 @@ export default function MyBookingCard({ booking, onClick, darkMode = false }: My
       </div>
 
       <div className={`flex items-center gap-3 text-sm p-2 rounded-lg ${
-        darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80' : 'bg-gray-50 text-gray-600'
+        darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80' : 'bg-[#F8F7FE] text-gray-600'
       }`}>
         <div className="flex items-center gap-1.5">
           <Calendar className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-gray-400'}`} />

@@ -85,7 +85,7 @@ export default function AddMemberModal({ event, isOpen, onClose, onMemberAdded, 
 
     // Dark mode styles
     const modalBg = darkMode ? 'bg-[var(--dark-800)]' : 'bg-white';
-    const borderColor = darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200';
+    const borderColor = darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15';
     const textPrimary = darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900';
     const textSecondary = darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500';
     const inputBg = darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40' : 'border-gray-300';
@@ -120,7 +120,7 @@ export default function AddMemberModal({ event, isOpen, onClose, onMemberAdded, 
                             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
                                 darkMode 
                                     ? 'hover:bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
-                                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                                    : 'hover:bg-[#EBEBFE] text-gray-500 hover:text-gray-700'
                             }`}
                         >
                             <X className="w-5 h-5" />
@@ -157,13 +157,13 @@ export default function AddMemberModal({ event, isOpen, onClose, onMemberAdded, 
                 <div className="flex-1 overflow-y-auto p-4">
                     {loading ? (
                         <div className="text-center py-12">
-                            <div className={`w-10 h-10 border-3 ${darkMode ? 'border-[var(--dark-600)] border-t-[var(--brand-primary)]' : 'border-gray-200 border-t-blue-500'} rounded-full animate-spin mx-auto mb-4`} />
+                            <div className={`w-10 h-10 border-3 ${darkMode ? 'border-[var(--dark-600)] border-t-[var(--brand-primary)]' : 'border-[#4D4DA4]/15 border-t-blue-500'} rounded-full animate-spin mx-auto mb-4`} />
                             <p className={textSecondary}>Loading eligible members...</p>
                         </div>
                     ) : filteredMembers.length === 0 ? (
                         <div className="text-center py-12">
                             <div className={`w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center ${
-                                darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
+                                darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'
                             }`}>
                                 <Users className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'}`} />
                             </div>
@@ -187,7 +187,7 @@ export default function AddMemberModal({ event, isOpen, onClose, onMemberAdded, 
                                     className={`p-4 rounded-xl border transition-all ${
                                         darkMode 
                                             ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
-                                            : 'bg-gray-50 border-gray-100 hover:border-blue-200 hover:bg-gray-100'
+                                            : 'bg-[#F8F7FE] border-[#4D4DA4]/10 hover:border-blue-200 hover:bg-[#EBEBFE]'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -285,7 +285,7 @@ export default function AddMemberModal({ event, isOpen, onClose, onMemberAdded, 
                         className={`w-full px-4 py-3 rounded-xl font-semibold transition-colors ${
                             darkMode 
                                 ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                                : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'
                         }`}
                     >
                         Close

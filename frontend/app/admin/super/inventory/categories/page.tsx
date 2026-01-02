@@ -201,8 +201,8 @@ export default function CategoryManagerPage() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                <Layers className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Layers className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
@@ -218,8 +218,8 @@ export default function CategoryManagerPage() {
               className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                  <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-[var(--dark-900)]" />
                 </div>
                 <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
               </div>
@@ -236,8 +236,8 @@ export default function CategoryManagerPage() {
                 {/* Total Categories */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <Layers className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                      <Layers className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                   </div>
@@ -247,8 +247,8 @@ export default function CategoryManagerPage() {
                 {/* With Icons */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-peach)] flex items-center justify-center">
-                      <Sparkles className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                      <Sparkles className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.withIcons')}</span>
                   </div>
@@ -265,8 +265,8 @@ export default function CategoryManagerPage() {
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
-                <Plus className="h-4 w-4 text-[var(--brand-primary)]" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                <Plus className="h-4 w-4 text-[var(--dark-900)]" />
               </div>
               <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('createForm.title')}</h2>
             </div>

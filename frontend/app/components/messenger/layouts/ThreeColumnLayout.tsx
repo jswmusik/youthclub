@@ -59,7 +59,7 @@ export default function ThreeColumnLayout({
     // Base classes for dark mode
     const baseClasses = darkMode 
         ? 'bg-[var(--dark-800)] md:border md:border-[var(--dark-600)]' 
-        : 'bg-white border border-gray-100';
+        : 'bg-white border border-[#4D4DA4]/10';
 
     return (
         <div className={`flex flex-col md:flex-row h-full min-h-0 md:rounded-2xl overflow-hidden w-full max-w-full ${baseClasses}`} style={{ height: '100%', maxHeight: '100%' }}>
@@ -68,7 +68,7 @@ export default function ThreeColumnLayout({
             <div className={`
                 flex md:flex-col md:w-16 lg:w-48 xl:w-64 
                 border-b md:border-b-0 md:border-r 
-                ${darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' : 'border-gray-100 bg-[#EBEBFE]/30'}
+                ${darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' : 'border-[#4D4DA4]/10 bg-[#EBEBFE]/30'}
                 p-2 sm:p-3 md:p-3 lg:p-4 
                 gap-2 md:gap-0 
                 overflow-x-auto md:overflow-x-visible 
@@ -153,10 +153,10 @@ export default function ThreeColumnLayout({
             <div className={`
                 w-full md:w-56 lg:w-72 xl:w-80 2xl:w-96 md:min-w-[200px] lg:min-w-[260px] 
                 border-r flex flex-col min-w-0 max-w-full
-                ${darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-800)]' : 'border-gray-100 bg-white'}
+                ${darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-800)]' : 'border-[#4D4DA4]/10 bg-white'}
                 ${selectedThreadId ? 'hidden md:flex' : 'flex'}
             `}>
-                <div className={`p-3 sm:p-4 border-b flex-shrink-0 ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'}`}>
+                <div className={`p-3 sm:p-4 border-b flex-shrink-0 ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                     <div className="flex justify-between items-center mb-2 sm:mb-3">
                         <h3 className={`font-bold text-base sm:text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#121213]'}`}>{t('inbox')}</h3>
                         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export default function ThreeColumnLayout({
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
                                     darkMode 
                                         ? 'text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] hover:bg-[var(--dark-600)]' 
-                                        : 'text-gray-400 hover:text-[#4D4DA4] hover:bg-gray-100'
+                                        : 'text-gray-400 hover:text-[#4D4DA4] hover:bg-[#EBEBFE]'
                                 }`}
                                 title={t('actions.refresh')}
                             >
@@ -191,7 +191,7 @@ export default function ThreeColumnLayout({
                             className={`block w-full pl-9 pr-9 py-2 text-sm rounded-xl transition-all ${
                                 darkMode 
                                     ? 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-0 outline-none' 
-                                    : 'border-0 bg-gray-50 focus:ring-2 focus:ring-[#4D4DA4] focus:bg-white'
+                                    : 'border-0 bg-[#F8F7FE] focus:ring-2 focus:ring-[#4D4DA4] focus:bg-white'
                             }`}
                         />
                         {searchQuery && (
@@ -210,7 +210,7 @@ export default function ThreeColumnLayout({
                     {loading ? (
                         <div className={`p-6 sm:p-8 text-center text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-400'}`}>
                             <div className={`w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3 ${
-                                darkMode ? 'border-[var(--dark-500)] border-t-[var(--brand-primary)]' : 'border-gray-200 border-t-[#4D4DA4]'
+                                darkMode ? 'border-[var(--dark-500)] border-t-[var(--brand-primary)]' : 'border-[#4D4DA4]/15 border-t-[#4D4DA4]'
                             }`} />
                             {t('loadingConversations')}
                         </div>
@@ -228,7 +228,7 @@ export default function ThreeColumnLayout({
             {/* COL 3: Conversation Detail */}
             <div className={`
                 flex-1 flex flex-col min-w-0 max-w-full md:min-w-[300px] h-full min-h-0
-                ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}
+                ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}
                 ${!selectedThreadId ? 'hidden md:flex' : 'flex'}
             `}>
                 {selectedThreadId ? (
@@ -242,7 +242,7 @@ export default function ThreeColumnLayout({
                 ) : (
                     <div className={`flex-1 flex items-center justify-center flex-col ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${
-                            darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
+                            darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'
                         }`}>
                             <Inbox className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-300'}`} />
                         </div>

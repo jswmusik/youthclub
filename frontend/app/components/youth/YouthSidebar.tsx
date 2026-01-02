@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 // License hook for feature gating
 import { useLicense } from '../../../hooks/useLicense';
@@ -23,7 +25,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 interface YouthSidebarProps {
     activePath?: string;
     unfinishedCount?: number;
-    darkMode?: boolean;
+    darkMode?: boolean; // Deprecated - theme is now detected automatically
 }
 
 interface NavItemProps {
@@ -68,8 +70,8 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                         ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)] border border-[var(--brand-purple)]/30'
                         : 'text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
                     : isActive
-                        ? 'bg-[#4D4DA4] text-white shadow-md shadow-[#4D4DA4]/20'
-                        : 'text-gray-700 hover:bg-[#EBEBFE]'
+                        ? 'bg-[#EBEBFE] text-[#4D4DA4] border border-[#4D4DA4]/20'
+                        : 'text-gray-700 hover:bg-[#EBEBFE]/60'
             }`}
         >
             <span className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
@@ -78,7 +80,7 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                         ? 'bg-[var(--brand-primary)]/20' 
                         : 'bg-[var(--dark-600)] group-hover:bg-[var(--dark-500)]'
                     : isActive 
-                        ? 'bg-white/20' 
+                        ? 'bg-[#4D4DA4] text-white' 
                         : 'bg-gray-100 group-hover:bg-[#4D4DA4]/10'
             }`}>
                 {icon}
@@ -93,7 +95,7 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                             ? 'bg-[var(--brand-peach)] text-[var(--dark-900)]'
                             : 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                         : isActive 
-                            ? 'bg-white/20 text-white' 
+                            ? 'bg-[#4D4DA4] text-white' 
                             : badgeColor === 'orange'
                             ? 'bg-orange-500 text-white'
                             : 'bg-[#FF5485] text-white'
@@ -102,17 +104,27 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                 </span>
             )}
             {isActive && (
-                <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'opacity-60'}`} />
+                <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
             )}
         </button>
     );
 }
 
-export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode }: YouthSidebarProps) {
+export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode: _darkModeProp }: YouthSidebarProps) {
     const router = useRouter();
     const { user } = useAuth();
     const { hasFeature } = useLicense(); // Use license hook
     const t = useTranslations('sidebar');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    
+    // Avoid hydration mismatch
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    // Use theme state - default to dark during SSR to match initial render
+    const darkMode = !mounted || theme === 'dark';
 
     const checkActive = (path: string) => {
         if (!activePath) return false;

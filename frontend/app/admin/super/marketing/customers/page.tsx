@@ -382,8 +382,8 @@ export default function CustomersPage() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
@@ -399,8 +399,8 @@ export default function CustomersPage() {
               className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                  <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
                 </div>
                 <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
               </div>
@@ -416,8 +416,8 @@ export default function CustomersPage() {
                 {/* Total */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                   </div>
@@ -427,7 +427,7 @@ export default function CustomersPage() {
                 {/* Active */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                       <Eye className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.active')}</span>
@@ -438,7 +438,7 @@ export default function CustomersPage() {
                 {/* Inactive */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[var(--brand-peach)] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
                       <EyeOff className="h-5 w-5 text-white" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.inactive')}</span>
@@ -688,13 +688,13 @@ export default function CustomersPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => openEditModal(customer)}
-                            className="w-9 h-9 rounded-xl bg-[var(--brand-blue)]/10 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/20 transition-colors flex items-center justify-center"
+                            className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => setCustomerToDelete(customer)}
-                            className="w-9 h-9 rounded-xl bg-[var(--brand-red)]/10 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-colors flex items-center justify-center"
+                            className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-all flex items-center justify-center"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { ClipboardList, Users, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { QuestionnaireMetrics } from '@/lib/analytics-api';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function QuestionnaireAnalyticsCard({ data }: Props) {
+  const t = useTranslations('analyticsAdmin.questionnaire');
   const [isVisible, setIsVisible] = useState(false);
   const [animatedValues, setAnimatedValues] = useState({
     completed: 0,
@@ -85,26 +87,26 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
             <ClipboardList className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--brand-light)]">Questionnaire Analytics</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">Survey participation & demographics</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-[var(--brand-light)]">{data.total_questionnaires}</p>
-          <p className="text-xs text-[var(--brand-light)]/50">Questionnaires</p>
+          <p className="text-xs text-[var(--brand-light)]/50">{t('questionnaires')}</p>
         </div>
       </div>
 
       {data.total_questionnaires === 0 ? (
         <div className="flex flex-col items-center justify-center h-[200px] text-[var(--brand-light)]/40">
           <ClipboardList className="w-12 h-12 mb-2 opacity-50" />
-          <p className="text-sm">No questionnaires in this period</p>
+          <p className="text-sm">{t('noQuestionnaires')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Participation Donut Chart */}
           <div>
-            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">Participation Rate</h4>
+            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">{t('participationRate')}</h4>
             <div className="flex items-center gap-6">
               {/* Donut Chart */}
               <div className="relative w-[120px] h-[120px] flex-shrink-0">
@@ -161,7 +163,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
                   <span className="text-lg font-bold text-[var(--brand-light)]">
                     {data.total_responses}
                   </span>
-                  <span className="text-[10px] text-[var(--brand-light)]/50">responses</span>
+                  <span className="text-[10px] text-[var(--brand-light)]/50">{t('responses')}</span>
                 </div>
               </div>
               
@@ -171,7 +173,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
                   <div className="w-3 h-3 rounded-full bg-[#10B981]" />
                   <div className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-[#10B981]" />
-                    <span className="text-xs text-[var(--brand-light)]/70">Completed</span>
+                    <span className="text-xs text-[var(--brand-light)]/70">{t('completed')}</span>
                   </div>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.participation.completed_pct}%
@@ -181,7 +183,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
                   <div className="w-3 h-3 rounded-full bg-[#FBBF24]" />
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3 text-[#FBBF24]" />
-                    <span className="text-xs text-[var(--brand-light)]/70">Started</span>
+                    <span className="text-xs text-[var(--brand-light)]/70">{t('started')}</span>
                   </div>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.participation.started_pct}%
@@ -191,7 +193,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
                   <div className="w-3 h-3 rounded-full bg-[var(--dark-500)]" />
                   <div className="flex items-center gap-1">
                     <XCircle className="w-3 h-3 text-[var(--dark-500)]" />
-                    <span className="text-xs text-[var(--brand-light)]/70">No response</span>
+                    <span className="text-xs text-[var(--brand-light)]/70">{t('noResponse')}</span>
                   </div>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.participation.not_participated_pct}%
@@ -203,12 +205,12 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
 
           {/* Gender Breakdown */}
           <div>
-            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">Participant Gender</h4>
+            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">{t('participantGender')}</h4>
             <div className="space-y-3">
               {/* Male */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[var(--brand-light)]/70">Male</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('male')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)]">
                     {data.gender_breakdown.male_count} ({data.gender_breakdown.male_pct}%)
                   </span>
@@ -227,7 +229,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
               {/* Female */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[var(--brand-light)]/70">Female</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('female')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)]">
                     {data.gender_breakdown.female_count} ({data.gender_breakdown.female_pct}%)
                   </span>
@@ -247,7 +249,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
               {/* Other */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-[var(--brand-light)]/70">Other</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('other')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)]">
                     {data.gender_breakdown.other_count} ({data.gender_breakdown.other_pct}%)
                   </span>
@@ -270,7 +272,7 @@ export default function QuestionnaireAnalyticsCard({ data }: Props) {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[var(--brand-light)]/50 flex items-center gap-1">
                   <Users className="w-3 h-3" />
-                  Total eligible members
+                  {t('totalEligible')}
                 </span>
                 <span className="text-[var(--brand-light)] font-medium">{data.total_eligible}</span>
               </div>

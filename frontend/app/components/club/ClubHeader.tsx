@@ -70,7 +70,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
       <div className={`sm:rounded-xl overflow-hidden border ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white shadow-sm border-gray-100'
+          : 'bg-white shadow-sm border-[#4D4DA4]/10'
       }`}>
         
         {/* 1. COVER IMAGE AREA */}
@@ -109,7 +109,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
                   <img src={avatarUrl} alt={club.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center ${
-                    darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'
+                    darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'
                   }`}>
                     <span className={`text-2xl md:text-3xl font-bold ${
                       darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
@@ -145,7 +145,7 @@ export default function ClubHeader({ club, darkMode = false }: ClubHeaderProps) 
                     isFollowing
                       ? darkMode
                         ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]/80 border border-[var(--dark-500)]'
-                        : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300'
+                        : 'bg-white hover:bg-[#F8F7FE] text-gray-700 border border-gray-300'
                       : darkMode
                         ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)]'
                         : 'bg-blue-600 hover:bg-blue-700 text-white border-none'

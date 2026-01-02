@@ -570,8 +570,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Layers className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Layers className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
@@ -608,8 +608,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               {/* Total Groups */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Layers className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>
@@ -619,8 +619,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               {/* Total Members */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('members')}</span>
                 </div>
@@ -630,7 +630,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               {/* Active Groups */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                     <UsersRound className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('active')}</span>
@@ -641,8 +641,8 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               {/* Empty Groups */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                    <FolderX className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                    <FolderX className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('empty')}</span>
                 </div>
@@ -777,7 +777,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                 <div className="border-y border-[var(--dark-600)] p-4">
                   <div className="flex items-start gap-3">
                     {/* Icon */}
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
                       <Users className="w-5 h-5 text-[var(--brand-primary)]" />
                     </div>
                     
@@ -849,7 +849,7 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
                           <Users className="w-4 h-4 text-[var(--brand-primary)]" />
                         </div>
                         <div>

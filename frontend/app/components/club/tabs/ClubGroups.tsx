@@ -24,7 +24,7 @@ const StatusBadge = ({ status, darkMode = false }: { status: string; darkMode?: 
         REJECTED: "bg-red-100 text-red-700 border-red-200"
     };
     return (
-        <span className={`text-xs px-2 py-1 rounded border font-medium ${styles[status as keyof typeof styles] || (darkMode ? "bg-[var(--dark-700)]" : "bg-gray-100")}`}>
+        <span className={`text-xs px-2 py-1 rounded border font-medium ${styles[status as keyof typeof styles] || (darkMode ? "bg-[var(--dark-700)]" : "bg-[#EBEBFE]")}`}>
             {status === 'APPROVED' ? t('member') : status === 'PENDING' ? t('pending') : status === 'REJECTED' ? t('rejected') : status}
         </span>
     );
@@ -37,7 +37,7 @@ const IneligibleTooltip = ({ reasons, darkMode = false }: { reasons: string[]; d
             <div className={`text-xs px-2 py-1 rounded border cursor-help shadow-sm flex items-center gap-1 ${
               darkMode 
                 ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]' 
-                : 'bg-gray-100 text-gray-500 border-gray-200'
+                : 'bg-[#EBEBFE] text-gray-500 border-[#4D4DA4]/15'
             }`}>
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 <span>{t('restricted')}</span>
@@ -105,10 +105,10 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
       <div className={`text-center py-20 rounded-xl border ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white border-gray-200'
+          : 'bg-white border-[#4D4DA4]/15'
       }`}>
         <div className={`rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 ${
-          darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+          darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
         }`}>
           <svg className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-3-3H5a3 3 0 00-3 3v2h5m2-16a2 2 0 012-2h4a2 2 0 012 2v4a2 2 0 01-2 2H9a2 2 0 01-2-2V4z" />
@@ -154,10 +154,10 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                 <div key={group.id} className={`rounded-xl overflow-hidden flex flex-col transition-all border ${cardStyle} ${
                   darkMode 
                     ? 'bg-[var(--dark-800)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 
-                    : 'bg-white shadow-sm border-gray-200 hover:shadow-md'
+                    : 'bg-white shadow-sm border-[#4D4DA4]/15 hover:shadow-md'
                 }`}>
                     {/* Header Image */}
-                    <div className={`h-32 relative ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-200'}`}>
+                    <div className={`h-32 relative ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#E5E4F0]'}`}>
                         {group.background_image ? (
                             <img src={group.background_image} alt={group.name} className="w-full h-full object-cover" />
                         ) : group.avatar ? (
@@ -213,7 +213,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                         </p>
 
                         {/* Footer Action */}
-                        <div className={`mt-auto pt-4 border-t ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'}`}>
+                        <div className={`mt-auto pt-4 border-t ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                             {membershipStatus ? (
                                 <div className="flex justify-between items-center">
                                     <StatusBadge status={membershipStatus} darkMode={darkMode} />
@@ -237,7 +237,7 @@ export default function ClubGroups({ clubId, darkMode = false }: ClubGroupsProps
                                           : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow'
                                         : darkMode
                                           ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-600)]' 
-                                          : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                                          : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed border border-[#4D4DA4]/15'
                                     }`}
                                 >
                                     {isEligible 

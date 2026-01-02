@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { analyticsApi, AnalyticsResponse, AnalyticsPreferences } from '@/lib/analytics-api';
 import MetricsGrid from '@/app/components/analytics/MetricsGrid';
 import HeatmapChart from '@/app/components/analytics/HeatmapChart';
@@ -50,6 +51,7 @@ function ChartSkeleton() {
 }
 
 export default function MunicipalityAnalyticsPage() {
+  const t = useTranslations('analyticsAdmin');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [error, setError] = useState('');
@@ -85,7 +87,7 @@ export default function MunicipalityAnalyticsPage() {
       setData(result);
     } catch (err) {
       console.error(err);
-      setError('Failed to load analytics data.');
+      setError(t('failedToLoad'));
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
@@ -109,17 +111,17 @@ export default function MunicipalityAnalyticsPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--brand-light)]">
-                Municipality Overview
+                {t('municipalityTitle')}
               </h1>
               <p className="text-[var(--brand-light)]/50 text-xs sm:text-sm">
-                Aggregated analytics across all clubs
+                {t('municipalitySubtitle')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--dark-700)] rounded-full border border-[var(--dark-500)]">
               <div className="w-2 h-2 rounded-full bg-[var(--brand-green)] animate-pulse" />
-              <span className="text-xs text-[var(--brand-light)]/60">Live Data</span>
+              <span className="text-xs text-[var(--brand-light)]/60">{t('liveData')}</span>
             </div>
           </div>
         </div>
@@ -182,7 +184,7 @@ export default function MunicipalityAnalyticsPage() {
             <AnalyticsCardWrapper
               isVisible={isVisible('metrics')}
               onToggle={() => toggleSection('metrics')}
-              sectionName="Key Metrics"
+              sectionName={t('sections.keyMetrics')}
             >
               <MetricsGrid 
                 totalMembers={data.total_members}
@@ -197,7 +199,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('clubComparison')}
                 onToggle={() => toggleSection('clubComparison')}
-                sectionName="Club Comparison"
+                sectionName={t('sections.clubComparison')}
               >
                 <ClubComparisonTable data={data.comparison} />
               </AnalyticsCardWrapper>
@@ -208,7 +210,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('heatmap')}
                 onToggle={() => toggleSection('heatmap')}
-                sectionName="Peak Traffic Hours"
+                sectionName={t('sections.peakTrafficHours')}
               >
                 <HeatmapChart data={data.heatmap} />
               </AnalyticsCardWrapper>
@@ -216,7 +218,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('inventory')}
                 onToggle={() => toggleSection('inventory')}
-                sectionName="Top Borrowed Items"
+                sectionName={t('sections.topBorrowedItems')}
               >
                 <InventoryChart data={data.inventory.top_items} />
               </AnalyticsCardWrapper>
@@ -227,7 +229,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('demographics')}
                 onToggle={() => toggleSection('demographics')}
-                sectionName="Demographics"
+                sectionName={t('sections.demographics')}
               >
                 <DemographicCharts 
                   genderData={data.demographics.gender_split}
@@ -241,12 +243,12 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('interests')}
                 onToggle={() => toggleSection('interests')}
-                sectionName="Top Member Interests"
+                sectionName={t('sections.topMemberInterests')}
               >
                 <div className="bg-[var(--dark-800)] p-4 sm:p-6 rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
                   <h3 className="font-semibold text-[var(--brand-light)] mb-4 flex items-center gap-2">
                     <span className="text-lg">🔥</span>
-                    Top Member Interests
+                    {t('sections.topMemberInterests')}
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {data.top_interests.map((interest, i) => (
@@ -273,7 +275,7 @@ export default function MunicipalityAnalyticsPage() {
             <AnalyticsCardWrapper
               isVisible={isVisible('insights')}
               onToggle={() => toggleSection('insights')}
-              sectionName="Insights"
+              sectionName={t('sections.insights')}
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {/* Retention Insight */}
@@ -282,16 +284,16 @@ export default function MunicipalityAnalyticsPage() {
                     <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <TrendingUp className="w-4 h-4 text-[var(--brand-blue)]" />
                     </div>
-                    <h3 className="font-semibold text-[var(--brand-light)]">Retention Insight</h3>
+                    <h3 className="font-semibold text-[var(--brand-light)]">{t('insights.retentionInsight')}</h3>
                   </div>
                   <p className="text-sm text-[var(--brand-light)]/60 leading-relaxed">
                     <span className="font-bold text-[var(--brand-blue)] text-lg">{data.traffic.retention_rate}%</span>
-                    <span className="ml-2">of youths who visited last month returned this month.</span>
+                    <span className="ml-2">{t('insights.retentionText')}</span>
                   </p>
                   <p className="text-xs text-[var(--brand-light)]/40 mt-2">
                     {data.traffic.retention_rate < 30 
-                      ? "⚠️ Below average. Consider organizing a 'Come Back' event." 
-                      : "✨ Great retention rate!"}
+                      ? `⚠️ ${t('insights.belowAverage')}` 
+                      : `✨ ${t('insights.greatRetention')}`}
                   </p>
                 </div>
                 
@@ -302,14 +304,14 @@ export default function MunicipalityAnalyticsPage() {
                       <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Sparkles className="w-4 h-4 text-[var(--brand-purple)]" />
                       </div>
-                      <h3 className="font-semibold text-[var(--brand-light)]">Network Insight</h3>
+                      <h3 className="font-semibold text-[var(--brand-light)]">{t('insights.networkInsight')}</h3>
                     </div>
                     <p className="text-sm text-[var(--brand-light)]/60 leading-relaxed">
                       <span className="font-bold text-[var(--brand-purple)] text-lg">{data.network.nomad_percentage}%</span>
-                      <span className="ml-2">of your members visit other clubs in the municipality.</span>
+                      <span className="ml-2">{t('insights.networkText')}</span>
                     </p>
                     <p className="text-xs text-[var(--brand-light)]/40 mt-2">
-                      🌍 Building a connected youth network
+                      🌍 {t('insights.connectedNetwork')}
                     </p>
                   </div>
                 )}
@@ -321,7 +323,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('questionnaires')}
                 onToggle={() => toggleSection('questionnaires')}
-                sectionName="Questionnaire Analytics"
+                sectionName={t('sections.questionnaireAnalytics')}
               >
                 <QuestionnaireAnalyticsCard data={data.questionnaires} />
               </AnalyticsCardWrapper>
@@ -332,7 +334,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('bookings')}
                 onToggle={() => toggleSection('bookings')}
-                sectionName="Booking Analytics"
+                sectionName={t('sections.bookingAnalytics')}
               >
                 <BookingAnalyticsCard data={data.bookings} />
               </AnalyticsCardWrapper>
@@ -343,7 +345,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('groupComparison')}
                 onToggle={() => toggleSection('groupComparison')}
-                sectionName="Group Comparison"
+                sectionName={t('sections.groupComparison')}
               >
                 <GroupComparisonTable data={data.group_comparison} />
               </AnalyticsCardWrapper>
@@ -354,7 +356,7 @@ export default function MunicipalityAnalyticsPage() {
               <AnalyticsCardWrapper
                 isVisible={isVisible('events')}
                 onToggle={() => toggleSection('events')}
-                sectionName="Event Analytics"
+                sectionName={t('sections.eventAnalytics')}
               >
                 <EventMetricsCard events={data.events} />
               </AnalyticsCardWrapper>

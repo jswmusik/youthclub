@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { format } from 'date-fns';
 import { sv, enUS } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
@@ -29,6 +30,7 @@ import {
 import Footer from '@/app/components/Footer';
 import Link from 'next/link';
 import { getMediaUrl } from '@/app/utils';
+import TrialBanner from '../../components/TrialBanner';
 
 // Define interface for the mixed feed items
 interface FeedItem {
@@ -64,6 +66,15 @@ export default function YouthDashboard() {
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    
+    // Avoid hydration mismatch for theme
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
 
     const loadFeed = useCallback(async (pageNum: number, append: boolean = false) => {
         try {
@@ -297,7 +308,7 @@ export default function YouthDashboard() {
     return (
         <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
             <div className="flex-1">
-            <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} darkMode />
+            <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} darkMode={darkMode} />
             
             {/* Mobile Sidebar Overlay */}
             <div 
@@ -328,7 +339,7 @@ export default function YouthDashboard() {
             </aside>
             
             {/* Main Layout */}
-            <div className="">
+            <div className="md:pt-16">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
                     <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
@@ -341,25 +352,55 @@ export default function YouthDashboard() {
                                 {/* Main Feed */}
                                 <main className="flex-1 min-w-0 sm:px-0">
                                     {/* Welcome Banner - Using brand colors with gradient */}
-                                    <div className="relative bg-[var(--dark-700)] rounded-none sm:rounded-2xl p-4 sm:p-6 text-white mb-6 sm:mb-8 overflow-hidden border-y sm:border border-[var(--dark-500)] sm:mx-0">
+                                    <div className={`relative rounded-none sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 overflow-hidden border-y sm:border sm:mx-0 ${
+                                        darkMode 
+                                            ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                            : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                    }`}>
                                         {/* Gradient accent line at top */}
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-primary)] via-[var(--brand-purple)] to-[var(--brand-third)]" />
                                         {/* Subtle glow effect */}
-                                        <div className="absolute -top-20 -right-20 w-40 h-40 bg-[var(--brand-primary)] opacity-10 rounded-full blur-3xl" />
-                                        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[var(--brand-purple)] opacity-10 rounded-full blur-3xl" />
-                                        <h1 className="text-2xl font-bold mb-2 text-[var(--brand-light)] relative z-10">{t('welcomeBack')}</h1>
-                                        <p className="text-[var(--brand-light)]/70 relative z-10">{t('whatsHappening')}</p>
-                                    </div>
+                                        <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl ${
+                                            darkMode ? 'bg-[var(--brand-primary)] opacity-10' : 'bg-[#4D4DA4] opacity-20'
+                                        }`} />
+                                        <div className={`absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl ${
+                                            darkMode ? 'bg-[var(--brand-purple)] opacity-10' : 'bg-[#FF5485] opacity-15'
+                                        }`} />
+                                                <h1 className={`text-2xl font-bold mb-2 relative z-10 ${
+                                                    darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                                                }`}>{t('welcomeBack')}</h1>
+                                                        <p className={`relative z-10 ${
+                                                            darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'
+                                                        }`}>{t('whatsHappening')}</p>
+                                                    </div>
+                                                    
+                                                    {/* Trial Period Banner - Show for unverified users in trial */}
+                                                    {user?.trial_info?.is_in_trial && user.trial_info.trial_days_remaining !== null && (
+                                                        <div className="px-4 sm:px-0 mb-6">
+                                                            <TrialBanner 
+                                                                daysRemaining={user.trial_info.trial_days_remaining}
+                                                                clubName={user.trial_info.club_info?.name}
+                                                            />
+                                                        </div>
+                                                    )}
 
-                                    {(loading || !minLoadingComplete) ? (
+                                                    {(loading || !minLoadingComplete) ? (
                                         <DashboardFeedSkeleton />
                                     ) : error ? (
-                                        <div className="text-center py-10 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                                        <div className={`text-center py-10 rounded-xl border ${
+                                            darkMode 
+                                                ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                                : 'bg-red-50 border-red-200'
+                                        }`}>
                                             <p className="text-[var(--brand-red)] font-medium">{error}</p>
                                         </div>
                                     ) : feedItems.length === 0 ? (
-                                        <div className="text-center py-10 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
-                                            <p className="text-[var(--brand-light)]/60">{t('noPostsYet')}</p>
+                                        <div className={`text-center py-10 rounded-xl border border-dashed ${
+                                            darkMode 
+                                                ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                                : 'bg-[#EBEBFE]/50 border-[#4D4DA4]/30'
+                                        }`}>
+                                            <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}>{t('noPostsYet')}</p>
                                         </div>
                                     ) : (
                                         <div>
@@ -371,29 +412,51 @@ export default function YouthDashboard() {
                             const uniqueKey = `${item.feed_type}-${item.id}-${index}`;
                             
                             if (item.feed_type === 'REWARD') {
-                                // RENDER REWARD CARD - Dark themed with brand accents
+                                // RENDER REWARD CARD - Theme responsive with brand accents
                                 postContent = (
-                                    <div className="relative bg-[var(--dark-600)] rounded-none sm:rounded-xl p-6 text-white overflow-hidden border-y sm:border border-[var(--dark-400)]">
+                                    <div className={`relative rounded-none sm:rounded-xl p-6 overflow-hidden border-y sm:border ${
+                                        darkMode 
+                                            ? 'bg-[var(--dark-600)] border-[var(--dark-400)]' 
+                                            : 'bg-white border-[#FF5485]/15 shadow-sm'
+                                    }`}>
                                         {/* Gradient accent */}
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-third)] via-[var(--brand-primary)] to-[var(--brand-purple)]" />
-                                        <div className="absolute top-0 right-0 bg-[var(--brand-third)] text-[var(--dark-900)] px-3 py-1 rounded-bl-lg text-xs font-bold">
+                                        <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-lg text-xs font-bold ${
+                                            darkMode 
+                                                ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
+                                                : 'bg-[#FF5485] text-white'
+                                        }`}>
                                             {t('newReward')}
                                         </div>
                                         <div className="flex items-center gap-4">
-                                            <div className="h-16 w-16 bg-[var(--dark-500)] rounded-lg flex items-center justify-center text-3xl border border-[var(--brand-third)]/30">
+                                            <div className={`h-16 w-16 rounded-lg flex items-center justify-center text-3xl border ${
+                                                darkMode 
+                                                    ? 'bg-[var(--dark-500)] border-[var(--brand-third)]/30' 
+                                                    : 'bg-white border-[#FF5485]/20 shadow-sm'
+                                            }`}>
                                                 🎁
                                             </div>
                                             <div>
-                                                <h3 className="text-xl font-bold text-[var(--brand-light)]">{item.title}</h3>
-                                                <p className="text-[var(--brand-light)]/70 text-sm mt-1">{item.description}</p>
+                                                <h3 className={`text-xl font-bold ${
+                                                    darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
+                                                }`}>{item.title}</h3>
+                                                <p className={`text-sm mt-1 ${
+                                                    darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'
+                                                }`}>{item.description}</p>
                                                 {item.sponsor && (
-                                                    <p className="text-xs text-[var(--brand-light)]/50 mt-2">{t('sponsoredBy')} {item.sponsor}</p>
+                                                    <p className={`text-xs mt-2 ${
+                                                        darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                                                    }`}>{t('sponsoredBy')} {item.sponsor}</p>
                                                 )}
                                             </div>
                                         </div>
                                         <button 
                                             onClick={() => router.push('/dashboard/youth/profile?tab=wallet')}
-                                            className="mt-4 w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-2 rounded-lg hover:bg-[var(--brand-primary)]/80 transition-colors"
+                                            className={`mt-4 w-full font-bold py-2 rounded-lg transition-colors ${
+                                                darkMode 
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' 
+                                                    : 'bg-[#FF5485] text-white hover:bg-[#FF6595] shadow-lg shadow-[#FF5485]/20'
+                                            }`}
                                         >
                                             {t('claimInWallet')}
                                         </button>
@@ -405,17 +468,17 @@ export default function YouthDashboard() {
                                     <QuestionnaireCard 
                                         questionnaire={item}
                                         onComplete={handleQuestionnaireComplete}
-                                        darkMode
+                                        darkMode={darkMode}
                                     />
                                 );
                             } else if (item.feed_type === 'EVENT') {
                                 // RENDER EVENT CARD
                                 postContent = (
-                                    <EventCard event={item as any} darkMode />
+                                    <EventCard event={item as any} darkMode={darkMode} />
                                 );
                             } else {
                                 // RENDER STANDARD POST CARD
-                                postContent = <PostCard post={item as any} darkMode />;
+                                postContent = <PostCard post={item as any} darkMode={darkMode} />;
                             }
 
                             return (
@@ -425,19 +488,19 @@ export default function YouthDashboard() {
                                     {/* Show Recommended Clubs after the first item */}
                                     {index === 0 && (
                                         <div className="my-6">
-                                            <RecommendedClubs darkMode />
+                                            <RecommendedClubs darkMode={darkMode} />
                                         </div>
                                     )}
                                     
                                     {/* Show Recommended Groups after the 4th item */}
-                                    {index === 3 && <div className="my-6"><RecommendedGroups darkMode /></div>}
+                                    {index === 3 && <div className="my-6"><RecommendedGroups darkMode={darkMode} /></div>}
                                 </div>
                             );
                         })}
                                             
                                             {/* Fallback: If total items < 4, show RecommendedGroups at the very end */}
                                             {feedItems.length < 4 && feedItems.length > 0 && (
-                                                <div className="my-6"><RecommendedGroups darkMode /></div>
+                                                <div className="my-6"><RecommendedGroups darkMode={darkMode} /></div>
                                             )}
                                             
                                             {/* Loading More Indicator / Observer Target */}
@@ -467,13 +530,17 @@ export default function YouthDashboard() {
                                         ) : (
                                             <>
                                                 {/* Preferred Club Card */}
-                                                <PreferredClubCard club={user?.preferred_club || null} darkMode />
+                                                <PreferredClubCard club={user?.preferred_club || null} darkMode={darkMode} />
                                                 
                                                 {/* Next Upcoming Event - Only show if user has a confirmed event */}
                                                 {nextEvent && (
                                                     <Link 
                                                         href={`/dashboard/youth/events/${nextEvent.id}`}
-                                                        className="block bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all group"
+                                                        className={`block rounded-xl overflow-hidden transition-all group ${
+                                                            darkMode 
+                                                                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50' 
+                                                                : 'bg-white border border-[#4D4DA4]/15 hover:border-[#4D4DA4]/40 shadow-sm'
+                                                        }`}
                                                     >
                                                         {/* Event Image */}
                                                         {nextEvent.cover_image && (
@@ -483,38 +550,58 @@ export default function YouthDashboard() {
                                                                     alt={nextEvent.title}
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                                 />
-                                                                <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-700)] to-transparent" />
+                                                                <div className={`absolute inset-0 bg-gradient-to-t ${
+                                                                    darkMode ? 'from-[var(--dark-700)]' : 'from-white'
+                                                                } to-transparent`} />
                                                             </div>
                                                         )}
                                                         
                                                         <div className="p-4">
                                                             <div className="flex items-center justify-between mb-2">
-                                                                <h3 className="font-bold text-[var(--brand-light)] text-sm">{t('upcomingEvents')}</h3>
-                                                                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--brand-green)]/20 text-[var(--brand-green)] font-medium">
+                                                                <h3 className={`font-bold text-sm ${
+                                                                    darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                                                                }`}>{t('upcomingEvents')}</h3>
+                                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                                    darkMode 
+                                                                        ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
+                                                                        : 'bg-emerald-100 text-emerald-600'
+                                                                }`}>
                                                                     {tEvents('goingStatus')}
                                                                 </span>
                                                             </div>
                                                             
-                                                            <h4 className="font-bold text-[var(--brand-light)] line-clamp-2 mb-2 group-hover:text-[var(--brand-primary)] transition-colors">
+                                                            <h4 className={`font-bold line-clamp-2 mb-2 transition-colors ${
+                                                                darkMode 
+                                                                    ? 'text-[var(--brand-light)] group-hover:text-[var(--brand-primary)]' 
+                                                                    : 'text-gray-800 group-hover:text-[#4D4DA4]'
+                                                            }`}>
                                                                 {nextEvent.title}
                                                             </h4>
                                                             
-                                                            <div className="space-y-1.5 text-xs text-[var(--brand-light)]/60">
+                                                            <div className={`space-y-1.5 text-xs ${
+                                                                darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                                                            }`}>
                                                                 <div className="flex items-center gap-2">
-                                                                    <Calendar className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                                                                    <Calendar className={`w-3.5 h-3.5 ${
+                                                                        darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                                                                    }`} />
                                                                     <span>
                                                                         {format(new Date(nextEvent.start_date), 'EEE, d MMM HH:mm', { locale: dateLocale })}
                                                                     </span>
                                                                 </div>
                                                                 {nextEvent.location_name && (
                                                                     <div className="flex items-center gap-2">
-                                                                        <MapPin className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+                                                                        <MapPin className={`w-3.5 h-3.5 ${
+                                                                            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                                                                        }`} />
                                                                         <span className="line-clamp-1">{nextEvent.location_name}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             
-                                                            <div className="flex items-center justify-end mt-3 text-xs text-[var(--brand-primary)] font-medium group-hover:gap-2 transition-all">
+                                                            <div className={`flex items-center justify-end mt-3 text-xs font-medium group-hover:gap-2 transition-all ${
+                                                                darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                                                            }`}>
                                                                 <span>{tEvents('viewDetails')}</span>
                                                                 <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                             </div>

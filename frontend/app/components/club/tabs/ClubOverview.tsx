@@ -49,7 +49,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
         <div className={`rounded-xl sm:rounded-xl overflow-hidden border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-            : 'bg-white shadow-sm border-gray-100'
+            : 'bg-white shadow-sm border-[#4D4DA4]/10'
         }`}>
           <div className="p-6">
             <h3 className={`text-lg font-semibold mb-4 font-heading ${
@@ -62,18 +62,18 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
               <span className="relative flex h-4 w-4">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                   openStatus 
-                    ? darkMode ? 'bg-[var(--brand-third)]' : 'bg-green-400' 
+                    ? darkMode ? 'bg-[var(--brand-third)]' : 'bg-emerald-400' 
                     : darkMode ? 'bg-[var(--brand-red)]' : 'bg-red-400'
                 }`}></span>
                 <span className={`relative inline-flex rounded-full h-4 w-4 ${
                   openStatus 
-                    ? darkMode ? 'bg-[var(--brand-third)]' : 'bg-green-500' 
+                    ? darkMode ? 'bg-[var(--brand-third)]' : 'bg-emerald-500' 
                     : darkMode ? 'bg-[var(--brand-red)]' : 'bg-red-500'
                 }`}></span>
               </span>
               <span className={`font-medium ${
                 openStatus 
-                  ? darkMode ? 'text-[var(--brand-third)]' : 'text-green-600' 
+                  ? darkMode ? 'text-[var(--brand-third)]' : 'text-emerald-600' 
                   : darkMode ? 'text-[var(--brand-red)]' : 'text-red-600'
               }`}>
                 {openStatus ? t('openNow') : t('closed')}
@@ -102,7 +102,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
             </div>
 
             <div className={`mt-6 pt-6 border-t grid grid-cols-2 gap-3 ${
-              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+              darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'
             }`}>
               <button 
                 onClick={() => onChangeTab('hours')}
@@ -119,7 +119,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
                 className={`px-3 py-2 text-xs font-medium text-center rounded-lg transition-colors ${
                   darkMode 
                     ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' 
-                    : 'text-gray-600 bg-gray-50 hover:bg-gray-100'
+                    : 'text-gray-600 bg-[#F8F7FE] hover:bg-[#EBEBFE]'
                 }`}
               >
                 {t('mapAndContact')}
@@ -132,7 +132,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
         <div className={`rounded-xl sm:rounded-xl p-6 border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-            : 'bg-white shadow-sm border-gray-100'
+            : 'bg-white shadow-sm border-[#4D4DA4]/10'
         }`}>
           <h3 className={`text-lg font-semibold mb-2 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
@@ -151,7 +151,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
         <div className={`p-4 rounded-none sm:rounded-xl border-y sm:border mb-4 sm:mb-6 flex items-center justify-between ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-            : 'bg-white shadow-sm border-gray-100'
+            : 'bg-white shadow-sm border-[#4D4DA4]/10'
         }`}>
            <h2 className={`text-xl font-bold font-heading ${
              darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'

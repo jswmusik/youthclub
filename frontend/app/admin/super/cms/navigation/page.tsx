@@ -27,7 +27,7 @@ type LocationType = 'header' | 'footer' | 'community_footer';
 
 export default function NavigationManager() {
   const t = useTranslations('cmsAdmin.navigation');
-  const { showToast } = useToast();
+  const { success, error } = useToast();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,9 +54,9 @@ export default function NavigationManager() {
       ]);
       setItems(menuData);
       setPages(pagesData);
-    } catch (error) {
-      console.error(error);
-      showToast(t('toast.loadFailed'), "error");
+    } catch (err) {
+      console.error(err);
+      error(t('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -70,14 +70,14 @@ export default function NavigationManager() {
     try {
       if (editingItem) {
         await cmsApi.updateMenuItem(editingItem.id, data);
-        showToast(t('toast.itemUpdated'), "success");
+        success(t('toast.itemUpdated'));
       } else {
         await cmsApi.createMenuItem(data);
-        showToast(t('toast.itemCreated'), "success");
+        success(t('toast.itemCreated'));
       }
       fetchData();
-    } catch (error) {
-      showToast(t('toast.saveFailed'), "error");
+    } catch (err) {
+      error(t('toast.saveFailed'));
     }
   };
 
@@ -87,9 +87,9 @@ export default function NavigationManager() {
     try {
       await cmsApi.deleteMenuItem(itemToDelete.id);
       setItems(items.filter(i => i.id !== itemToDelete.id));
-      showToast(t('toast.itemDeleted'), "success");
-    } catch (error) {
-      showToast(t('toast.deleteFailed'), "error");
+      success(t('toast.itemDeleted'));
+    } catch (err) {
+      error(t('toast.deleteFailed'));
     } finally {
       setIsDeleting(false);
       setItemToDelete(null);
@@ -182,10 +182,10 @@ export default function NavigationManager() {
           cmsApi.updateMenuItem(item.id, { order: index })
         )
       );
-      showToast(t('toast.orderUpdated'), "success");
-    } catch (error) {
-      console.error('Failed to update order:', error);
-      showToast(t('toast.orderFailed'), "error");
+      success(t('toast.orderUpdated'));
+    } catch (err) {
+      console.error('Failed to update order:', err);
+      error(t('toast.orderFailed'));
       // Refresh to get correct state
       fetchData();
     }
@@ -302,7 +302,7 @@ export default function NavigationManager() {
                       e.stopPropagation();
                       openEdit(item);
                     }}
-                    className="p-2 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/10 rounded-lg transition-all"
+                    className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
@@ -311,7 +311,7 @@ export default function NavigationManager() {
                       e.stopPropagation();
                       setItemToDelete(item);
                     }}
-                    className="p-2 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-lg transition-all"
+                    className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-all flex items-center justify-center"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -330,8 +330,8 @@ export default function NavigationManager() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 px-4 sm:px-0">
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Navigation className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Navigation className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalItems')}</span>
           </div>
@@ -340,8 +340,8 @@ export default function NavigationManager() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-              <Navigation className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+              <Navigation className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.header')}</span>
           </div>
@@ -350,7 +350,7 @@ export default function NavigationManager() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
               <Navigation className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.publicFooter')}</span>
@@ -360,8 +360,8 @@ export default function NavigationManager() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-pink)] flex items-center justify-center">
-              <Users className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+              <Users className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.community')}</span>
           </div>
@@ -370,8 +370,8 @@ export default function NavigationManager() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-              <LinkIcon className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+              <LinkIcon className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.pages')}</span>
           </div>

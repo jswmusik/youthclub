@@ -464,15 +464,14 @@ export default function TagManager({ basePath }: TagManagerProps) {
         <div className="flex flex-col gap-4">
           <Link 
             href="/admin/super/news"
-            className="inline-flex items-center gap-2 text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors w-fit"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium w-fit"
           >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">{t('backToNews')}</span>
+            <ArrowLeft className="h-4 w-4" /> {t('backToNews')}
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                <Tag className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                <Tag className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -507,8 +506,8 @@ export default function TagManager({ basePath }: TagManagerProps) {
               {/* Total Tags */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Tag className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Tag className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalTags')}</span>
                 </div>

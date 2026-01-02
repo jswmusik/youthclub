@@ -10,7 +10,8 @@ import { learningApi } from '@/lib/learning-api';
 import { Course, CourseFormData, LearningCategory } from '@/types/learning';
 import { 
     ArrowLeft, BookOpen, FileText, Image, Upload, X, Users, Eye, 
-    CheckCircle2, Lightbulb, Save, Clock, Star, Calendar, FolderOpen
+    CheckCircle2, Lightbulb, Save, Clock, Star, Calendar, FolderOpen,
+    Globe, Building, Building2
 } from 'lucide-react';
 import { useToast } from '../../../hooks/useToast';
 
@@ -54,8 +55,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
     };
     
     const ROLES = [
-        { id: 'MUNICIPALITY_ADMIN', label: t('sections.targetAudience.roles.MUNICIPALITY_ADMIN'), icon: '🏛️' },
-        { id: 'CLUB_ADMIN', label: t('sections.targetAudience.roles.CLUB_ADMIN'), icon: '🏢' },
+        { id: 'MUNICIPALITY_ADMIN', label: t('sections.targetAudience.roles.MUNICIPALITY_ADMIN'), icon: Building },
+        { id: 'CLUB_ADMIN', label: t('sections.targetAudience.roles.CLUB_ADMIN'), icon: Building2 },
     ];
     const [categories, setCategories] = useState<LearningCategory[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -304,7 +305,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+                                <div className="h-full bg-[var(--brand-primary)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
                             </div>
                             {completionPercent === 100 && (
                                 <div className="flex items-center gap-2 mt-3 text-[var(--brand-third)]">
@@ -325,7 +326,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                 <span className="text-sm font-semibold text-[var(--brand-primary)]">{completionPercent}%</span>
                             </div>
                             <div className="h-2 bg-[var(--dark-600)] rounded-full overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
+                                <div className="h-full bg-[var(--brand-primary)] rounded-full transition-all duration-500 ease-out" style={{ width: `${completionPercent}%` }} />
                             </div>
                         </div>
                     </div>,
@@ -338,8 +339,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <BookOpen className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                    <BookOpen className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInformation.title')}</h2>
@@ -410,8 +411,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
                         <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                                    <Image className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                    <Image className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.coverImage.title')}</h2>
@@ -468,8 +469,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
                         <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
-                                    <Eye className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                                    <Eye className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.publicationStatus.title')}</h2>
@@ -511,7 +512,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <p className="text-xs text-[var(--brand-light)]/50">{t('sections.publicationStatus.scheduled.description')}</p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${status === 'SCHEDULED' ? 'bg-[var(--brand-peach)] border-[var(--brand-peach)]' : 'border-[var(--dark-400)]'}`}>
-                                        {status === 'SCHEDULED' && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                        {status === 'SCHEDULED' && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
                                     </div>
                                 </div>
 
@@ -528,7 +529,7 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                         <p className="text-xs text-[var(--brand-light)]/50">{t('sections.publicationStatus.published.description')}</p>
                                     </div>
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${status === 'PUBLISHED' ? 'bg-[var(--brand-green)] border-[var(--brand-green)]' : 'border-[var(--dark-400)]'}`}>
-                                        {status === 'PUBLISHED' && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                        {status === 'PUBLISHED' && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
                                     </div>
                                 </div>
                             </div>
@@ -577,8 +578,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
                         <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <Users className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
@@ -594,14 +595,16 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                                 onClick={() => setValue('visible_to_roles', [])}
                             >
                                 <div className="flex items-center gap-3">
-                                    <span className="text-2xl">🌍</span>
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                        <Globe className="w-5 h-5 text-[var(--dark-900)]" />
+                                    </div>
                                     <div>
                                         <h3 className="font-medium text-[var(--brand-light)]">{t('sections.targetAudience.allAdmins.label')}</h3>
                                         <p className="text-xs text-[var(--brand-light)]/50">{t('sections.targetAudience.allAdmins.description')}</p>
                                     </div>
                                 </div>
                                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedRoles.length === 0 ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
-                                    {selectedRoles.length === 0 && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                    {selectedRoles.length === 0 && <CheckCircle2 className="w-4 h-4 text-[var(--dark-900)]" />}
                                 </div>
                             </div>
 
@@ -609,19 +612,24 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                             <div className="space-y-2 pt-2">
                                 <p className="text-xs text-[var(--brand-light)]/40 mb-3">{t('sections.targetAudience.restrictTo')}</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {ROLES.map(role => (
-                                        <div 
-                                            key={role.id}
-                                            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedRoles.includes(role.id) ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'}`}
-                                            onClick={() => toggleRole(role.id)}
-                                        >
-                                            <span className="text-lg">{role.icon}</span>
-                                            <span className="flex-1 text-sm text-[var(--brand-light)]">{role.label}</span>
-                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedRoles.includes(role.id) ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
-                                                {selectedRoles.includes(role.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                    {ROLES.map(role => {
+                                        const IconComponent = role.icon;
+                                        return (
+                                            <div 
+                                                key={role.id}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${selectedRoles.includes(role.id) ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'}`}
+                                                onClick={() => toggleRole(role.id)}
+                                            >
+                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedRoles.includes(role.id) ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-600)]'}`}>
+                                                    <IconComponent className={`w-5 h-5 ${selectedRoles.includes(role.id) ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/40'}`} />
+                                                </div>
+                                                <span className="flex-1 text-sm text-[var(--brand-light)]">{role.label}</span>
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedRoles.includes(role.id) ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
+                                                    {selectedRoles.includes(role.id) && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>

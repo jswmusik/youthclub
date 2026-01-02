@@ -91,7 +91,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
           <div className={`flex items-center gap-4 p-4 rounded-xl border ${
             darkMode 
               ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-              : 'bg-white border-gray-200 shadow-sm'
+              : 'bg-white border-[#4D4DA4]/15 shadow-sm'
           }`}>
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
               darkMode 
@@ -129,7 +129,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
               <div key={child.id} className={`flex items-center gap-3 p-3 rounded-xl border ${
                 darkMode 
                   ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'bg-white border-gray-200 shadow-sm'
+                  : 'bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm ${
                   darkMode 
@@ -151,7 +151,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
               <div className={`text-center py-6 rounded-xl border-2 border-dashed ${
                 darkMode 
                   ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'bg-white border-gray-200'
+                  : 'bg-white border-[#4D4DA4]/15'
               }`}>
                 <Users className={`w-10 h-10 mx-auto mb-2 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'}`} />
                 <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
@@ -249,7 +249,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
             <div className={`text-center py-12 rounded-xl border-2 border-dashed ${
               darkMode 
                 ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                : 'bg-white border-gray-200'
+                : 'bg-white border-[#4D4DA4]/15'
             }`}>
               <Building2 className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-400'}`} />
               <p className={`mb-3 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>

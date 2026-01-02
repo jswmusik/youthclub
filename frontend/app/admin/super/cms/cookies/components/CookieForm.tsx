@@ -9,7 +9,7 @@ import { Loader2, Save } from 'lucide-react';
 
 export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
   const t = useTranslations('cmsAdmin.cookies');
-  const { showToast } = useToast();
+  const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -25,11 +25,11 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(true);
     try {
       await cmsApi.createCookie(formData);
-      showToast(t('toast.published'), "success");
+      success(t('toast.published'));
       setFormData({ ...formData, version: '', policy_text: '' });
       onSuccess();
-    } catch (error) {
-      showToast(t('toast.publishFailed'), "error");
+    } catch (err) {
+      error(t('toast.publishFailed'));
     } finally {
       setSaving(false);
     }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 
 import { useAuth } from '@/context/AuthContext';
 import { inventoryApi, Item, ItemCategory } from '@/lib/inventory-api';
@@ -23,6 +24,8 @@ export default function InventoryBrowserPage() {
   const pathname = usePathname();
   const t = useTranslations('inventory');
   const tSidebar = useTranslations('sidebar');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,12 @@ export default function InventoryBrowserPage() {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Theme detection - default to light mode for member pages
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = mounted && theme === 'dark';
   
   // Active club ID - determined by check-in status or preferred club
   const [activeClubId, setActiveClubId] = useState<number | null>(null);
@@ -166,16 +175,24 @@ export default function InventoryBrowserPage() {
 
   if (!activeClubId && !checkingClub && minLoadingComplete) {
     return (
-      <div className="min-h-screen bg-[var(--dark-900)]">
-        <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}>
+        <NavBar darkMode={darkMode} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
         <div className="pt-20 px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="bg-[var(--dark-800)] p-8 rounded-none sm:rounded-2xl border border-[var(--dark-600)] text-center">
-              <div className="w-16 h-16 bg-[var(--brand-peach)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <LogIn className="w-8 h-8 text-[var(--brand-peach)]" />
+            <div className={`p-8 rounded-none sm:rounded-2xl border text-center ${
+              darkMode 
+                ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+                : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+            }`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+                darkMode ? 'bg-[var(--brand-peach)]/20' : 'bg-[#FF8C42]/10'
+              }`}>
+                <LogIn className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'}`} />
               </div>
-              <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 font-heading">{t('noClubAvailable')}</h3>
-              <p className="text-[var(--brand-light)]/60">
+              <h3 className={`text-2xl font-bold mb-3 font-heading ${
+                darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+              }`}>{t('noClubAvailable')}</h3>
+              <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>
                 {t('noClubAvailableMessage')}
               </p>
             </div>
@@ -186,9 +203,9 @@ export default function InventoryBrowserPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}>
       <div className="flex-1">
-      <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <NavBar darkMode={darkMode} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
       
       {/* Mobile Sidebar Overlay */}
       <div 
@@ -200,21 +217,31 @@ export default function InventoryBrowserPage() {
       
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] border-r border-[var(--dark-600)] transform transition-transform duration-300 md:hidden ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-screen w-64 z-50 border-r transform transition-transform duration-300 md:hidden ${
+          darkMode 
+            ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+            : 'bg-white border-[#4D4DA4]/15'
+        } ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
+        <div className={`flex items-center justify-between p-4 border-b ${
+          darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'
+        }`}>
+          <h1 className={`text-xl font-bold font-heading ${
+            darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+          }`}>{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
+            className={`w-8 h-8 flex items-center justify-center rounded-lg ${
+              darkMode 
+                ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]' 
+                : 'text-gray-500 hover:bg-[#EBEBFE] hover:text-gray-700'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-          <YouthSidebar activePath={pathname} darkMode={true} />
+          <YouthSidebar activePath={pathname} darkMode={darkMode} />
         </div>
       </aside>
       
@@ -223,7 +250,7 @@ export default function InventoryBrowserPage() {
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
           <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-            <YouthSidebar activePath={pathname} darkMode={true} />
+            <YouthSidebar activePath={pathname} darkMode={darkMode} />
           </aside>
           
           {/* Content wrapper with left margin for sidebar */}
@@ -236,19 +263,27 @@ export default function InventoryBrowserPage() {
                   {/* Header Section */}
                   <div className="mb-4 sm:mb-6 px-4 sm:px-0 pt-4 sm:pt-0">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                      <Package className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                      <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                      <Package className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                      <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${
+                        darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+                      }`}>
                         {t('borrowItems')}
                       </h1>
                     </div>
                     {activeClubName && (
                       <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-xl ml-8 sm:ml-10 inline-flex ${
                         isCheckedIn 
-                          ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
-                          : 'bg-[var(--dark-700)] border-[var(--dark-600)]'
+                          ? darkMode 
+                            ? 'bg-[var(--brand-third)]/10 border-[var(--brand-third)]/30' 
+                            : 'bg-[#10B981]/10 border-[#10B981]/30'
+                          : darkMode 
+                            ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
+                            : 'bg-[#EBEBFE] border-[#4D4DA4]/15'
                       }`}>
                         <span className={`text-xs sm:text-sm font-bold ${
-                          isCheckedIn ? 'text-[var(--brand-third)]' : 'text-[var(--brand-light)]/60'
+                          isCheckedIn 
+                            ? darkMode ? 'text-[var(--brand-third)]' : 'text-[#10B981]'
+                            : darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
                         }`}>
                           {isCheckedIn ? t('checkedInTo') : t('viewing')} {activeClubName}
                         </span>
@@ -258,13 +293,21 @@ export default function InventoryBrowserPage() {
 
                   {/* Check-in Warning */}
                   {!isCheckedIn && (
-                    <div className="mb-4 sm:mb-6 mx-0 sm:mx-0 p-4 bg-[var(--brand-peach)]/10 border-y sm:border border-[var(--brand-peach)]/30 sm:rounded-2xl flex items-start gap-3">
-                      <LogIn className="w-5 h-5 text-[var(--brand-peach)] mt-0.5 flex-shrink-0" />
+                    <div className={`mb-4 sm:mb-6 mx-0 sm:mx-0 p-4 border-y sm:border sm:rounded-2xl flex items-start gap-3 ${
+                      darkMode 
+                        ? 'bg-[var(--brand-peach)]/10 border-[var(--brand-peach)]/30' 
+                        : 'bg-[#FF8C42]/10 border-[#FF8C42]/30'
+                    }`}>
+                      <LogIn className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                        darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'
+                      }`} />
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-[var(--brand-peach)] mb-1">
+                        <p className={`text-sm font-bold mb-1 ${
+                          darkMode ? 'text-[var(--brand-peach)]' : 'text-[#FF8C42]'
+                        }`}>
                           {t('checkInRequired')}
                         </p>
-                        <p className="text-xs text-[var(--brand-light)]/60">
+                        <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                           {t('checkInRequiredMessage', { clubName: activeClubName })}
                         </p>
                       </div>
@@ -272,21 +315,33 @@ export default function InventoryBrowserPage() {
                   )}
 
                   {/* Filters Section */}
-                  <div className="mb-4 sm:mb-6 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
+                  <div className={`mb-4 sm:mb-6 rounded-none sm:rounded-2xl border-y sm:border p-3 sm:p-4 ${
+                    darkMode 
+                      ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+                      : 'bg-white border-[#4D4DA4]/15 sm:shadow-sm'
+                  }`}>
                     {/* Search Bar */}
                     <div className="relative mb-3">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
+                      <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${
+                        darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'
+                      }`} />
                       <input 
                         type="text" 
                         placeholder={t('searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-all font-medium"
+                        className={`w-full border rounded-xl py-3 pl-12 pr-4 text-sm outline-none focus:ring-2 transition-all font-medium ${
+                          darkMode 
+                            ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)]' 
+                            : 'bg-[#EBEBFE]/50 border-[#4D4DA4]/20 text-gray-900 placeholder-gray-400 focus:ring-[#4D4DA4]/30 focus:border-[#4D4DA4]'
+                        }`}
                       />
                       {searchTerm && (
                         <button
                           onClick={() => setSearchTerm('')}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60"
+                          className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                            darkMode ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60' : 'text-gray-400 hover:text-gray-600'
+                          }`}
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -299,8 +354,12 @@ export default function InventoryBrowserPage() {
                         onClick={() => setSelectedCategory(null)}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                           selectedCategory === null
-                            ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                            : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                            ? darkMode 
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                              : 'bg-[#4D4DA4] text-white'
+                            : darkMode 
+                              ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]' 
+                              : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20 hover:text-gray-800'
                         }`}
                       >
                         {t('allCategories')}
@@ -311,8 +370,12 @@ export default function InventoryBrowserPage() {
                           onClick={() => setSelectedCategory(category.id)}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             selectedCategory === category.id
-                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                              : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                              ? darkMode 
+                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                                : 'bg-[#4D4DA4] text-white'
+                              : darkMode 
+                                ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]' 
+                                : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20 hover:text-gray-800'
                           }`}
                         >
                           <span>{category.icon}</span>
@@ -322,7 +385,11 @@ export default function InventoryBrowserPage() {
                       {(searchTerm || selectedCategory) && (
                         <button
                           onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all ml-auto"
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ml-auto ${
+                            darkMode 
+                              ? 'text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10' 
+                              : 'text-red-600 hover:bg-red-50'
+                          }`}
                         >
                           <X className="w-3.5 h-3.5" />
                           {t('clear')}
@@ -334,18 +401,22 @@ export default function InventoryBrowserPage() {
                   {/* Results Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-4 px-4 sm:px-0">
                     {filteredItems.map(item => (
-                      <InventoryCard key={item.id} item={item} onRefresh={loadItems} darkMode={true} />
+                      <InventoryCard key={item.id} item={item} onRefresh={loadItems} darkMode={darkMode} />
                     ))}
                   </div>
 
                   {/* Empty State */}
                   {filteredItems.length === 0 && (
                     <div className="text-center py-12 sm:py-20 px-4">
-                      <div className="w-16 h-16 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <Package className="w-8 h-8 text-[var(--brand-light)]/30" />
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
+                        darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'
+                      }`}>
+                        <Package className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-[#4D4DA4]/30'}`} />
                       </div>
-                      <h3 className="text-xl font-bold text-[var(--brand-light)] mb-2 font-heading">{t('noItemsFoundTitle')}</h3>
-                      <p className="text-[var(--brand-light)]/60 max-w-sm mx-auto">
+                      <h3 className={`text-xl font-bold mb-2 font-heading ${
+                        darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+                      }`}>{t('noItemsFoundTitle')}</h3>
+                      <p className={`max-w-sm mx-auto ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                         {searchTerm || selectedCategory 
                           ? t('noItemsFoundMessage')
                           : t('noItemsAvailableAtClub', { clubName: activeClubName })}
@@ -353,7 +424,11 @@ export default function InventoryBrowserPage() {
                       {(searchTerm || selectedCategory) && (
                         <button 
                           onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}
-                          className="mt-4 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
+                          className={`mt-4 px-6 py-2.5 rounded-xl font-bold transition-all active:scale-95 ${
+                            darkMode 
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                              : 'bg-[#4D4DA4] text-white hover:bg-[#3D3D94]'
+                          }`}
                         >
                           {t('clearAllFilters')}
                         </button>

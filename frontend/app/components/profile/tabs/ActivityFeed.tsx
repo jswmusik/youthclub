@@ -289,12 +289,12 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
         {showTimeFilter && (
           <div className="lg:col-span-1">
             <div className={`rounded-none sm:rounded-xl p-4 h-64 animate-pulse border-y sm:border ${
-              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
             }`}>
-              <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+              <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
               <div className="space-y-2">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
                 ))}
               </div>
             </div>
@@ -304,16 +304,16 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
         <div className={showTimeFilter ? "lg:col-span-3 space-y-4" : "space-y-4"}>
           {[1, 2].map((i) => (
             <div key={i} className={`rounded-none sm:rounded-2xl p-4 h-48 animate-pulse border-t sm:border ${
-              darkMode ? 'bg-[var(--dark-900)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+              darkMode ? 'bg-[var(--dark-900)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
             }`}>
               <div className="flex gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
                 <div className="space-y-2">
-                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
-                  <div className={`h-3 w-20 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
+                  <div className={`h-3 w-20 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
                 </div>
               </div>
-              <div className={`h-20 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+              <div className={`h-20 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
             </div>
           ))}
         </div>
@@ -336,7 +336,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
     <div className={`rounded-none sm:rounded-xl border-l-4 p-4 sm:p-6 border-t sm:border ${
       darkMode 
         ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-        : 'bg-white shadow-sm border-gray-200'
+        : 'bg-white shadow-sm border-[#4D4DA4]/15'
     }`} style={{ borderLeftColor: accentColor }}>
       {children}
     </div>
@@ -370,7 +370,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md shadow-[#4D4DA4]/30'
                       : darkMode
                         ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-500)] hover:text-[var(--brand-light)] border border-[var(--dark-500)]'
-                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
+                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-[#4D4DA4]/15 shadow-sm'
                   }`}
                 >
                   {option.label}
@@ -387,7 +387,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
           <div className={`text-center py-10 rounded-none sm:rounded-xl border-y sm:border ${
             darkMode 
               ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-              : 'bg-white shadow-sm border-gray-200'
+              : 'bg-white shadow-sm border-[#4D4DA4]/15'
           }`}>
             <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}>{t('noRecentActivity')}</p>
             <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-500'}`}>{t('joinClubToSeePosts')}</p>
@@ -426,7 +426,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                               src={getMediaUrl(groupImage) || ''} 
                               alt={groupName} 
                               className={`w-12 h-12 rounded-full object-cover border-2 ${
-                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -518,7 +518,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                               src={getMediaUrl(itemImage) || ''} 
                               alt={itemName} 
                               className={`w-12 h-12 rounded-full object-cover border-2 ${
-                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -763,7 +763,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                               src={getMediaUrl(redemption.reward_image) || ''} 
                               alt={redemption.reward_name} 
                               className={`w-12 h-12 rounded-full object-cover border-2 ${
-                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';
@@ -832,7 +832,7 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                               src={getMediaUrl(visit.club_avatar) || ''} 
                               alt={visit.club_name || 'Club'} 
                               className={`w-12 h-12 rounded-full object-cover border-2 ${
-                                darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'
+                                darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'
                               }`}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.display = 'none';

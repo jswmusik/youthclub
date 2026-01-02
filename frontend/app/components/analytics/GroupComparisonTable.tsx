@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { UsersRound, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { GroupComparisonData } from '@/lib/analytics-api';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function GroupComparisonTable({ data }: Props) {
+  const t = useTranslations('analyticsAdmin.groupComparison');
   const [isVisible, setIsVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
@@ -45,14 +47,14 @@ export default function GroupComparisonTable({ data }: Props) {
             <UsersRound className="w-5 h-5 text-white" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-[var(--brand-light)]">Group Comparison</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">{data.length} groups • {totals.members} total members</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle', { count: data.length, members: totals.members })}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2">
             <span className="px-2 py-1 bg-[var(--brand-green)]/20 text-[var(--brand-green)] rounded-full text-xs font-medium border border-[var(--brand-green)]/30">
-              +{totals.newMembers} new
+              {t('newMembers', { count: totals.newMembers })}
             </span>
           </div>
           {isExpanded ? (
@@ -69,13 +71,13 @@ export default function GroupComparisonTable({ data }: Props) {
           <table className="w-full text-sm">
             <thead className="bg-[var(--dark-700)] text-[var(--brand-light)]/60 font-medium border-t border-[var(--dark-600)]">
               <tr>
-                <th className="px-4 sm:px-6 py-3 text-left">Group Name</th>
-                <th className="px-4 py-3 text-right">Members</th>
-                <th className="px-4 py-3 text-right">Check-ins</th>
+                <th className="px-4 sm:px-6 py-3 text-left">{t('groupName')}</th>
+                <th className="px-4 py-3 text-right">{t('members')}</th>
+                <th className="px-4 py-3 text-right">{t('checkIns')}</th>
                 <th className="px-4 py-3 text-center hidden sm:table-cell" colSpan={1}>
-                  Gender Balance
+                  {t('genderBalance')}
                 </th>
-                <th className="px-4 py-3 text-right">New</th>
+                <th className="px-4 py-3 text-right">{t('new')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--dark-600)]">
@@ -112,7 +114,7 @@ export default function GroupComparisonTable({ data }: Props) {
                             {group.group_name}
                           </div>
                           {group.is_municipality_wide ? (
-                            <span className="text-xs text-[var(--brand-purple)]">Municipality-wide</span>
+                            <span className="text-xs text-[var(--brand-purple)]">{t('municipalityWide')}</span>
                           ) : group.club_name ? (
                             <span className="text-xs text-[var(--brand-light)]/40">{group.club_name}</span>
                           ) : null}
@@ -181,7 +183,7 @@ export default function GroupComparisonTable({ data }: Props) {
             <tfoot className="bg-[var(--dark-700)] border-t-2 border-[var(--dark-500)]">
               <tr className="font-medium text-[var(--brand-light)]">
                 <td className="px-4 sm:px-6 py-4">
-                  <span className="text-[var(--brand-light)]/50">Total ({data.length} groups)</span>
+                  <span className="text-[var(--brand-light)]/50">{t('totalGroups', { count: data.length })}</span>
                 </td>
                 <td className="px-4 py-4 text-right font-bold">{totals.members}</td>
                 <td className="px-4 py-4 text-right font-bold">{totals.checkins}</td>
@@ -201,15 +203,15 @@ export default function GroupComparisonTable({ data }: Props) {
         {/* Legend */}
         <div className="px-4 sm:px-6 py-3 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/50 hidden sm:flex items-center gap-4 text-xs text-[var(--brand-light)]/50">
           <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-[var(--brand-blue)] rounded" /> Male
+            <div className="w-3 h-3 bg-[var(--brand-blue)] rounded" /> {t('male')}
           </span>
           <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-[#EC4899] rounded" /> Female
+            <div className="w-3 h-3 bg-[#EC4899] rounded" /> {t('female')}
           </span>
           <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-[var(--brand-green)] rounded" /> Other
+            <div className="w-3 h-3 bg-[var(--brand-green)] rounded" /> {t('other')}
           </span>
-          <span className="ml-auto text-[var(--brand-light)]/30">Sorted by total members</span>
+          <span className="ml-auto text-[var(--brand-light)]/30">{t('sortedByMembers')}</span>
         </div>
       </div>
       

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Settings, ChevronDown, ChevronUp, Eye, EyeOff, Check, X } from 'lucide-react';
 import { AnalyticsPreferences } from '@/lib/analytics-api';
-import { ANALYTICS_SECTIONS } from '@/hooks/useAnalyticsPreferences';
+import { useAnalyticsSections } from '@/hooks/useAnalyticsPreferences';
 
 interface Props {
   preferences: AnalyticsPreferences;
@@ -20,7 +21,9 @@ export default function AnalyticsSettingsCard({
   onHideAll,
   isMunicipality = false,
 }: Props) {
+  const t = useTranslations('analyticsAdmin.settings');
   const [isExpanded, setIsExpanded] = useState(false);
+  const ANALYTICS_SECTIONS = useAnalyticsSections();
 
   // Filter sections based on admin type
   const sections = ANALYTICS_SECTIONS.filter(
@@ -43,9 +46,9 @@ export default function AnalyticsSettingsCard({
             <Settings className="w-5 h-5 text-[var(--brand-light)]/70" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-[var(--brand-light)]">Dashboard Settings</h3>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
             <p className="text-xs text-[var(--brand-light)]/50">
-              {visibleCount} of {totalCount} sections visible
+              {t('sectionsVisible', { visible: visibleCount, total: totalCount })}
             </p>
           </div>
         </div>
@@ -72,21 +75,21 @@ export default function AnalyticsSettingsCard({
         <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-[var(--dark-600)]">
           {/* Quick Actions */}
           <div className="flex items-center justify-between py-4 border-b border-[var(--dark-600)]">
-            <span className="text-sm text-[var(--brand-light)]/70">Quick Actions</span>
+            <span className="text-sm text-[var(--brand-light)]/70">{t('quickActions')}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={onShowAll}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--brand-green)] bg-[var(--brand-green)]/10 rounded-lg hover:bg-[var(--brand-green)]/20 transition-colors"
               >
                 <Check className="w-3 h-3" />
-                Show All
+                {t('showAll')}
               </button>
               <button
                 onClick={onHideAll}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--brand-light)]/50 bg-[var(--dark-600)] rounded-lg hover:bg-[var(--dark-500)] transition-colors"
               >
                 <X className="w-3 h-3" />
-                Hide All
+                {t('hideAll')}
               </button>
             </div>
           </div>
@@ -140,7 +143,7 @@ export default function AnalyticsSettingsCard({
 
           {/* Help text */}
           <p className="text-xs text-[var(--brand-light)]/30 mt-4 text-center">
-            Your preferences are saved automatically and will be remembered on your next visit.
+            {t('preferencesNote')}
           </p>
         </div>
       </div>

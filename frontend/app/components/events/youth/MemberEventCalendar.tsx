@@ -72,9 +72,9 @@ export default function MemberEventCalendar({
                 hover: '',
                 cursor: 'cursor-not-allowed'
             } : {
-                bg: 'bg-gray-100',
+                bg: 'bg-[#EBEBFE]',
                 text: 'text-gray-400',
-                border: 'border-gray-200',
+                border: 'border-[#4D4DA4]/15',
                 hover: '',
                 cursor: 'cursor-not-allowed'
             };
@@ -290,14 +290,14 @@ export default function MemberEventCalendar({
             </div>
             
             {/* Calendar Grid */}
-            <div className={`grid grid-cols-7 auto-rows-fr ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-50'} gap-px ${viewMode === 'weekly' ? 'min-h-[400px] sm:min-h-[500px]' : 'min-h-[300px]'}`}>
+            <div className={`grid grid-cols-7 auto-rows-fr ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#F8F7FE]'} gap-px ${viewMode === 'weekly' ? 'min-h-[400px] sm:min-h-[500px]' : 'min-h-[300px]'}`}>
                 {calendarDays.map((day) => {
                     const dayEvents = getEventsForDay(day);
                     const isCurrent = viewMode === 'weekly' ? true : isSameMonth(day, monthStart);
                     const today = isToday(day);
                     
                     return (
-                        <div key={day.toString()} className={`${viewMode === 'weekly' ? 'min-h-[300px] sm:min-h-[400px]' : 'min-h-[80px] sm:min-h-[100px]'} ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'} p-1.5 sm:p-2 flex flex-col ${!isCurrent ? (darkMode ? 'bg-[var(--dark-900)]/50' : 'bg-gray-50/50') : ''} ${today ? (darkMode ? 'ring-2 ring-[var(--brand-third)] ring-inset' : 'ring-2 ring-[#10B981] ring-inset') : ''}`}>
+                        <div key={day.toString()} className={`${viewMode === 'weekly' ? 'min-h-[300px] sm:min-h-[400px]' : 'min-h-[80px] sm:min-h-[100px]'} ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'} p-1.5 sm:p-2 flex flex-col ${!isCurrent ? (darkMode ? 'bg-[var(--dark-900)]/50' : 'bg-[#F8F7FE]/50') : ''} ${today ? (darkMode ? 'ring-2 ring-[var(--brand-third)] ring-inset' : 'ring-2 ring-[#10B981] ring-inset') : ''}`}>
                             <div className={`text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full mb-1 ${
                                 today 
                                     ? darkMode 

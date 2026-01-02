@@ -161,7 +161,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
-                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-gray-200 hover:border-[#4D4DA4]'
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4]'
               }`}
             >
               <ChevronLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -179,7 +179,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
-                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-gray-200 hover:border-[#4D4DA4]'
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4]'
               }`}
             >
               <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -220,7 +220,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
                           : 'bg-gradient-to-br from-[#10B981] to-[#059669] text-white border-[#10B981] shadow-lg shadow-[#10B981]/30 scale-105'
                         : darkMode
                           ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/80 border-[var(--dark-500)] hover:border-[var(--brand-primary)]' 
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-[#4D4DA4] hover:shadow-md'
+                          : 'bg-white text-gray-700 border-[#4D4DA4]/15 hover:border-[#4D4DA4] hover:shadow-md'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-1">
@@ -286,7 +286,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
         <div className={`p-4 sm:p-6 rounded-2xl border space-y-4 ${
           darkMode 
             ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
-            : 'bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 shadow-md'
+            : 'bg-gradient-to-br from-gray-50 to-white border-2 border-[#4D4DA4]/15 shadow-md'
         }`}>
           <div className="flex items-center gap-2 mb-2">
             <Users className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`} />
@@ -302,7 +302,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               className={`flex-1 p-3 rounded-xl outline-none transition-all font-medium ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20' 
-                  : 'border-2 border-gray-200 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20'
+                  : 'border-2 border-[#4D4DA4]/15 focus:border-[#4D4DA4] focus:ring-2 focus:ring-[#4D4DA4]/20'
               }`}
               value={friendName}
               onChange={e => setFriendName(e.target.value)}
@@ -341,7 +341,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border group transition-all ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] border-[var(--dark-500)] hover:border-[var(--dark-400)]' 
-                  : 'bg-gradient-to-r from-gray-50 to-white border-gray-200 hover:border-gray-300'
+                  : 'bg-gradient-to-r from-gray-50 to-white border-[#4D4DA4]/15 hover:border-gray-300'
               }`}>
                  <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs ${
@@ -374,7 +374,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
               darkMode 
                 ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]' 
-                : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
+                : 'bg-white border-2 border-[#4D4DA4]/15 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
             }`}
           >
             {t('back')}
@@ -436,22 +436,22 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
           <div className={`p-5 rounded-xl text-left space-y-3 text-sm border ${
             darkMode 
               ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' 
-              : 'bg-white border-2 border-gray-100 shadow-sm'
+              : 'bg-white border-2 border-[#4D4DA4]/10 shadow-sm'
           }`}>
             <div className={`flex justify-between items-center pb-3 border-b ${
-              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+              darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'
             }`}>
               <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('resource')}</span>
               <span className={`font-bold ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}>{resource.name}</span>
             </div>
             <div className={`flex justify-between items-center pb-3 border-b ${
-              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+              darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'
             }`}>
               <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('date')}</span>
               <span className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{format(new Date(selectedSlot.start), 'MMM d, yyyy', { locale: dateLocale })}</span>
             </div>
             <div className={`flex justify-between items-center pb-3 border-b ${
-              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'
+              darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'
             }`}>
               <span className={`font-semibold flex items-center gap-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                 <Clock className="w-4 h-4" />
@@ -475,7 +475,7 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
             className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 ${
               darkMode 
                 ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:border-[var(--brand-primary)] hover:text-[var(--brand-light)]' 
-                : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
+                : 'bg-white border-2 border-[#4D4DA4]/15 text-gray-700 hover:border-[#4D4DA4] hover:text-[#4D4DA4]'
             }`}
           >
             {t('back')}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 
 import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
@@ -72,6 +73,8 @@ export default function GroupSearchPage() {
     const pathname = usePathname();
     const t = useTranslations();
     const tSidebar = useTranslations('sidebar');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -80,6 +83,12 @@ export default function GroupSearchPage() {
     const [paginationSupported, setPaginationSupported] = useState<boolean | null>(null);
     const observerTarget = useRef<HTMLDivElement>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    // Theme detection
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const darkMode = !mounted || theme === 'dark';
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -269,8 +278,8 @@ export default function GroupSearchPage() {
     });
 
     if (loading) return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
-            <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
+        <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+            <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
             <div className="flex justify-center items-center min-h-[50vh]">
                 <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
             </div>
@@ -278,9 +287,9 @@ export default function GroupSearchPage() {
     );
 
     return (
-        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+        <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
             <div className="flex-1">
-            <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
+            <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
             
             {/* Mobile Sidebar Overlay */}
             <div 
@@ -292,21 +301,21 @@ export default function GroupSearchPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+                <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                     <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                    <YouthSidebar activePath={pathname} darkMode={true} />
+                    <YouthSidebar activePath={pathname} />
                 </div>
             </aside>
             
@@ -315,7 +324,7 @@ export default function GroupSearchPage() {
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
                     <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                        <YouthSidebar activePath={pathname} darkMode={true} />
+                        <YouthSidebar activePath={pathname} />
                     </aside>
                     
                     {/* Content wrapper with left margin for sidebar */}
@@ -324,18 +333,20 @@ export default function GroupSearchPage() {
                             {/* Header Section */}
                             <div className="mb-4 sm:mb-6 px-4 sm:px-0">
                                 <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                                    <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                                    <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                                    <UsersIcon className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                    <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                         {t('groups.title')}
                                     </h1>
                                 </div>
-                                <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10 font-semibold">
+                                <p className={`text-sm pl-8 sm:pl-10 font-semibold ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                                     {t('groups.discoverAndJoin')}
                                 </p>
                             </div>
 
                             {/* Filters Section */}
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 py-3 sm:p-4 mb-4 sm:mb-6">
+                            <div className={`rounded-none sm:rounded-2xl border-y sm:border px-4 py-3 sm:p-4 mb-4 sm:mb-6 ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                            }`}>
                                 {/* Search Bar */}
                                 <div className="relative mb-3">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--brand-light)]/40" />
@@ -344,12 +355,16 @@ export default function GroupSearchPage() {
                                         placeholder={t('groups.searchPlaceholder')} 
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-10 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm font-medium text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
+                                        className={`w-full pl-10 pr-10 py-2.5 border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                                            darkMode 
+                                                ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)]'
+                                                : 'bg-white border-[#4D4DA4]/15 text-gray-800 placeholder-gray-400 focus:ring-[#4D4DA4]/30 focus:border-[#4D4DA4]'
+                                        }`}
                                     />
                                     {searchTerm && (
                                         <button
                                             onClick={() => setSearchTerm('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60"
+                                            className={`absolute right-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60' : 'text-gray-400 hover:text-gray-600'}`}
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -371,7 +386,9 @@ export default function GroupSearchPage() {
                                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                                 scopeFilter === opt.id 
                                                     ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
-                                                    : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                    : darkMode 
+                                                        ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                        : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20 hover:text-[#4D4DA4]'
                                             }`}
                                         >
                                             {opt.icon}
@@ -385,7 +402,9 @@ export default function GroupSearchPage() {
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                             interestFilter 
                                                 ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
-                                                : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                : darkMode 
+                                                    ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                    : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20 hover:text-[#4D4DA4]'
                                         }`}
                                     >
                                         <Heart className="w-3.5 h-3.5" />
@@ -415,9 +434,13 @@ export default function GroupSearchPage() {
                                         const cardStyle = (!isEligible && !isMember) ? 'opacity-70 grayscale-[0.3]' : 'opacity-100';
 
                                         return (
-                                            <div key={group.id} className={`bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden flex flex-col hover:border-[var(--brand-primary)]/30 transition-all ${cardStyle}`}>
+                                            <div key={group.id} className={`rounded-2xl border overflow-hidden flex flex-col transition-all ${cardStyle} ${
+                                                darkMode 
+                                                    ? 'bg-[var(--dark-800)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 
+                                                    : 'bg-white border-[#4D4DA4]/15 hover:border-[#4D4DA4]/30 shadow-sm hover:shadow-md'
+                                            }`}>
                                                 {/* Header Image */}
-                                                <div className="h-40 sm:h-44 bg-[var(--dark-700)] relative">
+                                                <div className={`h-40 sm:h-44 relative ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#E5E4F0]'}`}>
                                                     {group.background_image ? (
                                                         <img src={group.background_image} alt={group.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                                                     ) : group.avatar ? (
@@ -446,7 +469,7 @@ export default function GroupSearchPage() {
                                                 {/* Card Body */}
                                                 <div className="p-4 sm:p-5 flex-1 flex flex-col">
                                                     <div className="mb-3">
-                                                        <h3 className="font-bold text-[var(--brand-light)] text-lg sm:text-xl leading-tight font-heading">{group.name}</h3>
+                                                        <h3 className={`font-bold text-lg sm:text-xl leading-tight font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{group.name}</h3>
                                                         <div className="flex items-center gap-1.5 mt-1.5">
                                                             {group.club_name ? (
                                                                 <>
@@ -473,12 +496,12 @@ export default function GroupSearchPage() {
                                                         </div>
                                                     </div>
                                                     
-                                                    <p className="text-sm text-[var(--brand-light)]/60 mb-4 line-clamp-2 flex-1 font-medium">
-                                                        {group.description || <span className="italic text-[var(--brand-light)]/40">{t('groups.noDescriptionAvailable')}</span>}
+                                                    <p className={`text-sm mb-4 line-clamp-2 flex-1 font-medium ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
+                                                        {group.description || <span className={`italic ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('groups.noDescriptionAvailable')}</span>}
                                                     </p>
 
                                                     {/* Footer Action */}
-                                                    <div className="mt-auto pt-4 border-t border-[var(--dark-600)]">
+                                                    <div className={`mt-auto pt-4 border-t ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                                                         {isMember ? (
                                                             <div className="flex justify-between items-center gap-2">
                                                                 <StatusBadge status="APPROVED" t={t} />

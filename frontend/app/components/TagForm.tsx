@@ -179,8 +179,8 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tagInformation.title')}</h2>
@@ -242,8 +242,8 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tips.title')}</h2>
@@ -285,14 +285,14 @@ export default function TagForm({ initialData, redirectPath }: TagFormProps) {
               type="submit"
               disabled={loading || completionPercent < 100}
               className="w-full sm:w-auto px-6 py-3 rounded-xl font-medium
-                bg-[var(--brand-primary)] text-white
-                hover:bg-[var(--brand-purple)] transition-all
+                bg-[var(--brand-primary)] text-[var(--dark-900)]
+                hover:bg-[var(--brand-primary)]/90 transition-all
                 disabled:opacity-50 disabled:cursor-not-allowed
                 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
                   <span>{t('actions.saving')}</span>
                 </>
               ) : (

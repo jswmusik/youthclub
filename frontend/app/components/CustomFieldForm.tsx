@@ -337,8 +337,8 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] overflow-hidden -mx-4 sm:mx-0">
             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-700)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Settings2 className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Settings2 className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
@@ -786,7 +786,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? t('buttons.saving') : initialData ? t('buttons.update') : t('buttons.create')}
             </button>

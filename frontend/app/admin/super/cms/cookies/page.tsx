@@ -5,23 +5,11 @@ import { useTranslations } from 'next-intl';
 import { cmsApi } from '@/lib/cms-api';
 import { sanitizeHtml } from '@/lib/sanitize';
 import { CookieConsent } from '@/types/cms';
-import { Cookie, Eye, EyeOff, Clock, Shield, Loader2 } from 'lucide-react';
+import { Cookie, Eye, EyeOff, Clock, Shield, ArrowLeft, Plus, FileText } from 'lucide-react';
 import CookieForm from './components/CookieForm';
 import { format } from 'date-fns';
-
-// Skeleton Component
-function Skeleton({ className }: { className?: string }) {
-  return (
-    <div 
-      className={`animate-pulse bg-[var(--dark-600)] rounded ${className}`}
-      style={{
-        backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
-        backgroundSize: '200% 100%',
-        animation: 'shimmer 1.5s infinite, pulse 2s infinite'
-      }}
-    />
-  );
-}
+import Link from 'next/link';
+import Skeleton from '@/app/components/ui/Skeleton';
 
 export default function CookieManager() {
   const t = useTranslations('cmsAdmin.cookies');
@@ -47,90 +35,133 @@ export default function CookieManager() {
   const activePolicy = cookies.find(c => c.is_active);
   const inactiveCount = cookies.filter(c => !c.is_active).length;
 
-  return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
-        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Cookie className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalPolicies')}</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-primary)]">{cookies.length}</div>
-        </div>
-
-        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
-              <Shield className="h-5 w-5 text-[var(--dark-900)]" />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.activeVersion')}</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-green)]">{activePolicy?.version || '—'}</div>
-        </div>
-
-        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-              <EyeOff className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.archived')}</span>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{inactiveCount}</div>
-        </div>
-
-        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-              <Clock className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.lastUpdated')}</span>
-          </div>
-          <div className="text-sm font-bold text-[var(--brand-blue)]">
-            {activePolicy ? format(new Date(activePolicy.created_at), 'MMM d, yyyy') : '—'}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+        <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <div className="space-y-6">
+            <Skeleton className="h-32" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Create Form */}
-      <div className="px-4 sm:px-0">
-        <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.title')}</h2>
-            <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              {t('create.subtitle')}
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
+          <Link 
+            href="/admin/super/cms"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
+              {t('pageTitle')}
+            </h1>
+            <p className="text-[var(--brand-light)]/50 text-sm mt-1">
+              {t('pageDescription')}
             </p>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Cookie className="w-5 h-5 text-[var(--dark-900)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('stats.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('stats.description')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Cookie className="h-4 w-4 text-[var(--brand-primary)]" />
+                  <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('stats.totalPolicies')}</span>
+                </div>
+                <div className="text-2xl font-bold text-[var(--brand-primary)]">{cookies.length}</div>
+              </div>
+
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-4 w-4 text-[var(--brand-green)]" />
+                  <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('stats.activeVersion')}</span>
+                </div>
+                <div className="text-2xl font-bold text-[var(--brand-green)]">{activePolicy?.version || '—'}</div>
+              </div>
+
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <EyeOff className="h-4 w-4 text-[var(--brand-peach)]" />
+                  <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('stats.archived')}</span>
+                </div>
+                <div className="text-2xl font-bold text-[var(--brand-peach)]">{inactiveCount}</div>
+              </div>
+
+              <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="h-4 w-4 text-[var(--brand-blue)]" />
+                  <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('stats.lastUpdated')}</span>
+                </div>
+                <div className="text-sm font-bold text-[var(--brand-blue)]">
+                  {activePolicy ? format(new Date(activePolicy.created_at), 'MMM d, yyyy') : '—'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Create New Policy Card */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                <Plus className="w-5 h-5 text-[var(--dark-900)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('create.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('create.subtitle')}</p>
+              </div>
+            </div>
           </div>
           <CookieForm onSuccess={fetchCookies} />
         </div>
-      </div>
 
-      {/* Version History */}
-      <div className="px-4 sm:px-0">
-        <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-6 py-4 border-b border-[var(--dark-600)]">
-            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('history.title')}</h2>
-            <p className="text-sm text-[var(--brand-light)]/50 mt-1">
-              {t('history.subtitle')}
-            </p>
+        {/* Version History Card */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                <FileText className="w-5 h-5 text-[var(--dark-900)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('history.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('history.subtitle')}</p>
+              </div>
+            </div>
           </div>
           
-          <div className="p-4">
-            {loading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : cookies.length === 0 ? (
-              <div className="text-center py-8 text-[var(--brand-light)]/40">
-                <Cookie className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">{t('emptyState')}</p>
+          <div className="p-6">
+            {cookies.length === 0 ? (
+              <div className="text-center py-12">
+                <Cookie className="w-12 h-12 text-[var(--brand-light)]/30 mx-auto mb-4" />
+                <p className="text-[var(--brand-light)]/60">{t('emptyState')}</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {cookies.map((cookie) => (
                   <div 
                     key={cookie.id} 
@@ -168,12 +199,12 @@ export default function CookieManager() {
                         </p>
                       </div>
                     </div>
-<button
+                    <button
                       onClick={() => setViewingCookie(cookie)}
-                      className={`p-2 rounded-lg transition-all ${
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
                         cookie.is_active 
-                          ? 'text-[var(--brand-green)] hover:bg-[var(--brand-green)]/10' 
-                          : 'text-[var(--brand-light)]/30 hover:bg-[var(--dark-600)]'
+                          ? 'bg-[var(--brand-green)]/10 text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20' 
+                          : 'bg-[var(--dark-600)] text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60 hover:bg-[var(--dark-500)]'
                       }`}
                     >
                       {cookie.is_active ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
@@ -184,6 +215,7 @@ export default function CookieManager() {
             )}
           </div>
         </div>
+
       </div>
 
       {/* View Modal */}

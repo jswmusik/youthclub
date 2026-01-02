@@ -4,15 +4,47 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
-import { Upload, X, Building, Mail, Phone, MapPin, FileText, Globe } from 'lucide-react';
+import { Upload, X, Building, Mail, Phone, MapPin, FileText, Globe, UserCheck, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import BackButton from '@/app/components/BackButton';
+
+// Dynamically import rich text editors to avoid SSR issues
+const LegalRichTextEditor = dynamic(
+  () => import('@/app/components/LegalRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
+
+const DarkRichTextEditor = dynamic(
+  () => import('@/app/components/DarkRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface ClubFormState {
   name: string;
@@ -25,6 +57,7 @@ interface ClubFormState {
   latitude: string;
   longitude: string;
   club_categories: string;
+  trial_period_days_override: number | null;
 }
 
 export default function ClubSettingsPage() {
@@ -54,7 +87,11 @@ export default function ClubSettingsPage() {
     latitude: '',
     longitude: '',
     club_categories: '',
+    trial_period_days_override: null,
   });
+  
+  // Municipality trial period (for showing default)
+  const [municipalityTrialDays, setMunicipalityTrialDays] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && user) {
@@ -87,7 +124,21 @@ export default function ClubSettingsPage() {
         latitude: data.latitude !== null && data.latitude !== undefined ? String(data.latitude) : '',
         longitude: data.longitude !== null && data.longitude !== undefined ? String(data.longitude) : '',
         club_categories: data.club_categories || '',
+        trial_period_days_override: data.trial_period_days_override,
       });
+      
+      // Get municipality trial days for showing default
+      if (data.municipality_details?.trial_period_days !== undefined) {
+        setMunicipalityTrialDays(data.municipality_details.trial_period_days);
+      } else if (data.municipality) {
+        // Fetch municipality details if not included
+        try {
+          const muniRes = await api.get(`/municipalities/${data.municipality}/`);
+          setMunicipalityTrialDays(muniRes.data.trial_period_days || 0);
+        } catch (e) {
+          console.error('Failed to fetch municipality details', e);
+        }
+      }
       setAvatarPreview(data.avatar ? getMediaUrl(data.avatar) : null);
       setHeroPreview(data.hero_image ? getMediaUrl(data.hero_image) : null);
     } catch (err) {
@@ -144,6 +195,14 @@ export default function ClubSettingsPage() {
       if (formData.longitude.trim() !== '') data.append('longitude', formData.longitude);
       data.append('club_categories', formData.club_categories);
       data.append('municipality', clubData.municipality);
+      
+      // Trial period override - send the value or empty string to clear it
+      if (formData.trial_period_days_override !== null) {
+        data.append('trial_period_days_override', formData.trial_period_days_override.toString());
+      } else {
+        // Send empty string to explicitly clear the override (use municipality default)
+        data.append('trial_period_days_override', '');
+      }
 
       if (avatarFile) data.append('avatar', avatarFile);
       if (heroFile) data.append('hero_image', heroFile);
@@ -210,7 +269,7 @@ export default function ClubSettingsPage() {
         
         {/* Header with Back Button */}
         <div className="flex items-center gap-4 mb-6 sm:mb-8 px-4 sm:px-0">
-          <BackButton href="/admin/club/details" translationKey="backToDetails" />
+          <BackButton href="/admin/club/details" label={t('backToDetails')} />
           <div className="flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">
               {t('title')}
@@ -279,15 +338,11 @@ export default function ClubSettingsPage() {
                 <label htmlFor="description" className={labelClasses}>
                   {t('basicInformation.description')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
-                <textarea
-                  id="description"
-                  rows={3}
-                  required
+                <DarkRichTextEditor
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
-                  className={inputClasses('description')}
+                  onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
+                  placeholder={t('basicInformation.descriptionPlaceholder')}
+                  minHeight="150px"
                 />
               </div>
 
@@ -502,37 +557,134 @@ export default function ClubSettingsPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <label htmlFor="terms_and_conditions" className={labelClasses}>
-                    <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
-                    {t('policies.termsConditions')}
-                  </label>
-                  <textarea
-                    id="terms_and_conditions"
-                    rows={4}
-                    value={formData.terms_and_conditions}
-                    onChange={(e) => setFormData({ ...formData, terms_and_conditions: e.target.value })}
-                    onFocus={() => setFocusedField('terms_and_conditions')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('terms_and_conditions')}
-                  />
+              {/* Terms & Conditions */}
+              <div>
+                <LegalRichTextEditor
+                  value={formData.terms_and_conditions}
+                  onChange={(content) => setFormData(prev => ({ ...prev, terms_and_conditions: content }))}
+                  placeholder={t('policies.termsPlaceholder')}
+                  usage="terms_and_conditions"
+                  label={t('policies.termsConditions')}
+                  insertTemplateLabel={t('policies.insertTemplate')}
+                  minHeight="180px"
+                />
+              </div>
+
+              {/* Club Policies */}
+              <div>
+                <LegalRichTextEditor
+                  value={formData.club_policies}
+                  onChange={(content) => setFormData(prev => ({ ...prev, club_policies: content }))}
+                  placeholder={t('policies.policiesPlaceholder')}
+                  usage="club_policies"
+                  label={t('policies.clubPolicies')}
+                  insertTemplateLabel={t('policies.insertTemplate')}
+                  minHeight="180px"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Trial Period Override Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-green)] flex items-center justify-center">
+                  <UserCheck className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <label htmlFor="club_policies" className={labelClasses}>
-                    <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
-                    {t('policies.clubPolicies')}
-                  </label>
-                  <textarea
-                    id="club_policies"
-                    rows={4}
-                    value={formData.club_policies}
-                    onChange={(e) => setFormData({ ...formData, club_policies: e.target.value })}
-                    onFocus={() => setFocusedField('club_policies')}
-                    onBlur={() => setFocusedField(null)}
-                    className={inputClasses('club_policies')}
-                  />
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('trialPeriod.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.description')}</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Info Banner */}
+              <div className="flex items-start gap-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                <Info className="h-5 w-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm text-[var(--brand-light)]">
+                    {t('trialPeriod.infoText')}
+                  </p>
+                  <p className="text-xs text-[var(--brand-light)]/50">
+                    {t('trialPeriod.municipalityDefault', { days: municipalityTrialDays })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Override Toggle */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="useTrialOverride"
+                    type="checkbox"
+                    className="h-4 w-4 text-[var(--brand-primary)] border-[var(--dark-500)] rounded focus:ring-[var(--brand-primary)] bg-[var(--dark-600)]"
+                    checked={formData.trial_period_days_override !== null}
+                    onChange={e => {
+                      if (e.target.checked) {
+                        setFormData({...formData, trial_period_days_override: municipalityTrialDays});
+                      } else {
+                        setFormData({...formData, trial_period_days_override: null});
+                      }
+                    }}
+                  />
+                  <label htmlFor="useTrialOverride" className="text-sm text-[var(--brand-light)] cursor-pointer">
+                    {t('trialPeriod.overrideLabel')}
+                  </label>
+                </div>
+
+                {formData.trial_period_days_override !== null && (
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-center gap-4">
+                      <label htmlFor="trial_override_days" className="text-sm text-[var(--brand-light)]/70 whitespace-nowrap">
+                        {t('trialPeriod.daysLabel')}
+                      </label>
+                      <input
+                        id="trial_override_days"
+                        type="number"
+                        min={0}
+                        max={90}
+                        className={`${inputClasses('trial_override_days')} w-24`}
+                        value={formData.trial_period_days_override}
+                        onChange={e => setFormData({...formData, trial_period_days_override: parseInt(e.target.value) || 0})}
+                        onFocus={() => setFocusedField('trial_override_days')}
+                        onBlur={() => setFocusedField(null)}
+                      />
+                      <span className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.days')}</span>
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40">
+                      {formData.trial_period_days_override === 0 
+                        ? t('trialPeriod.disabledHint')
+                        : t('trialPeriod.enabledHint', { days: formData.trial_period_days_override })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Current Status */}
+              <div className={`flex items-center gap-3 p-4 rounded-xl border ${
+                (formData.trial_period_days_override !== null ? formData.trial_period_days_override : municipalityTrialDays) > 0 
+                  ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                  : 'bg-[var(--dark-700)] border-[var(--dark-500)]'
+              }`}>
+                {(formData.trial_period_days_override !== null ? formData.trial_period_days_override : municipalityTrialDays) > 0 ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-[var(--brand-primary)]" />
+                    <span className="text-sm text-[var(--brand-light)]">
+                      {formData.trial_period_days_override !== null 
+                        ? t('trialPeriod.statusOverride', { days: formData.trial_period_days_override })
+                        : t('trialPeriod.statusDefault', { days: municipalityTrialDays })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-[var(--brand-yellow)]" />
+                    <span className="text-sm text-[var(--brand-light)]">
+                      {t('trialPeriod.statusDisabled')}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

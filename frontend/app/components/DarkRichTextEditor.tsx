@@ -70,6 +70,10 @@ export default function DarkRichTextEditor({
           position: relative;
         }
         
+        :root:not(.dark) .dark-rich-editor {
+          border: 2px solid #d1d5db;
+        }
+        
         .dark-rich-editor:hover {
           border-color: rgba(var(--brand-primary-rgb, 124, 58, 237), 0.3);
         }
@@ -88,6 +92,11 @@ export default function DarkRichTextEditor({
           display: flex;
           flex-wrap: wrap;
           gap: 4px;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-toolbar.ql-snow {
+          background: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
         }
         
         .dark-rich-editor .ql-toolbar .ql-formats {
@@ -109,6 +118,10 @@ export default function DarkRichTextEditor({
           background: var(--dark-600);
           border: none;
           transition: all 0.15s ease;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-toolbar button {
+          background: #e5e7eb;
         }
         
         .dark-rich-editor .ql-toolbar button:hover {
@@ -133,9 +146,17 @@ export default function DarkRichTextEditor({
           opacity: 0.7;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-stroke {
+          stroke: #374151;
+        }
+        
         .dark-rich-editor .ql-toolbar .ql-fill {
           fill: var(--brand-light);
           opacity: 0.7;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-fill {
+          fill: #374151;
         }
         
         .dark-rich-editor .ql-toolbar button:hover .ql-stroke {
@@ -168,6 +189,10 @@ export default function DarkRichTextEditor({
           color: var(--brand-light);
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker {
+          color: #374151;
+        }
+        
         .dark-rich-editor .ql-toolbar .ql-picker-label {
           background: var(--dark-600);
           border-radius: 8px;
@@ -178,6 +203,10 @@ export default function DarkRichTextEditor({
           align-items: center;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker-label {
+          background: #e5e7eb;
+        }
+        
         .dark-rich-editor .ql-toolbar .ql-picker-label:hover {
           background: rgba(var(--brand-primary-rgb, 124, 58, 237), 0.2);
           color: var(--brand-primary);
@@ -186,6 +215,10 @@ export default function DarkRichTextEditor({
         .dark-rich-editor .ql-toolbar .ql-picker-label .ql-stroke {
           stroke: var(--brand-light);
           opacity: 0.7;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker-label .ql-stroke {
+          stroke: #374151;
         }
         
         .dark-rich-editor .ql-toolbar .ql-picker-label:hover .ql-stroke {
@@ -202,15 +235,29 @@ export default function DarkRichTextEditor({
           margin-top: 4px;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker-options {
+          background: #ffffff;
+          border: 1px solid #d1d5db;
+        }
+        
         .dark-rich-editor .ql-toolbar .ql-picker-item {
           color: var(--brand-light);
           padding: 8px 12px;
           border-radius: 6px;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker-item {
+          color: #1f2937;
+        }
+        
         .dark-rich-editor .ql-toolbar .ql-picker-item:hover {
           background: var(--dark-600);
           color: var(--brand-light);
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-toolbar .ql-picker-item:hover {
+          background: #f3f4f6;
+          color: #1f2937;
         }
         
         .dark-rich-editor .ql-toolbar .ql-picker-item.ql-selected {
@@ -228,6 +275,10 @@ export default function DarkRichTextEditor({
           overflow: visible;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-container.ql-snow {
+          background: #ffffff;
+        }
+        
         .dark-rich-editor .ql-editor {
           min-height: ${minHeight};
           padding: 16px;
@@ -235,6 +286,10 @@ export default function DarkRichTextEditor({
           color: var(--brand-light);
           line-height: 1.7;
           overflow: visible;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-editor {
+          color: #1f2937;
         }
         
         .dark-rich-editor .ql-editor.ql-blank::before {
@@ -245,30 +300,62 @@ export default function DarkRichTextEditor({
           right: 16px;
         }
         
+        :root:not(.dark) .dark-rich-editor .ql-editor.ql-blank::before {
+          color: #6b7280;
+          opacity: 1;
+        }
+        
         /* Content Styling */
         .dark-rich-editor .ql-editor h1 {
           font-size: 1.75rem;
           font-weight: 700;
           color: var(--brand-light);
+          margin-top: 1.5rem;
           margin-bottom: 0.75rem;
+        }
+        
+        .dark-rich-editor .ql-editor h1:first-child {
+          margin-top: 0;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-editor h1 {
+          color: #111827;
         }
         
         .dark-rich-editor .ql-editor h2 {
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--brand-light);
-          margin-bottom: 0.5rem;
+          margin-top: 1.25rem;
+          margin-bottom: 0.625rem;
+        }
+        
+        .dark-rich-editor .ql-editor h2:first-child {
+          margin-top: 0;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-editor h2 {
+          color: #111827;
         }
         
         .dark-rich-editor .ql-editor h3 {
           font-size: 1.25rem;
           font-weight: 600;
           color: var(--brand-light);
+          margin-top: 1rem;
           margin-bottom: 0.5rem;
         }
         
+        .dark-rich-editor .ql-editor h3:first-child {
+          margin-top: 0;
+        }
+        
+        :root:not(.dark) .dark-rich-editor .ql-editor h3 {
+          color: #111827;
+        }
+        
         .dark-rich-editor .ql-editor p {
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.875rem;
         }
         
         .dark-rich-editor .ql-editor a {
@@ -283,11 +370,13 @@ export default function DarkRichTextEditor({
         .dark-rich-editor .ql-editor ul,
         .dark-rich-editor .ql-editor ol {
           padding-left: 1.5rem;
-          margin-bottom: 0.75rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.875rem;
         }
         
         .dark-rich-editor .ql-editor li {
-          margin-bottom: 0.25rem;
+          margin-bottom: 0.375rem;
+          line-height: 1.6;
         }
         
         .dark-rich-editor .ql-editor img {

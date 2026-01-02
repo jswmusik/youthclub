@@ -5,12 +5,13 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission
+from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission, Boilerplate
 from .serializers import (
     PageSerializer, MenuItemSerializer, 
     FeatureShowcaseSerializer, CookieConsentSerializer,
     PricingPageContentSerializer, PricingFAQSerializer,
-    ContactPageContentSerializer, ContactSubmissionSerializer, ContactSubmissionCreateSerializer
+    ContactPageContentSerializer, ContactSubmissionSerializer, ContactSubmissionCreateSerializer,
+    BoilerplateSerializer, BoilerplateListSerializer
 )
 import logging
 
@@ -363,3 +364,64 @@ Detta meddelande skickades via kontaktformuläret på Ungdomsappen.
         submission.replied_at = timezone.now()
         submission.save()
         return Response({'status': 'marked as replied'})
+
+
+class BoilerplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing boilerplate templates.
+    Used for reusable text templates like terms, policies, etc.
+    """
+    queryset = Boilerplate.objects.all()
+    serializer_class = BoilerplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BoilerplateListSerializer
+        return BoilerplateSerializer
+
+    def get_queryset(self):
+        """Filter by usage if specified."""
+        queryset = Boilerplate.objects.all().order_by('order', 'name')
+        usage = self.request.query_params.get('usage', None)
+        if usage:
+            queryset = queryset.filter(usage=usage)
+        
+        # Filter by active status if specified
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        return queryset
+
+    @action(detail=False, methods=['get'])
+    def by_usage(self, request):
+        """
+        Get active boilerplates grouped by usage type.
+        Useful for populating template dropdowns.
+        """
+        boilerplates = Boilerplate.objects.filter(is_active=True).order_by('order', 'name')
+        
+        # Group by usage
+        grouped = {}
+        for bp in boilerplates:
+            usage = bp.usage
+            if usage not in grouped:
+                grouped[usage] = []
+            grouped[usage].append(BoilerplateListSerializer(bp).data)
+        
+        return Response(grouped)
+
+    @action(detail=False, methods=['get'], url_path='for-field/(?P<usage>[^/.]+)')
+    def for_field(self, request, usage=None):
+        """
+        Get active boilerplates for a specific field/usage.
+        Used by the ClubForm to populate template options.
+        """
+        boilerplates = Boilerplate.objects.filter(
+            is_active=True,
+            usage=usage
+        ).order_by('order', 'name')
+        
+        serializer = BoilerplateListSerializer(boilerplates, many=True)
+        return Response(serializer.data)

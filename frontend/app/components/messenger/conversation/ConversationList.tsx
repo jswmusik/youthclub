@@ -127,7 +127,7 @@ function SwipeableItem({ children, onHide, onDelete, darkMode, conversationId, h
                     className={`flex-1 flex items-center justify-center transition-colors ${
                         darkMode 
                             ? 'bg-[var(--brand-secondary)] text-[var(--brand-light)] active:bg-[var(--brand-secondary)]/80' 
-                            : 'bg-gray-500 text-white active:bg-gray-600'
+                            : 'bg-[#F8F7FE]0 text-white active:bg-gray-600'
                     }`}
                 >
                     <div className="flex flex-col items-center gap-1">
@@ -310,7 +310,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
                                         : 'hover:bg-[var(--dark-600)] active:bg-[var(--dark-500)] border-l-4 border-transparent'
                                     : isSelected 
                                         ? 'bg-[#EBEBFE]/50 hover:bg-[#EBEBFE]/50 active:bg-[#EBEBFE]/60 border-l-4 border-[#4D4DA4]' 
-                                        : 'hover:bg-gray-50 active:bg-gray-100 border-l-4 border-transparent'
+                                        : 'hover:bg-[#F8F7FE] active:bg-[#EBEBFE] border-l-4 border-transparent'
                                 }
                             `}
                         >
@@ -335,7 +335,7 @@ export default function ConversationList({ conversations, selectedId, onSelect, 
                                         src={avatarUrl} 
                                         alt={avatarInitials || 'Avatar'}
                                         className={`w-10 h-10 rounded-full object-cover ${
-                                            darkMode ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' : 'bg-gray-200 border border-gray-200'
+                                            darkMode ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' : 'bg-gray-200 border border-[#4D4DA4]/15'
                                         }`}
                                     />
                                 ) : (

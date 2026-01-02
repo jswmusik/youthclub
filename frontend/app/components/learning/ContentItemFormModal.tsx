@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { useForm, Controller } from 'react-hook-form';
 import { ContentItem, ContentItemFormData, ContentType } from '@/types/learning';
@@ -18,6 +19,7 @@ interface Props {
 
 export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapterId, initialData, isSubmitting }: Props) {
     const t = useTranslations('knowledgeAdmin.courses.lessonModal');
+    const [isMounted, setIsMounted] = useState(false);
     const { register, handleSubmit, setValue, watch, reset, control } = useForm<ContentItemFormData>({
         defaultValues: {
             type: 'VIDEO',
@@ -29,6 +31,24 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
 
     const selectedType = watch('type') as ContentType;
     const textContent = watch('text_content');
+
+    // Track component mount for portal
+    useEffect(() => {
+        setIsMounted(true);
+        return () => setIsMounted(false);
+    }, []);
+
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
 
     useEffect(() => {
         if (isOpen) {
@@ -61,7 +81,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !isMounted) return null;
 
     const contentTypes = [
         { id: 'VIDEO', label: t('contentTypes.VIDEO.label'), icon: Video, description: t('contentTypes.VIDEO.description') },
@@ -69,8 +89,8 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
         { id: 'FILE', label: t('contentTypes.FILE.label'), icon: Download, description: t('contentTypes.FILE.description') },
     ];
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    const modalContent = (
+        <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center">
             {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -78,7 +98,7 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
             />
             
             {/* Modal */}
-            <div className="relative w-full max-w-full sm:max-w-3xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto bg-[var(--dark-800)] rounded-t-2xl sm:rounded-2xl border-t sm:border border-[var(--dark-600)] shadow-2xl">
+            <div className="relative w-full max-w-full sm:max-w-3xl max-h-[90vh] sm:max-h-[85vh] overflow-y-auto bg-[var(--dark-800)] rounded-t-2xl sm:rounded-2xl border-t sm:border border-[var(--dark-600)] shadow-2xl z-[99999]">
                 {/* Drag handle for mobile */}
                 <div className="sm:hidden flex justify-center pt-3 pb-2">
                     <div className="w-12 h-1 bg-[var(--dark-500)] rounded-full" />
@@ -87,8 +107,8 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
                 {/* Header */}
                 <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">
@@ -257,4 +277,6 @@ export default function ContentItemFormModal({ isOpen, onClose, onSubmit, chapte
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 }

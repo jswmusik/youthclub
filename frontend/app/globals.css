@@ -68,18 +68,18 @@
   --sidebar-bg: 240 3% 7%;
   --sidebar-fg: 0 0% 100%;
 
-  /* Standard Clean Admin Colors - Softer, warmer off-white */
-  --background: 40 20% 97%;        /* Warm cream-white #F9F7F3 */
-  --foreground: 240 3% 7%;         /* ua-dark-bg for text */
+  /* Standard Clean Admin Colors - Brand purple tints */
+  --background: 244 60% 98%;       /* Very light purple #F8F7FE */
+  --foreground: 240 36% 30%;       /* Dark purple for text */
 
-  --card: 40 25% 99%;              /* Slightly warmer than bg */
-  --card-foreground: 240 3% 7%;
+  --card: 0 0% 100%;               /* White cards for contrast */
+  --card-foreground: 240 36% 30%;
  
   --popover: 0 0% 100%;
   --popover-foreground: 240 3% 7%;
  
-  --muted: 40 15% 94%;             /* Warm muted bg */
-  --muted-foreground: 240 4% 46%;  /* ~ua-light-grey */
+  --muted: 244 50% 95%;            /* Light purple muted bg */
+  --muted-foreground: 240 20% 50%; /* Purple-grey text */
  
   --accent: 343 100% 66%;          /* ua-pink for hover accents */
   --accent-foreground: 0 0% 100%;
@@ -100,8 +100,8 @@
   --info: 199 89% 48%; /* #0EA5E9 */
   --info-foreground: 0 0% 100%;
 
-  --border: 240 6% 90%;
-  --input: 240 6% 90%;
+  --border: 244 40% 88%;           /* Light purple border */
+  --input: 244 40% 92%;            /* Light purple input bg */
  
   --radius: 0.75rem; /* rounded-xl (Matches your ua-radius logic) */
   
@@ -131,24 +131,24 @@
   --brand-blue: #4C5D87;
   --brand-red: #E54545;
   --brand-secondary: #5B4FA3;
-  --brand-third: #4A7C23;
+  --brand-third: #10B981;
   --brand-sky: #3B82A8;
   --brand-peach: #D4A054;
   --brand-coral: #E07573;
-  --brand-green: #4CAF50;
+  --brand-green: #10B981;
 
-  /* --- LIGHT MODE LEVELS (warm off-white theme) --- */
-  --dark-900: #F8F6F2;             /* Warm off-white (main bg) */
-  --dark-800: #F1EEE8;             /* Warm light */
-  --dark-700: #E6E2DA;             /* Warm medium */
-  --dark-600: #D4CFC5;             /* Warm border */
-  --dark-500: #A8A29C;             /* Warm muted text */
-  --dark-400: #78716A;             /* Warm dark text */
+  /* --- LIGHT MODE LEVELS (brand purple tints with white cards) --- */
+  --dark-900: #F8F7FE;             /* Very light purple (main bg) */
+  --dark-800: #F0EEFE;             /* Light purple */
+  --dark-700: #FFFFFF;             /* White (card bg) */
+  --dark-600: rgba(77, 77, 164, 0.12); /* Purple border */
+  --dark-500: rgba(77, 77, 164, 0.20); /* Purple muted */
+  --dark-400: #4D4DA4;             /* Brand purple (text accents) */
 
   /* --- LIGHT MODE GLOW COLORS (for ambient background effect) --- */
-  --glow-primary: rgba(232, 90, 143, 0.18);    /* Pink glow - more visible */
-  --glow-secondary: rgba(124, 93, 199, 0.14);  /* Purple glow */
-  --glow-tertiary: rgba(59, 130, 168, 0.12);   /* Sky glow */
+  --glow-primary: rgba(232, 90, 143, 0.12);    /* Pink glow */
+  --glow-secondary: rgba(77, 77, 164, 0.15);   /* Purple glow - brand aligned */
+  --glow-tertiary: rgba(124, 93, 199, 0.10);   /* Softer purple glow */
 }
 
 .dark {
@@ -207,11 +207,11 @@
   --brand-light: #F9F8F5;
   --brand-red: #F46E6E;
   --brand-secondary: #403A6D;
-  --brand-third: #EFFFAB;
+  --brand-third: #34D399;
   --brand-sky: #A9CCFF;
   --brand-peach: #FFE2AE;
   --brand-coral: #FFADAB;
-  --brand-green: #81EA3F;
+  --brand-green: #34D399;
 
   /* --- DARK MODE LEVELS (original dark theme) --- */
   --dark-900: #050211;
@@ -762,8 +762,157 @@ body {
   color: var(--brand-primary) !important;
 }
 
+/* News Content Light Mode Styles */
+.news-content-light {
+  color: #374151; /* gray-700 */
+  line-height: 1.8;
+}
+
+.news-content-light p {
+  margin-bottom: 1.5rem;
+  color: #374151;
+}
+
+.news-content-light h1,
+.news-content-light h2,
+.news-content-light h3,
+.news-content-light h4,
+.news-content-light h5,
+.news-content-light h6 {
+  color: #111827 !important; /* gray-900 */
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.news-content-light h1 { font-size: 2rem; }
+.news-content-light h2 { font-size: 1.75rem; }
+.news-content-light h3 { font-size: 1.5rem; }
+.news-content-light h4 { font-size: 1.25rem; }
+
+.news-content-light a {
+  color: #4D4DA4 !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.news-content-light a:hover {
+  color: #3D3D94 !important;
+}
+
+.news-content-light strong,
+.news-content-light b {
+  color: #111827 !important;
+  font-weight: 600;
+}
+
+.news-content-light em,
+.news-content-light i {
+  color: #4B5563;
+}
+
+.news-content-light ul,
+.news-content-light ol {
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.news-content-light li {
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.news-content-light ul li::marker {
+  color: #4D4DA4;
+}
+
+.news-content-light ol li::marker {
+  color: #4D4DA4;
+  font-weight: 600;
+}
+
+.news-content-light blockquote {
+  border-left: 4px solid #4D4DA4;
+  padding-left: 1.5rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #6B7280;
+}
+
+.news-content-light img {
+  width: 100%;
+  height: auto;
+  margin: 2rem 0;
+}
+
+.news-content-light hr {
+  border: none;
+  border-top: 1px solid #E5E7EB;
+  margin: 2rem 0;
+}
+
+.news-content-light pre,
+.news-content-light code {
+  background-color: #F3F4F6;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  font-family: monospace;
+}
+
+.news-content-light pre {
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+.news-content-light table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+}
+
+.news-content-light th,
+.news-content-light td {
+  border: 1px solid #E5E7EB;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.news-content-light th {
+  background-color: #F9FAFB;
+  color: #111827;
+  font-weight: 600;
+}
+
+.news-content-light td {
+  color: #374151;
+}
+
+/* Override any inline styles from rich text editors */
+.news-content-light * {
+  color: inherit !important;
+}
+
+.news-content-light *[style*="color"] {
+  color: #374151 !important;
+}
+
+.news-content-light h1[style*="color"],
+.news-content-light h2[style*="color"],
+.news-content-light h3[style*="color"],
+.news-content-light h4[style*="color"],
+.news-content-light h5[style*="color"],
+.news-content-light h6[style*="color"] {
+  color: #111827 !important;
+}
+
+.news-content-light a[style*="color"] {
+  color: #4D4DA4 !important;
+}
+
 /* ==========================================================================
-   CMS Content Styles
+   CMS Content Styles - Dark Mode (default)
    ========================================================================== */
 
 .cms-content {
@@ -776,7 +925,6 @@ body {
 .cms-content h4,
 .cms-content h5,
 .cms-content h6 {
-  color: var(--brand-light) !important;
   font-family: var(--font-heading);
   font-weight: 700;
   line-height: 1.3;
@@ -797,7 +945,6 @@ body {
   margin-top: 2.5rem;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--dark-600);
 }
 
 .cms-content h3 {
@@ -813,40 +960,30 @@ body {
 }
 
 .cms-content p {
-  color: rgba(249, 248, 245, 0.8) !important;
   margin-bottom: 1.5rem;
   line-height: 1.8;
 }
 
 .cms-content a {
-  color: var(--brand-primary) !important;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .cms-content a:hover {
-  color: var(--brand-purple) !important;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 .cms-content strong,
 .cms-content b {
-  color: var(--brand-light) !important;
   font-weight: 600;
-}
-
-.cms-content em,
-.cms-content i {
-  color: rgba(249, 248, 245, 0.9);
 }
 
 .cms-content ul,
 .cms-content ol {
   margin-bottom: 1.5rem;
   padding-left: 1.5rem;
-  color: rgba(249, 248, 245, 0.8);
 }
 
 .cms-content li {
@@ -865,12 +1002,10 @@ body {
 
 .cms-content blockquote {
   border-left: 4px solid var(--brand-primary);
-  background-color: var(--dark-700);
   border-radius: 0 12px 12px 0;
   padding: 1.5rem 2rem;
   margin: 2rem 0;
   font-style: normal;
-  color: rgba(249, 248, 245, 0.9);
 }
 
 .cms-content blockquote p {
@@ -887,14 +1022,11 @@ body {
 
 .cms-content hr {
   border: none;
-  border-top: 1px solid var(--dark-600);
   margin: 3rem 0;
 }
 
 .cms-content pre,
 .cms-content code {
-  background-color: var(--dark-700);
-  color: var(--brand-third);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
@@ -909,7 +1041,6 @@ body {
   overflow-x: auto;
   margin: 2rem 0;
   border-radius: 12px;
-  border: 1px solid var(--dark-500);
 }
 
 .cms-content pre code {
@@ -927,23 +1058,12 @@ body {
 
 .cms-content th,
 .cms-content td {
-  border: 1px solid var(--dark-600);
   padding: 1rem;
   text-align: left;
 }
 
 .cms-content th {
-  background-color: var(--dark-700);
-  color: var(--brand-light);
   font-weight: 600;
-}
-
-.cms-content td {
-  color: rgba(249, 248, 245, 0.85);
-}
-
-.cms-content tr:hover td {
-  background-color: var(--dark-700);
 }
 
 /* Video embeds */
@@ -953,24 +1073,6 @@ body {
   border-radius: 16px;
   margin: 2rem 0;
   aspect-ratio: 16/9;
-}
-
-/* Override any inline styles from rich text editors */
-.cms-content *[style*="color"] {
-  color: rgba(249, 248, 245, 0.85) !important;
-}
-
-.cms-content h1[style*="color"],
-.cms-content h2[style*="color"],
-.cms-content h3[style*="color"],
-.cms-content h4[style*="color"],
-.cms-content h5[style*="color"],
-.cms-content h6[style*="color"] {
-  color: var(--brand-light) !important;
-}
-
-.cms-content a[style*="color"] {
-  color: var(--brand-primary) !important;
 }
 
 /* Responsive adjustments */
@@ -990,4 +1092,206 @@ body {
   .cms-content blockquote {
     padding: 1rem 1.5rem;
   }
+}
+
+/* ==========================================================================
+   CMS Content Styles - Dark Mode
+   ========================================================================== */
+
+.cms-content-dark h1,
+.cms-content-dark h2,
+.cms-content-dark h3,
+.cms-content-dark h4,
+.cms-content-dark h5,
+.cms-content-dark h6 {
+  color: var(--brand-light) !important;
+}
+
+.cms-content-dark h2 {
+  border-bottom: 1px solid var(--dark-600);
+}
+
+.cms-content-dark p {
+  color: rgba(249, 248, 245, 0.8) !important;
+}
+
+.cms-content-dark a {
+  color: var(--brand-primary) !important;
+}
+
+.cms-content-dark a:hover {
+  color: var(--brand-purple) !important;
+}
+
+.cms-content-dark strong,
+.cms-content-dark b {
+  color: var(--brand-light) !important;
+}
+
+.cms-content-dark em,
+.cms-content-dark i {
+  color: rgba(249, 248, 245, 0.9);
+}
+
+.cms-content-dark ul,
+.cms-content-dark ol {
+  color: rgba(249, 248, 245, 0.8);
+}
+
+.cms-content-dark blockquote {
+  background-color: var(--dark-700);
+  color: rgba(249, 248, 245, 0.9);
+}
+
+.cms-content-dark hr {
+  border-top: 1px solid var(--dark-600);
+}
+
+.cms-content-dark pre,
+.cms-content-dark code {
+  background-color: var(--dark-700);
+  color: var(--brand-third);
+}
+
+.cms-content-dark pre {
+  border: 1px solid var(--dark-500);
+}
+
+.cms-content-dark th,
+.cms-content-dark td {
+  border: 1px solid var(--dark-600);
+}
+
+.cms-content-dark th {
+  background-color: var(--dark-700);
+  color: var(--brand-light);
+}
+
+.cms-content-dark td {
+  color: rgba(249, 248, 245, 0.85);
+}
+
+.cms-content-dark tr:hover td {
+  background-color: var(--dark-700);
+}
+
+/* Override any inline styles from rich text editors - dark mode */
+.cms-content-dark *[style*="color"] {
+  color: rgba(249, 248, 245, 0.85) !important;
+}
+
+.cms-content-dark h1[style*="color"],
+.cms-content-dark h2[style*="color"],
+.cms-content-dark h3[style*="color"],
+.cms-content-dark h4[style*="color"],
+.cms-content-dark h5[style*="color"],
+.cms-content-dark h6[style*="color"] {
+  color: var(--brand-light) !important;
+}
+
+.cms-content-dark a[style*="color"] {
+  color: var(--brand-primary) !important;
+}
+
+/* ==========================================================================
+   CMS Content Styles - Light Mode
+   ========================================================================== */
+
+.cms-content-light h1,
+.cms-content-light h2,
+.cms-content-light h3,
+.cms-content-light h4,
+.cms-content-light h5,
+.cms-content-light h6 {
+  color: #111827 !important; /* gray-900 */
+}
+
+.cms-content-light h2 {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.cms-content-light p {
+  color: #374151 !important; /* gray-700 */
+}
+
+.cms-content-light a {
+  color: #4D4DA4 !important;
+}
+
+.cms-content-light a:hover {
+  color: #3D3D94 !important;
+}
+
+.cms-content-light strong,
+.cms-content-light b {
+  color: #111827 !important;
+}
+
+.cms-content-light em,
+.cms-content-light i {
+  color: #4B5563;
+}
+
+.cms-content-light ul,
+.cms-content-light ol {
+  color: #374151;
+}
+
+.cms-content-light li {
+  color: #374151;
+}
+
+.cms-content-light blockquote {
+  background-color: #F9FAFB;
+  color: #4B5563;
+}
+
+.cms-content-light hr {
+  border-top: 1px solid #E5E7EB;
+}
+
+.cms-content-light pre,
+.cms-content-light code {
+  background-color: #F3F4F6;
+  color: #374151;
+}
+
+.cms-content-light pre {
+  border: 1px solid #E5E7EB;
+}
+
+.cms-content-light th,
+.cms-content-light td {
+  border: 1px solid #E5E7EB;
+}
+
+.cms-content-light th {
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+.cms-content-light td {
+  color: #374151;
+}
+
+.cms-content-light tr:hover td {
+  background-color: #F9FAFB;
+}
+
+/* Override any inline styles from rich text editors - light mode */
+.cms-content-light *[style*="color"] {
+  color: #374151 !important;
+}
+
+.cms-content-light h1[style*="color"],
+.cms-content-light h2[style*="color"],
+.cms-content-light h3[style*="color"],
+.cms-content-light h4[style*="color"],
+.cms-content-light h5[style*="color"],
+.cms-content-light h6[style*="color"] {
+  color: #111827 !important;
+}
+
+.cms-content-light a[style*="color"] {
+  color: #4D4DA4 !important;
 }

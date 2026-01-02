@@ -419,8 +419,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <User className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
@@ -480,7 +480,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -608,8 +608,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('verificationStatus.title')}</h2>
@@ -660,7 +660,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
               <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="w-5 h-5 text-white" />
                   </div>
                   <div>
@@ -716,8 +716,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('assignYouth.title')}</h2>
@@ -808,7 +808,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-third)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                   <Lock className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -835,8 +835,8 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>
@@ -1158,7 +1158,7 @@ function IdDocumentReviewSection({ initialData, onReviewComplete }: { initialDat
         <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>

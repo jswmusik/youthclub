@@ -392,8 +392,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
 
   if (loading && initialId && !formData.title) return (
     <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-        <ClipboardList className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+        <ClipboardList className="w-6 h-6 text-[var(--dark-900)]" />
       </div>
       <div className="text-[var(--brand-light)]/60 animate-pulse">Loading questionnaire...</div>
     </div>
@@ -473,7 +473,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               onClick={() => setActiveTab('SETTINGS')}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 activeTab === 'SETTINGS' 
-                  ? 'bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white shadow-lg' 
+                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] shadow-lg' 
                   : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
               }`}
             >
@@ -485,7 +485,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               onClick={() => setActiveTab('QUESTIONS')}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                 activeTab === 'QUESTIONS' 
-                  ? 'bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white shadow-lg' 
+                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] shadow-lg' 
                   : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
               }`}
             >
@@ -552,8 +552,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
                           >
                             <ChevronUp className="w-4 h-4" />
                           </button>
-                          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <span className="font-bold text-white text-sm">{idx + 1}</span>
+                          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <span className="font-bold text-[var(--dark-900)] text-sm">{idx + 1}</span>
                           </div>
                           <button
                             onClick={() => moveQuestion(idx, 'down')}
@@ -633,8 +633,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         <div className="mt-6 sm:mt-8 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 flex items-center justify-center border border-[var(--brand-primary)]/30">
-                <Lightbulb className="w-5 h-5 text-[var(--brand-primary)]" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tips.title')}</h2>

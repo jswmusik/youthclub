@@ -39,13 +39,13 @@ export default function GroupCard({ group, onUpdate }: GroupCardProps) {
 
   // Logic for Button State
   const renderButton = () => {
-    if (loading) return <button disabled className="px-4 py-2 bg-gray-100 rounded-lg text-xs">Processing...</button>;
+    if (loading) return <button disabled className="px-4 py-2 bg-[#EBEBFE] rounded-lg text-xs">Processing...</button>;
 
     if (group.user_status === 'APPROVED') {
       return (
         <button 
           onClick={handleLeave}
-          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-[#F8F7FE] transition-colors"
         >
           Leave
         </button>
@@ -87,7 +87,7 @@ export default function GroupCard({ group, onUpdate }: GroupCardProps) {
   const avatarUrl = group.avatar ? getMediaUrl(group.avatar) : null;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col h-full">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-[#4D4DA4]/10 dark:border-gray-700 p-6 flex flex-col h-full">
       <div className="flex items-start justify-between mb-4">
         <div className="h-12 w-12 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl font-bold overflow-hidden">
            {avatarUrl ? (
@@ -108,7 +108,7 @@ export default function GroupCard({ group, onUpdate }: GroupCardProps) {
         {group.description || "No description provided."}
       </p>
 
-      <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+      <div className="mt-auto pt-4 border-t border-[#4D4DA4]/10 dark:border-gray-700 flex items-center justify-between">
         <span className="text-xs text-gray-500">
           {group.member_count} Members
         </span>

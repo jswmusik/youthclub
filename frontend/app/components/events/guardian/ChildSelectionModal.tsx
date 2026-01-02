@@ -65,8 +65,8 @@ export default function ChildSelectionModal({
                 disabled={isDisabled}
                 className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all ${
                   isDisabled
-                    ? 'opacity-60 bg-gray-50 dark:bg-[var(--dark-900)] border-gray-100 dark:border-[var(--dark-700)] cursor-not-allowed'
-                    : 'bg-white dark:bg-[var(--dark-700)] border-gray-200 dark:border-[var(--dark-600)] hover:border-[#4D4DA4] dark:hover:border-[var(--brand-primary)] shadow-sm hover:shadow-md'
+                    ? 'opacity-60 bg-[#F8F7FE] dark:bg-[var(--dark-900)] border-[#4D4DA4]/10 dark:border-[var(--dark-700)] cursor-not-allowed'
+                    : 'bg-white dark:bg-[var(--dark-700)] border-[#4D4DA4]/15 dark:border-[var(--dark-600)] hover:border-[#4D4DA4] dark:hover:border-[var(--brand-primary)] shadow-sm hover:shadow-md'
                 }`}
               >
                 {/* Avatar */}

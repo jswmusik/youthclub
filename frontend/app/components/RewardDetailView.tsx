@@ -165,16 +165,16 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
         <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-12 sm:-mt-14">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
             {/* Image */}
-            <div className="relative z-20 w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="relative z-20 w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
               {reward.image ? (
                 <img 
                   src={getMediaUrl(reward.image) || ''} 
                   alt={reward.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-full"
                 />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Gift className="w-10 h-10 text-white" />
+                <div className="w-full h-full bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Gift className="w-10 h-10 text-[var(--dark-900)]" />
                 </div>
               )}
             </div>
@@ -213,8 +213,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
             className="w-full px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h2>
             </div>
@@ -231,8 +231,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {/* Total Claims */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-primary)]/30 hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <Gift className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                      <Gift className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('totalClaims')}</span>
                   </div>
@@ -242,8 +242,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {/* Last 24h */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-blue)]/30 hover:border-[var(--brand-blue)]/50 transition-all">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)] flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last24h')}</span>
                   </div>
@@ -253,7 +253,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {/* Last 7 Days */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-green)]/30 hover:border-[var(--brand-green)]/50 transition-all">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)] flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last7Days')}</span>
@@ -264,8 +264,8 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {/* Last 30 Days */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-peach)]/30 hover:border-[var(--brand-peach)]/50 transition-all">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)] flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('last30Days')}</span>
                   </div>
@@ -275,7 +275,7 @@ export default function RewardDetailView({ rewardId, basePath }: RewardDetailPro
                 {/* Days Left */}
                 <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-third)]/30 hover:border-[var(--brand-third)]/50 transition-all col-span-2 sm:col-span-1">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-third)] flex items-center justify-center">
                       <Clock className="w-4 h-4 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('daysLeft')}</span>

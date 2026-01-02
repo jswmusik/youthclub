@@ -139,7 +139,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
                       darkMode 
                         ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)]' 
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
+                        : 'bg-[#F8F7FE] hover:bg-[#EBEBFE] text-gray-700 border border-[#4D4DA4]/15'
                     }`}
                   >
                     {t('visitPage')}
@@ -169,13 +169,13 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                     className={`flex items-center gap-3 p-3 rounded-lg transition cursor-pointer ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40' 
-                        : 'bg-white border border-gray-200 hover:shadow-md hover:border-[#4D4DA4]/40'
+                        : 'bg-white border border-[#4D4DA4]/15 hover:shadow-md hover:border-[#4D4DA4]/40'
                     }`}
                   >
                     <div className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden ${
                       darkMode 
                         ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
-                        : 'bg-gray-50 border border-gray-200'
+                        : 'bg-[#F8F7FE] border border-[#4D4DA4]/15'
                     }`}>
                       {club.avatar ? (
                         <img src={getMediaUrl(club.avatar)} className="w-full h-full object-cover" alt={club.name} />
@@ -199,7 +199,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
         </div>
       </section>
 
-      <hr className={darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'} />
+      <hr className={darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'} />
 
       {/* 2. GROUPS SECTION */}
       <section>
@@ -227,7 +227,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
               <div key={membership.id} className={`p-4 transition group ${
                 darkMode 
                   ? 'bg-[var(--dark-700)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40' 
-                  : 'bg-white rounded-xl border border-gray-200 shadow-sm hover:border-[#FF5485]/40'
+                  : 'bg-white rounded-xl border border-[#4D4DA4]/15 shadow-sm hover:border-[#FF5485]/40'
               }`}>
                 <div 
                   onClick={() => goToGroup(membership.group_id)}
@@ -262,7 +262,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                   className={`mt-3 w-full px-3 py-2 text-xs font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${
                     darkMode 
                       ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] bg-[var(--dark-600)] hover:bg-[var(--brand-red)]/10 border border-[var(--dark-400)] hover:border-[var(--brand-red)]/30' 
-                      : 'text-gray-600 hover:text-red-600 bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-300'
+                      : 'text-gray-600 hover:text-red-600 bg-[#F8F7FE] hover:bg-red-50 border border-[#4D4DA4]/15 hover:border-red-300'
                   }`}
                 >
                   {t('leaveGroup')}
@@ -297,7 +297,7 @@ export default function ClubsAndGroups({ user, darkMode = false }: ClubsAndGroup
                        <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
                          darkMode 
                            ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
-                           : 'bg-gray-50 border border-gray-200'
+                           : 'bg-[#F8F7FE] border border-[#4D4DA4]/15'
                        }`}>
                           {membership.group_avatar ? (
                             <img src={getMediaUrl(membership.group_avatar)} className="w-full h-full object-cover rounded-md" />

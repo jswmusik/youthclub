@@ -123,7 +123,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                     ? `bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-500)] ${active ? 'hover:border-[var(--brand-primary)]/50 cursor-pointer' : 'opacity-60'}`
                     : `border-2 rounded-2xl ${active 
                         ? 'bg-white border-[#4D4DA4]/20 shadow-lg hover:shadow-xl cursor-pointer hover:border-[#4D4DA4]/50 hover:scale-105' 
-                        : 'bg-gray-50 border-gray-200 opacity-60'}`
+                        : 'bg-[#F8F7FE] border-[#4D4DA4]/15 opacity-60'}`
                   }
                 `}
               >
@@ -355,7 +355,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                 className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
                   darkMode 
                     ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)]' 
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    : 'bg-[#EBEBFE] hover:bg-gray-200 text-gray-700'
                 }`}
               >
                 {t('close')}

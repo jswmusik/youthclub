@@ -289,9 +289,13 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
     hasUserChangedFilters.current = true;
 
     const timer = setTimeout(() => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (searchInput) params.set('search', searchInput); else params.delete('search');
-        if (countryFilter) params.set('country', countryFilter); else params.delete('country');
+        const params = new URLSearchParams();
+        // Preserve page_size if it exists
+        const currentPageSize = searchParams.get('page_size');
+        if (currentPageSize) params.set('page_size', currentPageSize);
+        
+        if (searchInput) params.set('search', searchInput);
+        if (countryFilter) params.set('country', countryFilter);
         params.set('page', '1'); // Reset page on filter change
         router.replace(`${pathname}?${params.toString()}`);
         
@@ -300,7 +304,8 @@ export default function MunicipalityManager({ basePath }: MunicipalityManagerPro
         initialCountryRef.current = countryFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, countryFilter, router, pathname, searchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, countryFilter, router, pathname]);
 
   useEffect(() => {
     fetchData();

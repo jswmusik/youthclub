@@ -177,39 +177,48 @@ export default function CourseManager() {
     const [filterType, setFilterType] = useState(searchParams.get('type') || '');
     const [filterCategory, setFilterCategory] = useState(searchParams.get('category') || '');
 
-    // Track initial values to detect actual user changes
-    const initialSearchRef = useRef(searchParams.get('search') || '');
-    const initialTypeRef = useRef(searchParams.get('type') || '');
-    const initialCategoryRef = useRef(searchParams.get('category') || '');
-    const hasUserChangedFilters = useRef(false);
+    // Sync local state from URL params when URL changes externally
+    useEffect(() => {
+        const urlSearch = searchParams.get('search') || '';
+        const urlType = searchParams.get('type') || '';
+        const urlCategory = searchParams.get('category') || '';
+        
+        if (urlSearch !== searchInput) {
+            setSearchInput(urlSearch);
+        }
+        if (urlType !== filterType) {
+            setFilterType(urlType);
+        }
+        if (urlCategory !== filterCategory) {
+            setFilterCategory(urlCategory);
+        }
+    }, [searchParams]);
 
     // Debounced filter update - only reset page when user actually changes filters
     useEffect(() => {
-        const searchChanged = searchInput !== initialSearchRef.current;
-        const typeChanged = filterType !== initialTypeRef.current;
-        const categoryChanged = filterCategory !== initialCategoryRef.current;
+        // Skip if this is the initial render and values match URL (to avoid unnecessary updates)
+        const urlSearch = searchParams.get('search') || '';
+        const urlType = searchParams.get('type') || '';
+        const urlCategory = searchParams.get('category') || '';
         
-        if (!searchChanged && !typeChanged && !categoryChanged && !hasUserChangedFilters.current) {
+        const searchChanged = searchInput !== urlSearch;
+        const typeChanged = filterType !== urlType;
+        const categoryChanged = filterCategory !== urlCategory;
+        
+        if (!searchChanged && !typeChanged && !categoryChanged) {
             return;
         }
-        
-        hasUserChangedFilters.current = true;
 
         const timer = setTimeout(() => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (searchInput) params.set('search', searchInput); else params.delete('search');
-            if (filterType) params.set('type', filterType); else params.delete('type');
-            if (filterCategory) params.set('category', filterCategory); else params.delete('category');
+            const params = new URLSearchParams();
+            if (searchInput) params.set('search', searchInput);
+            if (filterType) params.set('type', filterType);
+            if (filterCategory) params.set('category', filterCategory);
             params.set('page', '1');
             router.replace(`${pathname}?${params.toString()}`);
-            
-            // Update refs to current values
-            initialSearchRef.current = searchInput;
-            initialTypeRef.current = filterType;
-            initialCategoryRef.current = filterCategory;
         }, 300);
         return () => clearTimeout(timer);
-    }, [searchInput, filterType, filterCategory, searchParams, pathname, router]);
+    }, [searchInput, filterType, filterCategory, pathname, router]);
 
     useEffect(() => {
         fetchCategories();
@@ -414,8 +423,8 @@ export default function CourseManager() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                <BookOpen className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                <BookOpen className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
@@ -461,8 +470,8 @@ export default function CourseManager() {
                                 {/* Total Courses */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                            <BookOpen className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                            <BookOpen className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                                     </div>
@@ -472,8 +481,8 @@ export default function CourseManager() {
                                 {/* Video Courses */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                                            <Video className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                            <Video className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.video')}</span>
                                     </div>
@@ -483,8 +492,8 @@ export default function CourseManager() {
                                 {/* Text Courses */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[#A78BFA] flex items-center justify-center">
-                                            <FileText className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                                            <FileText className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.text')}</span>
                                     </div>
@@ -494,7 +503,7 @@ export default function CourseManager() {
                                 {/* File Resources */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                                             <Download className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.files')}</span>
@@ -642,8 +651,8 @@ export default function CourseManager() {
                                                         className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
                                                     />
                                                 ) : (
-                                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                        <BookOpen className="h-6 w-6 text-white" />
+                                                    <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                        <BookOpen className="h-6 w-6 text-[var(--dark-900)]" />
                                                     </div>
                                                 )}
                                                 
@@ -699,8 +708,8 @@ export default function CourseManager() {
                                                                 className="w-10 h-10 rounded-xl object-cover"
                                                             />
                                                         ) : (
-                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                                                <BookOpen className="h-5 w-5 text-white" />
+                                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                                                <BookOpen className="h-5 w-5 text-[var(--dark-900)]" />
                                                             </div>
                                                         )}
                                                         <div className="font-semibold text-[var(--brand-light)]">{course.title}</div>

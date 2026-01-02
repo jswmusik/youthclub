@@ -485,8 +485,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateInfo.title')}</h2>
@@ -577,8 +577,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                                    <Globe className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                    <Globe className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('distribution.title')}</h2>
@@ -601,7 +601,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onClick={() => setDistributionMode(mode as any)} 
                                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                                 distributionMode === mode 
-                                                    ? 'bg-[var(--brand-primary)] text-white' 
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                             }`}
                                         >
@@ -624,7 +624,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onClick={() => setDistributionMode(mode as any)} 
                                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                                 distributionMode === mode 
-                                                    ? 'bg-[var(--brand-primary)] text-white' 
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                             }`}
                                         >
@@ -701,8 +701,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-pink)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <Image className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-pink)] flex items-center justify-center">
+                                    <Image className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('defaultMediaType.title')}</h2>
@@ -724,7 +724,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                         onClick={() => setDefaultPostType(type)} 
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             defaultPostType === type 
-                                                ? 'bg-[var(--brand-primary)] text-white' 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                 : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                         }`}
                                     >
@@ -740,8 +740,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                                    <Target className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                                    <Target className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('audienceTargeting.title')}</h2>
@@ -766,7 +766,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onClick={() => setMemberType(value)} 
                                             className={`px-4 py-2.5 rounded-xl font-medium transition-all ${
                                                 memberType === value 
-                                                    ? 'bg-[var(--brand-primary)] text-white' 
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                             }`}
                                         >
@@ -815,7 +815,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onClick={() => toggleSelection(grade, selectedGrades, setSelectedGrades)}
                                             className={`w-10 h-10 rounded-xl font-medium transition-all text-sm ${
                                                 selectedGrades.includes(grade)
-                                                    ? 'bg-[var(--brand-primary)] text-white'
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                             }`}
                                         >
@@ -840,7 +840,7 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                             onClick={() => toggleSelection(value, selectedGenders, setSelectedGenders)}
                                             className={`px-4 py-2.5 rounded-xl font-medium transition-all ${
                                                 selectedGenders.includes(value)
-                                                    ? 'bg-[var(--brand-primary)] text-white'
+                                                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                             }`}
                                         >
@@ -1051,8 +1051,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-blue)] flex items-center justify-center">
-                                    <Settings className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                                    <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('defaultSettings.title')}</h2>
@@ -1210,8 +1210,8 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                                    <Lightbulb className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                                    <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>

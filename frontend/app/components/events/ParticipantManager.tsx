@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { EventRegistration, RegistrationStatus } from '@/types/event';
 import { useToast } from '../../../hooks/useToast';
@@ -17,6 +18,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const t = useTranslations('eventsAdmin.detail.participants');
     
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -63,7 +65,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         let displayValue = '';
         
         if (field.field_type === 'BOOLEAN') {
-            displayValue = value ? 'Yes' : 'No';
+            displayValue = value ? t('customFields.yes') : t('customFields.no');
         } else if (field.field_type === 'MULTI_SELECT' && Array.isArray(value)) {
             displayValue = value.join(', ');
         } else {
@@ -91,18 +93,32 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         router.push(`${pathname}?${params.toString()}`);
     };
 
-    const fetchRegistrations = useCallback(async () => {
+    // Track last fetched filter to prevent duplicate fetches
+    const lastFetchedFilter = useRef<string | null>(null);
+    const isFetching = useRef(false);
+
+    const fetchRegistrations = useCallback(async (currentFilter: string) => {
+        // Prevent duplicate fetches
+        if (isFetching.current || lastFetchedFilter.current === currentFilter) {
+            return;
+        }
+        
+        isFetching.current = true;
+        lastFetchedFilter.current = currentFilter;
+        
         try {
             setLoading(true);
             const params = new URLSearchParams();
             
             const page = searchParams.get('page') || '1';
-            const statusFilter = searchParams.get('status') || '';
-            const currentFilter = statusFilter || 'ALL';
             
             params.set('event', eventId.toString());
             
-            if (currentFilter === 'ALL' || currentFilter === '') {
+            // For ALL and PENDING, we need to fetch all registrations and filter client-side
+            // For specific statuses (APPROVED, WAITLIST), we can filter server-side
+            const needsAllData = currentFilter === 'ALL' || currentFilter === 'PENDING';
+            
+            if (needsAllData) {
                 let allRegistrations: any[] = [];
                 let pageNum = 1;
                 const pageSize = 100;
@@ -145,7 +161,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             } else {
                 params.set('page', page);
                 params.set('page_size', '10');
-                params.set('status', statusFilter);
+                params.set('status', currentFilter);
 
                 const res = await api.get(`/registrations/?${params.toString()}`);
                 const responseData = res?.data;
@@ -164,22 +180,30 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 setRegistrations(registrationsData);
                 setTotalCount(count);
             }
-        } catch (error) {
-            console.error(error);
-            error("Failed to load participants");
+        } catch (err) {
+            console.error(err);
+            // Reset last fetched filter on error so retry is possible
+            lastFetchedFilter.current = null;
         } finally {
             setLoading(false);
+            isFetching.current = false;
         }
     }, [eventId, searchParams]);
 
+    // Initial fetch and fetch when filter changes
     useEffect(() => {
-        fetchRegistrations();
-    }, [fetchRegistrations]);
+        fetchRegistrations(filter);
+    }, [filter, eventId]);
 
+    // Sync filter state from URL when URL has a specific status
     useEffect(() => {
-        const urlFilter = searchParams.get('status') || 'ALL';
-        if (urlFilter !== filter && urlFilter !== '') {
-            setFilter(urlFilter === 'ALL' ? 'ALL' : urlFilter);
+        const urlStatus = searchParams.get('status');
+        // Only sync from URL if there's an actual status in the URL
+        // Don't override local filter state when URL status is empty (used for ALL and PENDING)
+        if (urlStatus && urlStatus !== filter) {
+            setFilter(urlStatus);
+            // Reset last fetched filter to allow refetch with new filter
+            lastFetchedFilter.current = null;
         }
     }, [searchParams]);
 
@@ -210,7 +234,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
 
         try {
             const response = await api.patch(`/registrations/${confirmationModal.registration.id}/`, { status: newStatus });
-            success(`Registration ${confirmationModal.action === 'approve' ? 'approved' : 'rejected'} successfully`);
+            success(confirmationModal.action === 'approve' ? t('toast.approvedSuccess') : t('toast.rejectedSuccess'));
             
             setConfirmationModal({
                 isVisible: false,
@@ -239,15 +263,24 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
     };
 
     const handleFilterChange = (newFilter: string) => {
+        // Reset last fetched filter to allow new fetch
+        lastFetchedFilter.current = null;
         setFilter(newFilter);
-        if (newFilter === 'ALL') {
-            updateUrl('status', '');
-        } else if (newFilter === 'PENDING') {
-            updateUrl('status', '');
-            updateUrl('page', '1');
+        
+        // Build new URL params
+        const params = new URLSearchParams(searchParams.toString());
+        
+        if (newFilter === 'ALL' || newFilter === 'PENDING') {
+            // Remove status from URL - we'll filter client-side
+            params.delete('status');
+            params.set('page', '1');
         } else {
-            updateUrl('status', newFilter);
+            // Set specific status for server-side filtering
+            params.set('status', newFilter);
+            params.set('page', '1');
         }
+        
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const filteredList = registrations.filter(r => {
@@ -298,7 +331,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
         return (
             <div className="py-12 text-center">
                 <div className="w-10 h-10 border-3 border-[var(--dark-600)] border-t-[var(--brand-primary)] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-[var(--brand-light)]/50">Loading participants...</p>
+                <p className="text-[var(--brand-light)]/50">{t('loading')}</p>
             </div>
         );
     }
@@ -318,13 +351,13 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                     : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)]'
                             }`}
                         >
-                            {f === 'ALL' ? 'All' : f.charAt(0) + f.slice(1).toLowerCase()}
+                            {t(`filters.${f.toLowerCase()}`)}
                         </button>
                     ))}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-[var(--brand-light)]/50">
                     <Users className="w-4 h-4" />
-                    <span>Total: <span className="font-bold text-[var(--brand-light)]">{totalCount}</span></span>
+                    <span>{t('total')}: <span className="font-bold text-[var(--brand-light)]">{totalCount}</span></span>
                 </div>
             </div>
 
@@ -333,10 +366,10 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-[var(--dark-500)] bg-[var(--dark-600)]/30">
-                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">User</th>
-                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Date</th>
-                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Status</th>
-                            <th className="text-right px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">Actions</th>
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">{t('tableHeaders.user')}</th>
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">{t('tableHeaders.date')}</th>
+                            <th className="text-left px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">{t('tableHeaders.status')}</th>
+                            <th className="text-right px-6 py-4 text-[10px] uppercase font-semibold text-[var(--brand-light)]/40 tracking-wider">{t('tableHeaders.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -349,11 +382,11 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                 >
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                                 {reg.user_detail?.avatar ? (
-                                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
                                                 ) : (
-                                                    <span className="text-white font-bold text-sm">
+                                                    <span className="text-[var(--dark-900)] font-bold text-sm">
                                                         {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
                                                     </span>
                                                 )}
@@ -386,7 +419,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                     <td className="px-6 py-4">
                                         {getStatusBadge(reg.status)}
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             {(reg.status === 'PENDING_ADMIN' || reg.status === 'WAITLIST') && (
                                                 <button
@@ -394,13 +427,13 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30 hover:bg-[var(--brand-green)]/30 transition-colors"
                                                 >
                                                     <CheckCircle className="w-3.5 h-3.5" />
-                                                    Approve
+                                                    {t('actions.approve')}
                                                 </button>
                                             )}
                                             {(reg.status === 'PENDING_GUARDIAN') && (
                                                 <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
                                                     <Clock className="w-3.5 h-3.5" />
-                                                    Waiting for parent
+                                                    {t('actions.waitingForParent')}
                                                 </span>
                                             )}
                                             {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
@@ -409,7 +442,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30 hover:bg-[var(--brand-red)]/30 transition-colors"
                                                 >
                                                     <XCircle className="w-3.5 h-3.5" />
-                                                    Reject
+                                                    {t('actions.reject')}
                                                 </button>
                                             )}
                                         </div>
@@ -422,7 +455,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                             <div className="pl-13 space-y-2">
                                                 <div className="text-xs font-semibold text-[var(--brand-light)]/70 uppercase tracking-wider mb-2 flex items-center gap-2">
                                                     <FileText className="w-3.5 h-3.5" />
-                                                    Registration Responses
+                                                    {t('customFields.title')}
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-[var(--dark-700)]/50 rounded-lg p-4 border border-[var(--dark-500)]">
                                                     {reg.custom_field_values.map((cfv: any) => renderCustomFieldValue(cfv))}
@@ -437,7 +470,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                             <tr>
                                 <td colSpan={4} className="px-6 py-16 text-center">
                                     <User className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                                    <p className="text-[var(--brand-light)]/50">No participants found in this category.</p>
+                                    <p className="text-[var(--brand-light)]/50">{t('emptyState.noParticipants')}</p>
                                 </td>
                             </tr>
                         )}
@@ -453,11 +486,11 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                         className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] p-4"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {reg.user_detail?.avatar ? (
-                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
                                 ) : (
-                                    <span className="text-white font-bold">
+                                    <span className="text-[var(--dark-900)] font-bold">
                                         {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
                                     </span>
                                 )}
@@ -473,20 +506,20 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                     {getStatusBadge(reg.status)}
                                 </div>
                                 <div className="mt-2 text-xs text-[var(--brand-light)]/40">
-                                    Registered: {new Date(reg.created_at).toLocaleDateString()} at {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    {t('mobile.registered')}: {new Date(reg.created_at).toLocaleDateString()} at {new Date(reg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                 </div>
                                 
                                 {/* Custom Field Values - Mobile */}
                                 {hasCustomFieldValues(reg) && (
                                     <div className="mt-3">
-                                        <button
-                                            onClick={() => toggleRowExpansion(reg.id)}
-                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30"
-                                        >
-                                            <FileText className="w-3.5 h-3.5" />
-                                            View Responses
-                                            {expandedRows.has(reg.id) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                        </button>
+                                                <button
+                                                            onClick={() => toggleRowExpansion(reg.id)}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30"
+                                                        >
+                                                            <FileText className="w-3.5 h-3.5" />
+                                                            {t('customFields.viewResponses')}
+                                                            {expandedRows.has(reg.id) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                                        </button>
                                         
                                         {expandedRows.has(reg.id) && (
                                             <div className="mt-3 p-3 bg-[var(--dark-600)]/50 rounded-lg border border-[var(--dark-500)] space-y-2">
@@ -504,13 +537,13 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-green)]/20 text-[var(--brand-green)] border border-[var(--brand-green)]/30"
                                         >
                                             <CheckCircle className="w-3.5 h-3.5" />
-                                            Approve
+                                            {t('actions.approve')}
                                         </button>
                                     )}
                                     {(reg.status === 'PENDING_GUARDIAN') && (
                                         <span className="text-xs text-[var(--brand-light)]/40 italic flex items-center gap-1">
                                             <Clock className="w-3.5 h-3.5" />
-                                            Waiting for parent
+                                            {t('actions.waitingForParent')}
                                         </span>
                                     )}
                                     {reg.status !== 'REJECTED' && reg.status !== 'CANCELLED' && reg.status !== 'ATTENDED' && (
@@ -519,7 +552,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--brand-red)]/20 text-[var(--brand-red)] border border-[var(--brand-red)]/30"
                                         >
                                             <XCircle className="w-3.5 h-3.5" />
-                                            Reject
+                                            {t('actions.reject')}
                                         </button>
                                     )}
                                 </div>
@@ -530,7 +563,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 {paginatedRegistrations.length === 0 && (
                     <div className="py-16 text-center">
                         <User className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                        <p className="text-[var(--brand-light)]/50">No participants found in this category.</p>
+                        <p className="text-[var(--brand-light)]/50">{t('emptyState.noParticipants')}</p>
                     </div>
                 )}
             </div>
@@ -539,8 +572,8 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                     <div className="text-sm text-[var(--brand-light)]/50">
-                        Page <span className="font-semibold text-[var(--brand-light)]">{currentPage}</span> of <span className="font-semibold text-[var(--brand-light)]">{totalPages}</span>
-                        <span className="ml-2 text-[var(--brand-light)]/30">({effectiveTotal} total)</span>
+                        {t('pagination.page')} <span className="font-semibold text-[var(--brand-light)]">{currentPage}</span> {t('pagination.of')} <span className="font-semibold text-[var(--brand-light)]">{totalPages}</span>
+                        <span className="ml-2 text-[var(--brand-light)]/30">({effectiveTotal} {t('pagination.total')})</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
@@ -549,7 +582,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
                             <ChevronLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Prev</span>
+                            <span className="hidden sm:inline">{t('pagination.prev')}</span>
                         </button>
                         
                         {/* Page Numbers */}
@@ -587,7 +620,7 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                             onClick={() => updateUrl('page', (currentPage + 1).toString())}
                             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 hover:text-[var(--brand-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
-                            <span className="hidden sm:inline">Next</span>
+                            <span className="hidden sm:inline">{t('pagination.next')}</span>
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
@@ -601,20 +634,20 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                 onConfirm={handleConfirmAction}
                 title={
                     confirmationModal.action === 'approve'
-                        ? 'Approve Registration?'
+                        ? t('confirmModal.approveTitle')
                         : confirmationModal.action === 'reject'
-                        ? 'Reject Registration?'
-                        : 'Confirm Action'
+                        ? t('confirmModal.rejectTitle')
+                        : t('confirmModal.confirmAction')
                 }
                 message={
                     confirmationModal.registration && confirmationModal.action === 'approve'
-                        ? `Are you sure you want to approve ${confirmationModal.registration.user_detail?.first_name} ${confirmationModal.registration.user_detail?.last_name}'s registration? They will receive a confirmed seat.`
+                        ? t('confirmModal.approveMessage', { name: `${confirmationModal.registration.user_detail?.first_name} ${confirmationModal.registration.user_detail?.last_name}` })
                         : confirmationModal.registration && confirmationModal.action === 'reject'
-                        ? `Are you sure you want to reject ${confirmationModal.registration.user_detail?.first_name} ${confirmationModal.registration.user_detail?.last_name}'s registration? This action cannot be undone.`
-                        : 'Are you sure you want to proceed?'
+                        ? t('confirmModal.rejectMessage', { name: `${confirmationModal.registration.user_detail?.first_name} ${confirmationModal.registration.user_detail?.last_name}` })
+                        : t('confirmModal.genericMessage')
                 }
-                confirmButtonText={confirmationModal.action === 'approve' ? 'Approve' : confirmationModal.action === 'reject' ? 'Reject' : 'Confirm'}
-                cancelButtonText="Cancel"
+                confirmButtonText={confirmationModal.action === 'approve' ? t('confirmModal.approve') : confirmationModal.action === 'reject' ? t('confirmModal.reject') : t('confirmModal.confirm')}
+                cancelButtonText={t('confirmModal.cancel')}
                 isLoading={confirmationModal.isLoading}
                 variant={confirmationModal.action === 'reject' ? 'danger' : 'success'}
                 darkMode={true}

@@ -331,7 +331,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
               </span>
             ) : (
               <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold ${
-                darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60' : 'bg-gray-100 text-gray-700'
+                darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60' : 'bg-[#EBEBFE] text-gray-700'
               }`}>
                 <Clock size={14} /> {item.max_borrow_duration}m {t('max')}
               </span>
@@ -363,7 +363,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
         </div>
 
         {/* Footer Action */}
-        <div className={`mt-auto pt-4 border-t ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100 border-t-2'}`}>
+        <div className={`mt-auto pt-4 border-t ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10 border-t-2'}`}>
           {isAvailable ? (
             <>
               {checkingStatus ? (
@@ -372,7 +372,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                   className={`w-full py-3 rounded-xl text-sm font-bold cursor-not-allowed ${
                     darkMode 
                       ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 border border-[var(--dark-600)]' 
-                      : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                      : 'bg-[#EBEBFE] text-gray-400 border-2 border-[#4D4DA4]/15'
                   }`}
                 >
                   {t('checkingStatus')}
@@ -395,7 +395,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     className={`w-full py-3 rounded-xl text-sm font-bold cursor-not-allowed ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 border border-[var(--dark-600)]' 
-                        : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                        : 'bg-[#EBEBFE] text-gray-400 border-2 border-[#4D4DA4]/15'
                     }`}
                   >
                     {t('borrowItem')}
@@ -409,7 +409,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     loading
                       ? darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-600)]' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-200'
+                        : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed border-2 border-[#4D4DA4]/15'
                       : darkMode 
                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] hover:shadow-lg shadow-md'
@@ -427,7 +427,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                 loading
                   ? darkMode 
                     ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-600)]' 
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-200'
+                    : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed border-2 border-[#4D4DA4]/15'
                   : darkMode 
                     ? 'bg-[var(--brand-third)] text-[var(--dark-900)] hover:bg-[var(--brand-third)]/90' 
                     : 'bg-gradient-to-r from-[#10B981] to-[#059669] text-white hover:from-[#0EA572] hover:to-[#047857] hover:shadow-lg shadow-md'
@@ -445,7 +445,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     loading
                       ? darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-600)]' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-200'
+                        : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed border-2 border-[#4D4DA4]/15'
                       : darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-purple)] hover:bg-[var(--dark-600)] border border-[var(--brand-purple)]/30' 
                         : 'bg-[#4D4DA4]/10 text-[#4D4DA4] hover:bg-[#4D4DA4]/20 border-2 border-[#4D4DA4]/30 shadow-md'
@@ -459,7 +459,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                   className={`w-full py-3 rounded-xl text-sm font-bold cursor-not-allowed ${
                     darkMode 
                       ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 border border-[var(--dark-600)]' 
-                      : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                      : 'bg-[#EBEBFE] text-gray-400 border-2 border-[#4D4DA4]/15'
                   }`}
                 >
                   {t('checkingStatus')}
@@ -482,7 +482,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     className={`w-full py-3 rounded-xl text-sm font-bold cursor-not-allowed ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 border border-[var(--dark-600)]' 
-                        : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                        : 'bg-[#EBEBFE] text-gray-400 border-2 border-[#4D4DA4]/15'
                     }`}
                   >
                     {t('joinQueue')}
@@ -496,7 +496,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
                     loading
                       ? darkMode 
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 cursor-not-allowed border border-[var(--dark-600)]' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-gray-200'
+                        : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed border-2 border-[#4D4DA4]/15'
                       : darkMode 
                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white hover:from-[#3D3D94] hover:to-[#5D5DC4] hover:shadow-lg shadow-md'

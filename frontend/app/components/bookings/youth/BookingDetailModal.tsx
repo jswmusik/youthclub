@@ -92,7 +92,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
       >
         {/* Header - Fixed */}
         <div className={`flex justify-between items-start p-4 sm:p-6 border-b flex-shrink-0 ${
-          darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-100 bg-gradient-to-r from-[#EBEBFE]/30 to-white'
+          darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-[#4D4DA4]/10 bg-gradient-to-r from-[#EBEBFE]/30 to-white'
         }`}>
           <div>
             <h3 className={`text-xl sm:text-2xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'}`}>{t('bookingDetails')}</h3>
@@ -104,7 +104,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
             className={`w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0 transition-colors disabled:opacity-50 ${
               darkMode 
                 ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)]' 
-                : 'text-gray-400 hover:text-[#4D4DA4] hover:bg-gray-100'
+                : 'text-gray-400 hover:text-[#4D4DA4] hover:bg-[#EBEBFE]'
             }`}
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -165,7 +165,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
             </div>
             
             {booking.participants?.length > 0 && (
-              <div className={`border-t pt-3 sm:pt-4 mt-3 sm:mt-4 ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'}`}>
+              <div className={`border-t pt-3 sm:pt-4 mt-3 sm:mt-4 ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'}`}>
                 <div className="flex items-center gap-2 mb-2 sm:mb-3">
                   <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     darkMode ? 'bg-[var(--brand-peach)]/20' : 'bg-[#FF8C42]/10'
@@ -228,7 +228,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                     className={`w-full rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm font-medium transition-all ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-peach)]/30 focus:border-[var(--brand-peach)]' 
-                        : 'border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FF8C42]/20 focus:border-[#FF8C42]'
+                        : 'border-2 border-[#4D4DA4]/15 focus:outline-none focus:ring-2 focus:ring-[#FF8C42]/20 focus:border-[#FF8C42]'
                     }`} 
                     rows={2}
                     placeholder={t('cancellationNotePlaceholder')}
@@ -326,10 +326,10 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                   ? 'bg-[var(--brand-red)]/10 text-[var(--brand-red)] border border-[var(--brand-red)]/30' 
                   : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 border border-[var(--dark-600)]'
                 : booking.status === 'CANCELLED' 
-                  ? 'bg-gray-100 text-gray-700 border-2 border-gray-300' 
+                  ? 'bg-[#EBEBFE] text-gray-700 border-2 border-gray-300' 
                   : booking.status === 'REJECTED' 
                   ? 'bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-2 border-red-300' 
-                  : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+                  : 'bg-[#EBEBFE] text-gray-700 border-2 border-gray-300'
             }`}>
               {t('thisBookingIs', { status: t(`status.${booking.status.toLowerCase()}`) })}
             </div>

@@ -67,7 +67,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                 <div className={`overflow-hidden transition-all duration-200 ${
                     darkMode 
                         ? 'bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 
-                        : 'bg-white rounded-2xl border border-gray-200 hover:border-[#4D4DA4]/30 hover:shadow-lg'
+                        : 'bg-white rounded-2xl border border-[#4D4DA4]/15 hover:border-[#4D4DA4]/30 hover:shadow-lg'
                 }`}>
                     <div className="flex">
                         {/* Date Column */}
@@ -195,12 +195,12 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
                         
                         {/* Arrow indicator - centered on right side */}
                         <div className={`w-12 sm:w-14 flex-shrink-0 flex items-center justify-center ${
-                            darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                            darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
                         }`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                                 darkMode 
                                     ? 'bg-[var(--dark-600)] group-hover:bg-[var(--brand-primary)]' 
-                                    : 'bg-gray-100 group-hover:bg-[#4D4DA4]'
+                                    : 'bg-[#EBEBFE] group-hover:bg-[#4D4DA4]'
                             }`}>
                                 <ArrowRight className={`w-4 h-4 transition-colors ${
                                     darkMode 

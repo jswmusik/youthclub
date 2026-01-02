@@ -42,6 +42,10 @@
       "deleting": "Deleting..."
     }
   },
+  "navigation": {
+    "backToList": "Back to List",
+    "backToEvents": "Back to Events"
+  },
   "auth": {
     "login": "Sign In",
     "logout": "Logout",
@@ -1214,7 +1218,8 @@
       "description": "General information visible across the app.",
       "municipalityName": "Municipality Name",
       "municipalityCode": "Municipality Code",
-      "descriptionLabel": "Description"
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your municipality..."
     },
     "contactSocials": {
       "title": "Contact & Socials",
@@ -1229,7 +1234,21 @@
       "title": "Settings",
       "description": "Control member registration and policies.",
       "allowSelfRegistration": "Allow youth/guardians to self-register for verification",
-      "termsAndConditions": "Terms & Conditions"
+      "termsAndConditions": "Terms & Conditions",
+      "termsPlaceholder": "Enter terms and conditions for your municipality...",
+      "insertTemplate": "Insert Template"
+    },
+    "trialPeriod": {
+      "title": "Trial Period for New Users",
+      "description": "Give new youth members access to the platform before verification.",
+      "infoText": "New youth members can use the platform during the trial period before being verified by club staff.",
+      "infoSubtext": "Set to 0 days to require verification immediately upon registration.",
+      "daysLabel": "Number of days",
+      "days": "days",
+      "disabledHint": "Trial period is disabled. Youth members must be verified before logging in.",
+      "enabledHint": "New youth members get {days} days of access before verification is required.",
+      "statusEnabled": "Trial period enabled: {days} days",
+      "statusDisabled": "Trial period disabled - verification required immediately"
     },
     "dataRetention": {
       "title": "Data Retention (GDPR)",
@@ -2213,7 +2232,22 @@
     "openPdf": "Open PDF",
     "approved": "Approved",
     "rejected": "Rejected",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "verificationRequiredTitle": "Verification Required",
+    "verificationRequiredDescription": "Your account must be verified by staff at your youth club before you can access the platform.",
+    "trialExpiredTitle": "Trial Period Expired",
+    "trialExpiredDescription": "Your trial period has ended. Contact your youth club to verify your account and get full access.",
+    "noClubTitle": "No Club Selected",
+    "noClubDescription": "You haven't selected a youth club. Please contact support for assistance.",
+    "noClubHelp": "To use the platform, you need to be connected to a youth club. Contact support if you need help.",
+    "yourClub": "Your Club",
+    "yourClubDefault": "your club",
+    "contactClubMessage": "Visit your youth club or contact them to speed up verification. They can verify your account on the spot!",
+    "contactSupportMessage": "Contact support to get help connecting your account to a youth club.",
+    "understood": "I Understand",
+    "trialDaysRemaining": "{days} days left in trial",
+    "lastDayWarning": "Last day of trial!",
+    "getVerifiedMessage": "Visit {clubName} to verify your account"
   },
   "countriesAdmin": {
     "title": "Manage Countries",
@@ -2428,7 +2462,8 @@
         "requireGuardian": "Require Guardian",
         "requireGuardianDescription": "Youths must link a guardian upon registration",
         "termsConditions": "Terms & Conditions",
-        "termsConditionsPlaceholder": "Legal text shown to users during registration..."
+        "termsConditionsPlaceholder": "Legal text shown to users during registration...",
+        "insertTemplate": "Insert Template"
       },
       "license": {
         "title": "License & Limits",
@@ -2491,7 +2526,9 @@
       "yes": "Yes",
       "no": "No",
       "created": "Created",
-      "updated": "Updated"
+      "updated": "Updated",
+      "termsAndConditions": "Terms & Conditions",
+      "clubPolicies": "Club Policies"
     }
   },
   "clubsAdmin": {
@@ -2638,7 +2675,8 @@
         "termsConditions": "Terms & Conditions",
         "termsPlaceholder": "Enter terms and conditions for club membership...",
         "clubPolicies": "Club Policies",
-        "policiesPlaceholder": "Enter club policies and guidelines..."
+        "policiesPlaceholder": "Enter club policies and guidelines...",
+        "insertTemplate": "Insert Template"
       },
       "registrationSettings": {
         "title": "Registration Settings",
@@ -2821,6 +2859,7 @@
       "clubCategories": "Club Categories",
       "categoriesPlaceholder": "e.g. Sports, Arts, Music",
       "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe your club...",
       "logoAvatar": "Logo / Avatar",
       "heroImage": "Hero Image",
       "chooseFile": "Choose File",
@@ -2844,7 +2883,24 @@
       "title": "Policies",
       "description": "Legal documents and guidelines for your club.",
       "termsConditions": "Terms & Conditions",
-      "clubPolicies": "Club Policies"
+      "termsPlaceholder": "Enter terms and conditions for club membership...",
+      "clubPolicies": "Club Policies",
+      "policiesPlaceholder": "Enter club policies and guidelines...",
+      "insertTemplate": "Insert Template"
+    },
+    "trialPeriod": {
+      "title": "Trial Period (Override)",
+      "description": "Override the municipality's trial period setting for this club.",
+      "infoText": "New youth members can use the platform during the trial period before being verified by staff.",
+      "municipalityDefault": "Municipality default: {days} days",
+      "overrideLabel": "Override municipality trial period setting",
+      "daysLabel": "Number of days",
+      "days": "days",
+      "disabledHint": "Trial period is disabled for this club. Youth members must be verified immediately.",
+      "enabledHint": "New youth members get {days} days of access before verification is required.",
+      "statusOverride": "Overridden: {days} days trial period",
+      "statusDefault": "Using municipality default: {days} days",
+      "statusDisabled": "Trial period disabled - verification required immediately"
     },
     "buttons": {
       "cancel": "Cancel",
@@ -3169,8 +3225,11 @@
       "navigation": "Navigation",
       "features": "Features",
       "cookieConsent": "Cookie Consent",
+      "pricingPage": "Pricing Page",
+      "contactPage": "Contact Page",
       "dataRetention": "Data Retention",
       "emailTemplates": "Email Templates",
+      "boilerplates": "Text Templates",
       "customFields": "Custom Fields",
       "questionnaires": "Questionnaires",
       "manageInterests": "Manage Interests",
@@ -3843,6 +3902,10 @@
       "password": "Password",
       "newPassword": "New Password (Optional)",
       "phone": "Phone",
+      "passwordRequirements": "Password Requirements",
+      "req8chars": "At least 8 characters",
+      "req1number": "At least one number",
+      "req1special": "At least one special character",
       "placeholders": {
         "firstName": "John",
         "lastName": "Doe",
@@ -4127,9 +4190,9 @@
       "pending": "Pending",
       "unverified": "Unverified",
       "allIdDocStatus": "All ID Doc Status",
-      "pendingReview": "⏳ Pending Review",
-      "approved": "✓ Approved",
-      "rejected": "✗ Rejected",
+      "pendingReview": "Pending Review",
+      "approved": "Approved",
+      "rejected": "Rejected",
       "notSubmitted": "Not Submitted",
       "allMunicipalities": "All Municipalities"
     },
@@ -4337,6 +4400,11 @@
         "rejectionReasonRequired": "Please provide a rejection reason"
       }
     }
+  },
+  "customFieldsDisplay": {
+    "noAdditionalInfo": "No additional information available",
+    "yes": "Yes",
+    "no": "No"
   },
   "guardianDetail": {
     "loading": "Loading guardian details...",
@@ -4745,7 +4813,29 @@
     "title": "News Archive",
     "description": "Browse all published articles",
     "backToFeed": "Back to Feed",
-    "loading": "Loading archive..."
+    "loading": "Loading archive...",
+    "searching": "Searching archives...",
+    "noArticlesFound": "No articles found matching your filters.",
+    "noImage": "No Image",
+    "byAuthor": "By {author}",
+    "readFullArticle": "Read Full Article",
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Title, excerpt, or author...",
+      "tag": "Tag",
+      "allTags": "All Tags",
+      "sortBy": "Sort By",
+      "newestFirst": "Newest First",
+      "oldestFirst": "Oldest First",
+      "titleAZ": "Title (A-Z)",
+      "clear": "Clear"
+    },
+    "pagination": {
+      "showing": "Showing {count} of {total} articles",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {totalPages}"
+    }
   },
   "postsManager": {
     "title": "Manage Posts",
@@ -5210,6 +5300,7 @@
     "toast": {
       "templateDeleted": "Template deleted successfully!",
       "failedToDelete": "Failed to delete template.",
+      "templateAlreadyDeleted": "Template was already deleted.",
       "templateDuplicated": "Template duplicated!",
       "failedToDuplicate": "Failed to duplicate template.",
       "templateActivated": "Template activated!",
@@ -5729,6 +5820,72 @@
         "status": "Status",
         "confirmed": "Confirmed",
         "waitlistStatus": "Waitlist"
+      },
+      "participants": {
+        "loading": "Loading participants...",
+        "total": "Total",
+        "filters": {
+          "all": "All",
+          "approved": "Approved",
+          "waitlist": "Waitlist",
+          "pending": "Pending"
+        },
+        "tableHeaders": {
+          "user": "User",
+          "date": "Date",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "status": {
+          "approved": "APPROVED",
+          "waitlist": "WAITLIST",
+          "pendingGuardian": "PENDING GUARDIAN",
+          "pendingAdmin": "PENDING ADMIN",
+          "rejected": "REJECTED",
+          "cancelled": "CANCELLED",
+          "attended": "ATTENDED"
+        },
+        "actions": {
+          "approve": "Approve",
+          "reject": "Reject",
+          "waitingForParent": "Waiting for parent"
+        },
+        "customFields": {
+          "title": "Registration Responses",
+          "viewResponses": "View Responses",
+          "yes": "Yes",
+          "no": "No"
+        },
+        "emptyState": {
+          "noParticipants": "No participants found in this category."
+        },
+        "pagination": {
+          "page": "Page",
+          "of": "of",
+          "total": "total",
+          "prev": "Prev",
+          "next": "Next"
+        },
+        "mobile": {
+          "registered": "Registered"
+        },
+        "confirmModal": {
+          "approveTitle": "Approve Registration?",
+          "rejectTitle": "Reject Registration?",
+          "confirmAction": "Confirm Action",
+          "approveMessage": "Are you sure you want to approve {name}'s registration? They will receive a confirmed seat.",
+          "rejectMessage": "Are you sure you want to reject {name}'s registration? This action cannot be undone.",
+          "genericMessage": "Are you sure you want to proceed?",
+          "approve": "Approve",
+          "reject": "Reject",
+          "confirm": "Confirm",
+          "cancel": "Cancel"
+        },
+        "toast": {
+          "approvedSuccess": "Registration approved successfully",
+          "rejectedSuccess": "Registration rejected successfully",
+          "failedToLoad": "Failed to load participants"
+        }
       }
     },
     "calendar": {
@@ -6161,6 +6318,11 @@
           "status": "Status",
           "joined": "Joined",
           "actions": "Actions"
+        },
+        "status": {
+          "APPROVED": "Approved",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected"
         },
         "actions": {
           "approve": "Approve member",
@@ -6841,6 +7003,7 @@
       "backToInventory": "Back to Inventory",
       "analyticsDashboard": "Analytics Dashboard",
       "analytics": {
+        "total": "Total",
         "totalBorrowed": "Total Borrowed",
         "demographics": "Demographics",
         "male": "Male",
@@ -7122,7 +7285,7 @@
         "requested": "Requested"
       },
       "emptyState": {
-        "noPendingRequests": "No pending requests 🎉",
+        "noPendingRequests": "No pending requests",
         "allProcessed": "All booking requests have been processed."
       },
       "pagination": {
@@ -7173,6 +7336,13 @@
         "cancelBooking": "Are you sure you want to cancel this booking? The time slot will become available again.",
         "cancelThisInstance": "Cancel only this instance? The rest of the series will remain.",
         "cancelEntireSeries": "Cancel this instance and all future instances? This cannot be undone."
+      },
+      "confirmModal": {
+        "title": "Cancel Booking",
+        "subtitle": "This action cannot be undone",
+        "seriesWarning": "This will cancel all future instances in the series. This action cannot be undone.",
+        "cancel": "Go Back",
+        "confirm": "Cancel Booking"
       },
       "toast": {
         "bookingApproved": "Booking approved successfully!",
@@ -7448,6 +7618,8 @@
         "noBookingsHintGeneral": "Create a booking or select a resource to view its schedule."
       },
       "emptyState": {
+        "selectResource": "Select a resource to view bookings",
+        "selectResourceHint": "Please select a club and resource from the filters above to view available time slots and bookings.",
         "noBookingsForResource": "No bookings found for this resource this week",
         "noBookingsForWeek": "No bookings found for this week",
         "hintForResource": "This resource has no bookings yet. Click \"New Booking\" to create one, or check the Schedule page to ensure time slots are configured.",
@@ -7468,8 +7640,14 @@
         "date": "3. Date",
         "timeSlot": "4. Time Slot",
         "selectTimeSlot": "4. Select Available Time Slot",
-        "recurringOptions": "5. Recurring Options"
+        "extraParticipants": "5. Extra Participants",
+        "recurringOptions": "6. Recurring Options"
       },
+      "optional": "optional",
+      "extraParticipantsHint": "Add up to {max} extra participants who will join this booking.",
+      "participantNamePlaceholder": "Enter participant name...",
+      "addParticipant": "Add",
+      "maxParticipantsReachedHint": "Maximum number of extra participants reached.",
       "searchPlaceholder": "Search by name or email...",
       "change": "Change",
       "chooseResource": "-- Choose Room or Equipment --",
@@ -7491,11 +7669,14 @@
       "creating": "Creating...",
       "createBooking": "Create Booking",
       "toast": {
+        "success": "Booking created successfully!",
         "specifyWeeks": "Please specify the number of weeks for recurring booking.",
         "bookingCreated": "Booking{recurringMessage} created successfully for {firstName} {lastName}!",
         "recurringForever": " (recurring forever)",
         "recurringWeeks": " (recurring for {weeks} weeks)",
-        "failedToCreate": "Failed to create booking."
+        "failedToCreate": "Failed to create booking.",
+        "maxParticipantsReached": "Maximum number of participants reached.",
+        "weeklyLimitReached": "Weekly booking limit reached. Maximum {max} booking(s) per week allowed. User currently has {current} booking(s) this week."
       }
     }
   },
@@ -8352,7 +8533,11 @@
       }
     },
     "cookies": {
+      "pageTitle": "Cookie Consent",
+      "pageDescription": "Manage cookie policies and consent banners",
       "stats": {
+        "title": "Overview",
+        "description": "Current status of cookie policies",
         "totalPolicies": "Total Policies",
         "activeVersion": "Active Version",
         "archived": "Archived",
@@ -9332,6 +9517,59 @@
       }
     }
   },
+  "boilerplates": {
+    "title": "Text Templates",
+    "subtitle": "Manage reusable text templates for terms, rules, and policies",
+    "createNew": "New Template",
+    "search": "Search templates...",
+    "filterByUsage": "Filter by usage",
+    "allUsages": "All usages",
+    "noBoilerplates": "No text templates found",
+    "inactive": "Inactive",
+    "active": "Active",
+    "name": "Name",
+    "namePlaceholder": "Enter template name...",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what this template is used for...",
+    "usage": "Usage",
+    "order": "Order",
+    "status": "Status",
+    "activeStatus": "Active",
+    "activeStatusDescription": "Inactive templates won't appear in template selection",
+    "content": "Content",
+    "contentPlaceholder": "Write the template content here...",
+    "contentPreview": "Content Preview",
+    "noContent": "No content yet. Click Edit to add content.",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "create": "Create",
+    "selectBoilerplate": {
+      "title": "Select a text template",
+      "subtitle": "Select a text template from the list to view or edit its content."
+    },
+    "createDialog": {
+      "title": "Create New Text Template",
+      "subtitle": "Create a new reusable text template that can be used in forms."
+    },
+    "deleteModal": {
+      "title": "Delete Text Template",
+      "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "loadFailed": "Failed to load text templates",
+      "saveSuccess": "Text template saved",
+      "saveFailed": "Failed to save text template",
+      "createSuccess": "Text template created",
+      "createFailed": "Failed to create text template",
+      "deleteSuccess": "Text template deleted",
+      "deleteFailed": "Failed to delete text template",
+      "copied": "Content copied to clipboard"
+    }
+  },
   "emailTemplates": {
     "title": "Email Templates",
     "subtitle": "Manage and customize email notifications sent to users",
@@ -9409,6 +9647,16 @@
       "previewFailed": "Failed to generate preview",
       "testSent": "Test email sent to {email}",
       "testFailed": "Failed to send test email"
+    },
+    "languages": {
+      "swedish": "Swedish",
+      "english": "English",
+      "arabic": "Arabic",
+      "danish": "Danish",
+      "finnish": "Finnish",
+      "norwegian": "Norwegian",
+      "dariPersian": "Dari/Persian",
+      "somali": "Somali"
     }
   },
   "dataRetention": {
@@ -10014,6 +10262,272 @@
       "rejected": "Rejected",
       "cancelled": "Cancelled",
       "attended": "Attended"
+    }
+  },
+  "analyticsAdmin": {
+    "title": "Analytics Dashboard",
+    "municipalityTitle": "Municipality Overview",
+    "clubTitle": "Analytics Dashboard",
+    "subtitle": "Real-time insights on visits, inventory, and engagement",
+    "municipalitySubtitle": "Aggregated analytics across all clubs",
+    "liveData": "Live Data",
+    "failedToLoad": "Failed to load analytics data.",
+    "failedToLoadRetry": "Failed to load analytics data. Please try again.",
+    "filters": {
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "club": "Club",
+      "allClubs": "All Clubs",
+      "group": "Group",
+      "groupActive": "(Active)",
+      "allYouthMembers": "All Youth Members",
+      "municipalityWide": "(Municipality-wide)",
+      "gender": "Gender",
+      "allGenders": "All Genders",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "more": "More",
+      "loading": "Loading...",
+      "update": "Update",
+      "active": "Active:",
+      "grades": "grade(s)",
+      "interests": "interest(s)",
+      "age": "Age:",
+      "clear": "Clear",
+      "groupNote": "A group is selected. The filters below are disabled because groups are pre-built segments.",
+      "gradesLabel": "Grades",
+      "grade1": "1st Grade",
+      "grade2": "2nd Grade",
+      "grade3": "3rd Grade",
+      "grade4": "4th Grade",
+      "grade5": "5th Grade",
+      "grade6": "6th Grade",
+      "grade7": "7th Grade",
+      "grade8": "8th Grade",
+      "grade9": "9th Grade",
+      "ageRange": "Age Range",
+      "min": "Min",
+      "max": "Max",
+      "interestsLabel": "Interests",
+      "noInterestsDefined": "No interests defined",
+      "customFields": "Custom Fields",
+      "noCustomFieldsAvailable": "No custom fields available",
+      "all": "All"
+    },
+    "settings": {
+      "title": "Dashboard Settings",
+      "sectionsVisible": "{visible} of {total} sections visible",
+      "quickActions": "Quick Actions",
+      "showAll": "Show All",
+      "hideAll": "Hide All",
+      "preferencesNote": "Your preferences are saved automatically and will be remembered on your next visit."
+    },
+    "sections": {
+      "keyMetrics": "Key Metrics",
+      "keyMetricsDesc": "Members, visits, avg stay, retention, loans",
+      "peakTrafficHours": "Peak Traffic Hours",
+      "peakTrafficHoursDesc": "Heatmap showing busiest times",
+      "topBorrowedItems": "Top Borrowed Items",
+      "topBorrowedItemsDesc": "Most popular inventory items",
+      "demographics": "Demographics",
+      "demographicsDesc": "Gender balance & grade distribution",
+      "topInterests": "Top Interests",
+      "topInterestsDesc": "Most popular member interests",
+      "insights": "Insights",
+      "insightsDesc": "Retention & network insights",
+      "questionnaireAnalytics": "Questionnaire Analytics",
+      "questionnaireAnalyticsDesc": "Survey participation & demographics",
+      "bookingAnalytics": "Booking Analytics",
+      "bookingAnalyticsDesc": "Room & equipment reservations",
+      "groupComparison": "Group Comparison",
+      "groupComparisonDesc": "Compare metrics across groups",
+      "clubComparison": "Club Comparison",
+      "clubComparisonDesc": "Compare metrics across clubs",
+      "eventAnalytics": "Event Analytics",
+      "eventAnalyticsDesc": "Event registrations & attendance",
+      "topMemberInterests": "Top Member Interests"
+    },
+    "metrics": {
+      "members": "Members",
+      "basedOnFilters": "Based on current filters",
+      "visits": "Visits",
+      "uniqueYouths": "{count} unique youths",
+      "avgStay": "Avg Stay",
+      "medianTime": "Median time per visit",
+      "retention": "Retention",
+      "returnedFromPrev": "Returned from prev. period",
+      "nomads": "Nomads",
+      "visitMultipleClubs": "Visit >1 club",
+      "loans": "Loans",
+      "itemsBorrowed": "Items borrowed",
+      "unused": "{count} unused"
+    },
+    "insights": {
+      "retentionInsight": "Retention Insight",
+      "retentionText": "of youths who visited last month returned this month.",
+      "belowAverage": "Below average. Consider organizing a 'Come Back' event.",
+      "greatRetention": "Great retention rate!",
+      "networkInsight": "Network Insight",
+      "networkText": "of your members visit other clubs in the municipality.",
+      "connectedNetwork": "Building a connected youth network"
+    },
+    "ai": {
+      "title": "AI Report Generator",
+      "subtitle": "Generate insights using AI",
+      "notConfigured": "Not configured",
+      "notConfiguredTitle": "AI not configured",
+      "notConfiguredMessage": "Set {anthropicKey} or {openaiKey} environment variable to enable AI reports.",
+      "whatToKnow": "What would you like to know?",
+      "placeholder": "e.g., Write a summary of our engagement metrics and suggest improvements...",
+      "examplePrompt1": "Summarize our key metrics and suggest improvements",
+      "examplePrompt2": "What areas need attention based on this data?",
+      "examplePrompt3": "Analyze member engagement and retention",
+      "reportType": "Report Type",
+      "quickSummary": "Quick Summary",
+      "quickSummaryDesc": "250-400 words",
+      "monthlyReport": "Monthly Report",
+      "monthlyReportDesc": "600-900 words",
+      "trendAnalysis": "Trend Analysis",
+      "trendAnalysisDesc": "500-700 words",
+      "language": "Language",
+      "english": "English",
+      "swedish": "Svenska",
+      "norwegian": "Norsk",
+      "aiModel": "AI Model",
+      "claudeAnthropic": "Claude (Anthropic)",
+      "gpt4OpenAI": "GPT-4 (OpenAI)",
+      "generateReport": "Generate Report",
+      "generating": "Generating...",
+      "analyzingData": "Analyzing your data...",
+      "processingMetrics": "Processing metrics...",
+      "generatingInsights": "Generating insights...",
+      "writingRecommendations": "Writing recommendations...",
+      "finalizingReport": "Finalizing report...",
+      "mayTake": "This may take 10-20 seconds",
+      "enterRequest": "Please enter a request or question",
+      "failedToGenerate": "Failed to generate report",
+      "failedToGenerateRetry": "Failed to generate report. Please try again.",
+      "generatedReport": "Generated Report",
+      "copied": "Copied!",
+      "copyToClipboard": "Copy to clipboard",
+      "downloadMarkdown": "Download as Markdown",
+      "clearReport": "Clear report"
+    },
+    "clubComparison": {
+      "title": "Club Comparison",
+      "subtitle": "Performance rankings across all clubs",
+      "rankedByTraffic": "Ranked by Traffic",
+      "clubName": "Club Name",
+      "totalVisits": "Total Visits",
+      "uniqueYouths": "Unique Youths",
+      "visitsPerUser": "Visits/User",
+      "events": "Events",
+      "newMembers": "New Members",
+      "users": "Users",
+      "new": "New",
+      "showingClubs": "Showing {count} clubs",
+      "totalVisitsSum": "Total visits: {count}"
+    },
+    "heatmap": {
+      "title": "Peak Traffic Hours",
+      "days": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      },
+      "less": "Less",
+      "more": "More",
+      "maxVisits": "Max: {count} visits",
+      "visitSingular": "visit",
+      "visitPlural": "visits",
+      "tooltipAt": "at"
+    },
+    "inventory": {
+      "title": "Top Borrowed Items",
+      "total": "{count} total",
+      "noBorrowedItems": "No borrowed items in this period",
+      "showingTop": "Showing top {count} items",
+      "mostBorrowed": "Most borrowed: {item}"
+    },
+    "demographics": {
+      "genderBalance": "Gender Balance",
+      "membersByGrade": "Members by Grade",
+      "noGenderData": "No gender data available",
+      "noGradeData": "No grade data available",
+      "boys": "Boys",
+      "girls": "Girls",
+      "other": "Other",
+      "total": "total",
+      "totalMembers": "Total: {count} members",
+      "peakGrade": "Peak: {grade}th grade",
+      "gradeLabel": "{grade}th"
+    },
+    "groupComparison": {
+      "title": "Group Comparison",
+      "subtitle": "{count} groups • {members} total members",
+      "newMembers": "+{count} new",
+      "groupName": "Group Name",
+      "members": "Members",
+      "checkIns": "Check-ins",
+      "genderBalance": "Gender Balance",
+      "new": "New",
+      "municipalityWide": "Municipality-wide",
+      "totalGroups": "Total ({count} groups)",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "sortedByMembers": "Sorted by total members"
+    },
+    "questionnaire": {
+      "title": "Questionnaire Analytics",
+      "subtitle": "Survey participation & demographics",
+      "questionnaires": "Questionnaires",
+      "noQuestionnaires": "No questionnaires in this period",
+      "participationRate": "Participation Rate",
+      "responses": "responses",
+      "completed": "Completed",
+      "started": "Started",
+      "noResponse": "No response",
+      "participantGender": "Participant Gender",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "totalEligible": "Total eligible members"
+    },
+    "booking": {
+      "title": "Booking Analytics",
+      "subtitle": "Room & equipment reservations",
+      "totalBookings": "Total Bookings",
+      "noBookings": "No bookings in this period",
+      "whosBooking": "Who's Booking?",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "uniqueBookers": "Unique Bookers",
+      "bookingsPerPerson": "Bookings/Person",
+      "topMostBooked": "Top 8 Most Booked",
+      "noResourcesBooked": "No resources booked"
+    },
+    "events": {
+      "title": "Event Analytics",
+      "subtitle": "Performance overview",
+      "eventsLabel": "Events",
+      "registrations": "Registrations",
+      "showUpRate": "Show-up Rate",
+      "avgCapacity": "Avg. Capacity",
+      "registrationStatus": "Registration Status",
+      "attended": "ATTENDED",
+      "approved": "APPROVED",
+      "pending": "PENDING",
+      "cancelled": "CANCELLED",
+      "topEvents": "Top Events by Registrations",
+      "noEvents": "No events in this period",
+      "createEventHint": "Create an event to start tracking analytics"
     }
   }
 }

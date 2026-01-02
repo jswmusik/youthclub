@@ -164,7 +164,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                   </Link>
                   <div className="flex items-center gap-3 text-[var(--brand-light)]/60 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs font-bold">
+                      <div className="w-6 h-6 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] text-xs font-bold">
                         {getAuthorInitials(hero.author_name)}
                       </div>
                       <span>{hero.author_name}</span>
@@ -186,8 +186,8 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
           {/* Section Header */}
           <div className="flex items-center justify-between mb-6 px-4 sm:px-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Newspaper className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Newspaper className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h3 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('recentStories.title')}</h3>

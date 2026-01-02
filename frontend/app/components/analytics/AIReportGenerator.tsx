@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { 
   Sparkles, 
   FileText, 
@@ -33,32 +34,6 @@ interface Props {
   visibleSections?: AnalyticsPreferences;  // Optional: Only report on visible sections
 }
 
-const REPORT_TYPES: { value: AIReportType; label: string; description: string }[] = [
-  { value: 'summary', label: 'Quick Summary', description: '250-400 words' },
-  { value: 'monthly', label: 'Monthly Report', description: '600-900 words' },
-  { value: 'trend', label: 'Trend Analysis', description: '500-700 words' },
-];
-
-const LANGUAGES: { value: AILanguage; label: string; flag: string }[] = [
-  { value: 'en', label: 'English', flag: '🇬🇧' },
-  { value: 'sv', label: 'Svenska', flag: '🇸🇪' },
-  { value: 'no', label: 'Norsk', flag: '🇳🇴' },
-];
-
-const EXAMPLE_PROMPTS = [
-  "Summarize our key metrics and suggest improvements",
-  "What areas need attention based on this data?",
-  "Analyze member engagement and retention",
-];
-
-const STATUS_MESSAGES = [
-  { text: 'Analyzing your data...', duration: 2000 },
-  { text: 'Processing metrics...', duration: 2500 },
-  { text: 'Generating insights...', duration: 3000 },
-  { text: 'Writing recommendations...', duration: 3500 },
-  { text: 'Finalizing report...', duration: 4000 },
-];
-
 const selectArrowStyle = {
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat',
@@ -67,6 +42,7 @@ const selectArrowStyle = {
 };
 
 export default function AIReportGenerator({ filters, className = '', visibleSections }: Props) {
+  const t = useTranslations('analyticsAdmin.ai');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +59,32 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
   
   const [providersInfo, setProvidersInfo] = useState<AIProvidersResponse | null>(null);
   const [loadingProviders, setLoadingProviders] = useState(false);
+
+  const REPORT_TYPES: { value: AIReportType; label: string; description: string }[] = [
+    { value: 'summary', label: t('quickSummary'), description: t('quickSummaryDesc') },
+    { value: 'monthly', label: t('monthlyReport'), description: t('monthlyReportDesc') },
+    { value: 'trend', label: t('trendAnalysis'), description: t('trendAnalysisDesc') },
+  ];
+
+  const LANGUAGES: { value: AILanguage; label: string; flag: string }[] = [
+    { value: 'en', label: t('english'), flag: '🇬🇧' },
+    { value: 'sv', label: t('swedish'), flag: '🇸🇪' },
+    { value: 'no', label: t('norwegian'), flag: '🇳🇴' },
+  ];
+
+  const EXAMPLE_PROMPTS = [
+    t('examplePrompt1'),
+    t('examplePrompt2'),
+    t('examplePrompt3'),
+  ];
+
+  const STATUS_MESSAGES = [
+    { text: t('analyzingData'), duration: 2000 },
+    { text: t('processingMetrics'), duration: 2500 },
+    { text: t('generatingInsights'), duration: 3000 },
+    { text: t('writingRecommendations'), duration: 3500 },
+    { text: t('finalizingReport'), duration: 4000 },
+  ];
   
   useEffect(() => {
     if (isLoading) {
@@ -132,7 +134,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
   
   const handleGenerate = async () => {
     if (!userRequest.trim()) {
-      setError('Please enter a request or question');
+      setError(t('enterRequest'));
       return;
     }
     
@@ -153,11 +155,11 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
       if (result.success) {
         setReport(result.report);
       } else {
-        setError('Failed to generate report');
+        setError(t('failedToGenerate'));
       }
     } catch (err: any) {
       console.error('AI report error:', err);
-      setError(err.response?.data?.error || 'Failed to generate report. Please try again.');
+      setError(err.response?.data?.error || t('failedToGenerateRetry'));
     } finally {
       setIsLoading(false);
     }
@@ -201,14 +203,14 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div className="text-left">
-            <h3 className="font-semibold text-[var(--brand-light)]">AI Report Generator</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">Generate insights using AI</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {!isConfigured && providersInfo && (
             <span className="text-xs text-[#F97316] bg-[#F97316]/10 px-2 py-1 rounded-full border border-[#F97316]/30">
-              Not configured
+              {t('notConfigured')}
             </span>
           )}
           {isExpanded ? (
@@ -227,10 +229,12 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
             <div className="mt-4 bg-[#F97316]/10 border border-[#F97316]/30 rounded-xl p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-[#F97316] flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-[#F97316]">AI not configured</p>
+                <p className="text-sm font-medium text-[#F97316]">{t('notConfiguredTitle')}</p>
                 <p className="text-xs text-[#F97316]/80 mt-1">
-                  Set <code className="bg-[#F97316]/20 px-1 rounded">ANTHROPIC_API_KEY</code> or{' '}
-                  <code className="bg-[#F97316]/20 px-1 rounded">OPENAI_API_KEY</code> environment variable to enable AI reports.
+                  {t.rich('notConfiguredMessage', {
+                    anthropicKey: () => <code className="bg-[#F97316]/20 px-1 rounded">ANTHROPIC_API_KEY</code>,
+                    openaiKey: () => <code className="bg-[#F97316]/20 px-1 rounded">OPENAI_API_KEY</code>
+                  })}
                 </p>
               </div>
             </div>
@@ -242,12 +246,12 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
               {/* User Request Input */}
               <div className="mt-4">
                 <label className="text-xs font-medium text-[var(--brand-light)]/60 mb-2 block">
-                  What would you like to know?
+                  {t('whatToKnow')}
                 </label>
                 <textarea
                   value={userRequest}
                   onChange={(e) => setUserRequest(e.target.value)}
-                  placeholder="e.g., Write a summary of our engagement metrics and suggest improvements..."
+                  placeholder={t('placeholder')}
                   className="w-full p-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm placeholder-[var(--brand-light)]/30 resize-none focus:border-[var(--brand-primary)] outline-none transition-colors"
                   rows={3}
                   disabled={isLoading}
@@ -274,7 +278,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                 <div>
                   <label className="text-xs font-medium text-[var(--brand-light)]/60 mb-1.5 flex items-center gap-1.5">
                     <FileText className="w-3 h-3" />
-                    Report Type
+                    {t('reportType')}
                   </label>
                   <select
                     value={reportType}
@@ -298,7 +302,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                 <div>
                   <label className="text-xs font-medium text-[var(--brand-light)]/60 mb-1.5 flex items-center gap-1.5">
                     <Languages className="w-3 h-3" />
-                    Language
+                    {t('language')}
                   </label>
                   <select
                     value={language}
@@ -319,7 +323,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                 <div>
                   <label className="text-xs font-medium text-[var(--brand-light)]/60 mb-1.5 flex items-center gap-1.5">
                     <Bot className="w-3 h-3" />
-                    AI Model
+                    {t('aiModel')}
                   </label>
                   <select
                     value={provider || ''}
@@ -330,7 +334,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                   >
                     {providersInfo?.available_providers.map((p) => (
                       <option key={p} value={p}>
-                        {p === 'anthropic' ? 'Claude (Anthropic)' : 'GPT-4 (OpenAI)'}
+                        {p === 'anthropic' ? t('claudeAnthropic') : t('gpt4OpenAI')}
                       </option>
                     ))}
                   </select>
@@ -346,12 +350,12 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Generating...
+                    {t('generating')}
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-5 h-5" />
-                    Generate Report
+                    {t('generateReport')}
                   </>
                 )}
               </button>
@@ -365,7 +369,7 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                     </div>
                     <div>
                       <p className="text-sm font-medium text-[var(--brand-purple)]">{statusMessage}</p>
-                      <p className="text-xs text-[var(--brand-purple)]/60 mt-0.5">This may take 10-20 seconds</p>
+                      <p className="text-xs text-[var(--brand-purple)]/60 mt-0.5">{t('mayTake')}</p>
                     </div>
                   </div>
                 </div>
@@ -386,18 +390,18 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                   <div className="px-4 py-3 border-b border-[var(--dark-500)] flex items-center justify-between bg-[var(--dark-600)]">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-[var(--brand-purple)]" />
-                      <span className="text-sm font-medium text-[var(--brand-light)]">Generated Report</span>
+                      <span className="text-sm font-medium text-[var(--brand-light)]">{t('generatedReport')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleCopy}
                         className="p-1.5 text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-500)] rounded-lg transition-colors flex items-center gap-1"
-                        title="Copy to clipboard"
+                        title={t('copyToClipboard')}
                       >
                         {copied ? (
                           <>
                             <Check className="w-4 h-4 text-[var(--brand-green)]" />
-                            <span className="text-xs text-[var(--brand-green)]">Copied!</span>
+                            <span className="text-xs text-[var(--brand-green)]">{t('copied')}</span>
                           </>
                         ) : (
                           <Copy className="w-4 h-4" />
@@ -406,14 +410,14 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
                       <button
                         onClick={handleDownload}
                         className="p-1.5 text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-500)] rounded-lg transition-colors"
-                        title="Download as Markdown"
+                        title={t('downloadMarkdown')}
                       >
                         <Download className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setReport(null)}
                         className="p-1.5 text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-lg transition-colors"
-                        title="Clear report"
+                        title={t('clearReport')}
                       >
                         <X className="w-4 h-4" />
                       </button>

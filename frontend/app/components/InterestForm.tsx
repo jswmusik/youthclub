@@ -177,8 +177,8 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
             {/* Card Header */}
             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Heart className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
@@ -240,8 +240,8 @@ export default function InterestForm({ initialData, redirectPath }: InterestForm
             {/* Card Header */}
             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="font-semibold text-[var(--brand-light)]">{t('coverImage.title')}</h2>

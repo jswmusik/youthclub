@@ -62,7 +62,7 @@ function QuestionnairesPageContent() {
       <div className="flex flex-col gap-4 px-4 sm:px-0">
         <Link 
           href={`/admin/super/youth/${id}`}
-          className="inline-flex items-center gap-2 text-sm text-[var(--brand-light)]/50 hover:text-[var(--brand-primary)] transition-colors w-fit"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:border-[var(--brand-primary)]/30 transition-all text-sm font-medium w-fit"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('header.backToProfile')}

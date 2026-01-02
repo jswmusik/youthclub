@@ -386,14 +386,14 @@ export default function GuardianEventApprovalList({ registrations, onRefresh, on
 
                 {/* Arrow Indicator */}
                 <div className={`hidden sm:flex w-14 items-center justify-center ${
-                  darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-50'
+                  darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#F8F7FE]'
                 }`}>
                   <button
                     onClick={() => setSelectedReg(reg)}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                       darkMode 
                         ? 'bg-[var(--dark-500)] text-[var(--brand-light)]/50 group-hover:bg-[var(--brand-primary)] group-hover:text-[var(--dark-900)]' 
-                        : 'bg-gray-100 text-gray-400 group-hover:bg-[#4D4DA4] group-hover:text-white'
+                        : 'bg-[#EBEBFE] text-gray-400 group-hover:bg-[#4D4DA4] group-hover:text-white'
                     }`}
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -598,7 +598,7 @@ function EventDetailModal({
             {/* Date & Time */}
             {eventDate && (
               <div className={`flex items-start gap-3 p-3 rounded-xl ${
-                darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
               }`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   darkMode ? 'bg-[var(--dark-600)]' : 'bg-white shadow-sm'
@@ -620,7 +620,7 @@ function EventDetailModal({
             {/* Location */}
             {event?.location_name && (
               <div className={`flex items-start gap-3 p-3 rounded-xl ${
-                darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
               }`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   darkMode ? 'bg-[var(--dark-600)]' : 'bg-white shadow-sm'
@@ -639,7 +639,7 @@ function EventDetailModal({
             <div className="flex gap-3">
               {/* Price */}
               <div className={`flex-1 flex items-center gap-3 p-3 rounded-xl ${
-                darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
               }`}>
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   darkMode ? 'bg-[var(--dark-600)]' : 'bg-white shadow-sm'
@@ -659,7 +659,7 @@ function EventDetailModal({
               {/* Capacity */}
               {event?.max_seats && event.max_seats > 0 && (
                 <div className={`flex-1 flex items-center gap-3 p-3 rounded-xl ${
-                  darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                  darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
                 }`}>
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                     darkMode ? 'bg-[var(--dark-600)]' : 'bg-white shadow-sm'
@@ -699,7 +699,7 @@ function EventDetailModal({
               className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium transition-all ${
                 darkMode
                   ? 'bg-[var(--dark-700)] text-[var(--brand-light)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-[#EBEBFE] text-gray-700 hover:bg-gray-200'
               }`}
             >
               <ExternalLink className="w-4 h-4" />
@@ -710,7 +710,7 @@ function EventDetailModal({
 
         {/* Footer Actions */}
         <div className={`flex-shrink-0 p-5 border-t ${
-          darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-100 bg-gray-50'
+          darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
         }`}>
           <div className="flex gap-3">
             <button

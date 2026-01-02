@@ -136,7 +136,7 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'}`}>
+                    <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <h2 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{t('title')}</h2>
@@ -233,7 +233,7 @@ export default function AdminSearchModal({ isOpen, onClose, onMessageSent, onErr
                                             className={`w-full p-4 flex items-center gap-3 rounded-lg transition-colors text-left ${
                                                 darkMode 
                                                     ? 'hover:bg-[var(--dark-600)]' 
-                                                    : 'hover:bg-gray-50'
+                                                    : 'hover:bg-[#F8F7FE]'
                                             }`}
                                         >
                                             {/* Avatar */}

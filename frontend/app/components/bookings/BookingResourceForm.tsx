@@ -345,8 +345,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Package className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInformation.title')}</h2>
@@ -490,8 +490,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <ImageIcon className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.resourceImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
@@ -556,8 +556,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rulesAndLimits.title')}</h2>
@@ -713,8 +713,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Settings className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                  <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.settings.title')}</h2>

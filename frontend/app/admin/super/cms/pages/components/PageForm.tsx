@@ -18,7 +18,7 @@ interface PageFormProps {
 export default function PageForm({ initialData, isEditing = false }: PageFormProps) {
   const t = useTranslations('cmsAdmin.form');
   const router = useRouter();
-  const { showToast } = useToast();
+  const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'content' | 'settings' | 'seo' | 'author'>('content');
 
@@ -192,31 +192,31 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
 
       if (isEditing && initialData) {
         await cmsApi.updatePage(initialData.slug, data);
-        showToast(t('toast.pageUpdated'), "success");
+        success(t('toast.pageUpdated'));
       } else {
         await cmsApi.createPage(data);
-        showToast(t('toast.pageCreated'), "success");
+        success(t('toast.pageCreated'));
       }
       
       // Always redirect to pages list after successful save
       router.push('/admin/super/cms/pages');
-    } catch (error: any) {
-      console.error('Full error:', error);
+    } catch (err: any) {
+      console.error('Full error:', err);
       // Try to get more detailed error info
       let errorMsg = t('toast.saveFailed');
-      if (error.response?.data) {
-        if (typeof error.response.data === 'object') {
+      if (err.response?.data) {
+        if (typeof err.response.data === 'object') {
           // Get first error message from validation errors
-          const firstKey = Object.keys(error.response.data)[0];
+          const firstKey = Object.keys(err.response.data)[0];
           if (firstKey) {
-            const firstError = error.response.data[firstKey];
+            const firstError = err.response.data[firstKey];
             errorMsg = Array.isArray(firstError) ? firstError[0] : firstError;
           }
         } else {
-          errorMsg = error.response.data;
+          errorMsg = err.response.data;
         }
       }
-      showToast(errorMsg, "error");
+      error(errorMsg);
     } finally {
       setSaving(false);
     }

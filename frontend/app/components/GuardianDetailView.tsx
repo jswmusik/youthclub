@@ -266,7 +266,7 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
         <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
             {/* Avatar */}
-            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
               {user.avatar ? (
                 <img 
                   src={getMediaUrl(user.avatar) || ''} 
@@ -480,14 +480,24 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
                   const relationshipType = y.relationship_type || 'GUARDIAN';
                   const isPrimary = y.is_primary_guardian || false;
                   
+                  // Determine youth base path based on current basePath
+                  const youthBasePath = basePath.includes('/super/') 
+                    ? '/admin/super/youth'
+                    : basePath.includes('/municipality/')
+                    ? '/admin/municipality/youth'
+                    : '/admin/club/youth';
+                  
                   return (
                     <div 
                       key={y.id} 
                       className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/30 transition-colors"
                     >
-                      <div className="flex items-start gap-3 mb-3">
+                      <Link 
+                        href={`${youthBasePath}/${y.id}`}
+                        className="flex items-start gap-3 mb-3 group cursor-pointer"
+                      >
                         {/* Avatar */}
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-[var(--brand-purple)] flex items-center justify-center flex-shrink-0 group-hover:ring-2 group-hover:ring-[var(--brand-purple)]/50 transition-all">
                           <span className="text-sm font-bold text-white">
                             {getInitials(y.first_name, y.last_name)}
                           </span>
@@ -495,12 +505,12 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
                         
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[var(--brand-light)] text-sm truncate">{y.first_name} {y.last_name}</p>
+                          <p className="font-semibold text-[var(--brand-light)] text-sm truncate group-hover:text-[var(--brand-purple)] transition-colors">{y.first_name} {y.last_name}</p>
                           <p className="text-xs text-[var(--brand-light)]/50 truncate flex items-center gap-1 mt-0.5">
                             <Mail className="w-3 h-3" /> {y.email}
                           </p>
                         </div>
-                      </div>
+                      </Link>
                       
                       {/* Badges */}
                       <div className="flex flex-wrap gap-2 mb-3">

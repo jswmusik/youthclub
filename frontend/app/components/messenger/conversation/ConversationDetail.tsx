@@ -170,7 +170,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
             <div className={`flex-shrink-0 h-14 sm:h-16 border-b flex items-center px-3 sm:px-4 md:px-4 justify-between md:rounded-tr-xl min-w-0 w-full ${
                 darkMode 
                     ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
-                    : 'border-gray-200 bg-white'
+                    : 'border-[#4D4DA4]/15 bg-white'
             }`}>
                 <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 w-full">
                     {onBack && (
@@ -234,7 +234,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                                 className={`fixed md:absolute top-[6.5rem] md:top-full right-4 md:right-0 md:mt-1 w-48 rounded-lg py-1 shadow-xl z-[61] ${
                                     darkMode 
                                         ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
-                                        : 'bg-white border border-gray-200'
+                                        : 'bg-white border border-[#4D4DA4]/15'
                                 }`}
                             >
                                 <button
@@ -244,7 +244,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                                     className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:opacity-70 ${
                                         darkMode 
                                             ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)] active:bg-[var(--dark-500)]' 
-                                            : 'text-gray-700 hover:bg-gray-100 active:bg-gray-100'
+                                            : 'text-gray-700 hover:bg-[#EBEBFE] active:bg-[#EBEBFE]'
                                     }`}
                                 >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -276,7 +276,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
             {/* Messages Area - ensure proper scrolling on mobile */}
             {/* Add bottom padding on mobile to account for fixed input */}
             <div className={`flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar min-h-0 pb-20 md:pb-0 w-full overflow-x-hidden ${
-                darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'
+                darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'
             }`}>
                 {/* System Notice for Broadcasts */}
                 {isBroadcast && (
@@ -327,7 +327,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                     <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 border-t w-screen max-w-screen overflow-x-hidden ${
                         darkMode 
                             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-                            : 'bg-white border-gray-200 shadow-lg'
+                            : 'bg-white border-[#4D4DA4]/15 shadow-lg'
                     }`}>
                         <MessageComposer onSend={handleSend} darkMode={darkMode} />
                     </div>
@@ -335,7 +335,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                     <div className={`hidden md:block flex-shrink-0 border-t ${
                         darkMode 
                             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-                            : 'bg-white border-gray-200'
+                            : 'bg-white border-[#4D4DA4]/15'
                     }`}>
                         <MessageComposer onSend={handleSend} darkMode={darkMode} />
                     </div>
@@ -344,7 +344,7 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                 <div className={`flex-shrink-0 p-4 border-t flex flex-col items-center justify-center gap-2 ${
                     darkMode 
                         ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
-                        : 'border-gray-200 bg-gray-50'
+                        : 'border-[#4D4DA4]/15 bg-[#F8F7FE]'
                 }`}>
                     <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Replies are disabled for this conversation.</p>
                     <button 

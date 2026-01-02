@@ -30,15 +30,9 @@ export default function EditRewardPage() {
   if (!reward) return <div className="p-12 text-center text-red-500">Reward not found.</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Reward</h1>
-      </div>
-      
-      <RewardForm 
-        initialData={reward} 
-        redirectPath="/admin/super/rewards" 
-      />
-    </div>
+    <RewardForm 
+      initialData={reward} 
+      redirectPath="/admin/super/rewards" 
+    />
   );
 }

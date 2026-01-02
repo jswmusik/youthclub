@@ -55,7 +55,7 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                         : 'bg-[var(--dark-600)] group-hover:bg-[var(--dark-500)]'
                     : isActive 
                         ? 'bg-white/20' 
-                        : 'bg-gray-100 group-hover:bg-[#4D4DA4]/10'
+                        : 'bg-[#EBEBFE] group-hover:bg-[#4D4DA4]/10'
             }`}>
                 {icon}
             </span>
@@ -199,7 +199,7 @@ export default function GuardianSidebar({ unfinishedCount = 0, pendingApprovalsC
 
             {/* Theme Toggle */}
             <div className={`mt-6 pt-4 ${
-                darkMode ? 'border-t border-[var(--dark-600)]' : 'border-t border-gray-100'
+                darkMode ? 'border-t border-[var(--dark-600)]' : 'border-t border-[#4D4DA4]/10'
             }`}>
                 <ThemeToggle showLabel className="w-full justify-center" />
             </div>

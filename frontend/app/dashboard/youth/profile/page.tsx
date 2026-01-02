@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api, { visits } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NavBar from '@/app/components/NavBar';
@@ -17,6 +18,14 @@ export default function YouthProfilePage() {
   const router = useRouter();
   const pathname = usePathname();
   const tSidebar = useTranslations('sidebar');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  // Theme detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = !mounted || theme === 'dark';
   
   // We might want to fetch "fresher" data than what's in context, 
   // specifically if we need relations like full Club objects.
@@ -69,7 +78,7 @@ export default function YouthProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--brand-primary)]"></div>
       </div>
     );
@@ -78,11 +87,10 @@ export default function YouthProfilePage() {
   if (!profileData) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="flex-1">
       <NavBar 
         showBackButton={true}
-        darkMode={true}
         onMenuToggle={() => setIsSidebarOpen(true)}
       />
       
@@ -96,21 +104,25 @@ export default function YouthProfilePage() {
       
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
       >
-        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+        <div className={`flex items-center justify-between h-14 sm:h-16 px-4 border-b ${
+          darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'
+        }`}>
           <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ${
+              darkMode ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' : 'text-gray-500 hover:bg-gray-100'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-          <YouthSidebar activePath={pathname} darkMode />
+          <YouthSidebar activePath={pathname} />
         </div>
       </aside>
       
@@ -123,13 +135,13 @@ export default function YouthProfilePage() {
             <ProfileHeader 
               user={profileData} 
               primaryClub={profileData.preferred_club}
-              darkMode={true}
+              darkMode={darkMode}
             />
           </div>
 
           {/* 2. Tabs & Content */}
           <div className="mt-6 sm:mt-8">
-            <ProfileContent user={profileData} darkMode={true} isCheckedIn={isCheckedIn} />
+            <ProfileContent user={profileData} darkMode={darkMode} isCheckedIn={isCheckedIn} />
           </div>
 
         </main>

@@ -79,6 +79,12 @@ class Municipality(models.Model):
         help_text="Override: Months of inactivity before user data deletion. Null = use global default"
     )
     
+    # --- TRIAL PERIOD SETTINGS ---
+    trial_period_days = models.PositiveIntegerField(
+        default=0,
+        help_text="Days new youth members can access platform before verification. 0 = disabled (require verification immediately)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -162,6 +168,13 @@ class Club(models.Model):
         help_text="If True, user must be checked in to borrow items."
     )
 
+    # --- TRIAL PERIOD OVERRIDE ---
+    trial_period_days_override = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Override municipality trial period. Null = use municipality setting, 0 = disabled"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -193,6 +206,14 @@ class Club(models.Model):
         if self.allow_self_registration_override is not None:
             return self.allow_self_registration_override
         return self.municipality.allow_self_registration
+
+    @property
+    def effective_trial_period_days(self):
+        """Returns trial period days (club override or municipality default)"""
+        if self.trial_period_days_override is not None:
+            return self.trial_period_days_override
+        return self.municipality.trial_period_days
+
 
 class RegularOpeningHour(models.Model):
     """

@@ -393,7 +393,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
     <form onSubmit={handleSubmit} className={`space-y-8 p-6 sm:p-8 md:p-10 rounded-none sm:rounded-2xl border-y sm:border ${
       darkMode 
         ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-        : 'bg-white shadow-sm border-gray-100'
+        : 'bg-white shadow-sm border-[#4D4DA4]/10'
     }`}>
       
       {/* IMAGES SECTION */}
@@ -403,7 +403,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           <label className={labelClasses}>{t('coverImage')}</label>
           <div 
             className={`relative h-40 sm:h-48 rounded-xl bg-cover bg-center overflow-hidden ${
-              darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
+              darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'
             }`}
             style={{ backgroundImage: bgPreview ? `url(${bgPreview})` : 'none' }}
           >
@@ -433,7 +433,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           <label className={labelClasses}>{t('profilePicture')}</label>
           <div className="flex items-center gap-6">
             <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 ${
-              darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-gray-200 bg-gray-100'
+              darkMode ? 'border-[var(--dark-600)] bg-[var(--dark-700)]' : 'border-[#4D4DA4]/15 bg-[#EBEBFE]'
             }`}>
               {avatarPreview ? (
                 <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar" />
@@ -446,7 +446,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
             <label className={`cursor-pointer px-5 py-2.5 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
               darkMode 
                 ? 'bg-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-500)] border border-[var(--dark-500)]'
-                : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+                : 'bg-white border-2 border-gray-300 text-gray-700 hover:bg-[#F8F7FE]'
             }`}>
               <Camera className="w-4 h-4" />
               {t('uploadNew')}
@@ -456,7 +456,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
       </div>
 
-      <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'} />
+      <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'} />
 
       {/* TEXT FIELDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -491,7 +491,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
             <span className={`inline-flex items-center px-4 py-3 text-lg font-medium ${
               darkMode 
                 ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-r border-[var(--dark-500)]'
-                : 'bg-gray-50 text-gray-600 border-r border-gray-300'
+                : 'bg-[#F8F7FE] text-gray-600 border-r border-gray-300'
             }`}>@</span>
             <input 
               type="text" 
@@ -692,7 +692,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
                       className={`w-full text-left px-4 py-2.5 transition-colors border-b last:border-b-0 ${
                         darkMode 
                           ? 'hover:bg-[var(--dark-600)] border-[var(--dark-600)] text-[var(--brand-light)]'
-                          : 'hover:bg-purple-50 border-gray-100 text-gray-900'
+                          : 'hover:bg-purple-50 border-[#4D4DA4]/10 text-gray-900'
                       }`}
                     >
                       <div className="font-medium">{interest.name}</div>
@@ -721,7 +721,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
 
       {/* Email Notifications Toggle */}
       <div className={`flex items-center p-4 rounded-xl ${
-        darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+        darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
       }`}>
         <input 
           id="notification_email" 
@@ -749,7 +749,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
         </div>
       ) : customFields.length > 0 && (
         <>
-          <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'} />
+          <hr className={darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'} />
           <div>
             <h3 className={`text-xl font-bold mb-6 ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
@@ -763,7 +763,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
 
       {/* Action Buttons */}
       <div className={`flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t ${
-        darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'
+        darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'
       }`}>
         <button 
           type="button"
@@ -771,7 +771,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
           className={`px-6 py-3 rounded-xl text-base font-bold transition ${
             darkMode 
               ? 'bg-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-500)] border border-[var(--dark-500)]'
-              : 'border-2 border-gray-300 text-gray-700 hover:bg-gray-50'
+              : 'border-2 border-gray-300 text-gray-700 hover:bg-[#F8F7FE]'
           }`}
         >
           {tCommon('cancel')}

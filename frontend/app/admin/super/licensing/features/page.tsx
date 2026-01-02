@@ -37,7 +37,7 @@ export default function FeaturePricingPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [savingGlobal, setSavingGlobal] = useState(false);
   const [editedPrices, setEditedPrices] = useState<Record<number, number>>({});
-  const { showToast } = useToast();
+  const { success: showToastSuccess, error: showToastError, info: showToastInfo } = useToast();
 
   // Function to get translated feature name based on slug
   const getFeatureDisplayName = (feature: Feature): string => {
@@ -88,7 +88,7 @@ export default function FeaturePricingPage() {
       setEditedPrices(prices);
     } catch (err) {
       console.error(err);
-      showToast(t('toast.failedToLoadPricingData'), 'error');
+      showToastError(t('toast.failedToLoadPricingData'));
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export default function FeaturePricingPage() {
   const savePrice = async (feature: Feature) => {
     const newPrice = editedPrices[feature.id];
     if (newPrice === feature.monthly_price_sek) {
-      showToast(t('toast.noChangesToSave'), 'info');
+      showToastInfo(t('toast.noChangesToSave'));
       return;
     }
 
@@ -114,10 +114,10 @@ export default function FeaturePricingPage() {
       setFeatures(prev => prev.map(f => 
         f.id === feature.id ? { ...f, monthly_price_sek: newPrice } : f
       ));
-      showToast(t('toast.priceUpdated', { featureName: getFeatureDisplayName(feature), price: newPrice }), 'success');
+      showToastSuccess(t('toast.priceUpdated', { featureName: getFeatureDisplayName(feature), price: newPrice }));
     } catch (error) {
       console.error(error);
-      showToast(t('toast.failedToUpdatePrice'), 'error');
+      showToastError(t('toast.failedToUpdatePrice'));
     } finally {
       setSaving(null);
     }
@@ -130,10 +130,10 @@ export default function FeaturePricingPage() {
     try {
       await api.post('/licensing/pricing/', editedPricing);
       setGlobalPricing(editedPricing);
-      showToast(t('toast.globalPricingUpdatedSuccessfully'), 'success');
+      showToastSuccess(t('toast.globalPricingUpdatedSuccessfully'));
     } catch (error) {
       console.error(error);
-      showToast(t('toast.failedToUpdateGlobalPricing'), 'error');
+      showToastError(t('toast.failedToUpdateGlobalPricing'));
     } finally {
       setSavingGlobal(false);
     }

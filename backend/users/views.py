@@ -560,7 +560,8 @@ class YouthGuardiansViewSet(viewsets.ModelViewSet):
         
         if not guardian_user:
             # CREATE SHADOW GUARDIAN
-            # Create an inactive user with a random unusable password
+            # Create an active user with a random unusable password
+            # Guardian must be active so they can use password reset to set their password
             from django.utils.crypto import get_random_string
             random_password = get_random_string(50)
             guardian_user = User.objects.create_user(
@@ -571,7 +572,7 @@ class YouthGuardiansViewSet(viewsets.ModelViewSet):
                 phone_number=phone_number,
                 legal_gender=legal_gender,
                 role=User.Role.GUARDIAN,
-                is_active=False,  # Inactive until they claim account
+                is_active=True,  # Active so they can use password reset
                 verification_status=User.VerificationStatus.UNVERIFIED
             )
         

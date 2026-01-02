@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, TrialInfo } from '../../context/AuthContext';
 import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
 import TwoFactorVerification from '../components/TwoFactorVerification';
 import AuthNavigation from '../components/AuthNavigation';
+import VerificationRequiredModal from '../components/VerificationRequiredModal';
 
 export default function LoginPage() {
   const { login, twoFactorState, initiate2FA, verify2FA, cancel2FA } = useAuth();
@@ -21,6 +22,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // Verification/Trial blocking state
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [blockReason, setBlockReason] = useState<'not_verified' | 'trial_expired' | 'no_club'>('not_verified');
+  const [trialInfo, setTrialInfo] = useState<TrialInfo | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -33,6 +39,14 @@ export default function LoginPage() {
 
     try {
       const result = await login(email, password, rememberMe);
+      
+      // Check if user is blocked due to verification/trial
+      if (result.blocked && result.trialInfo) {
+        setTrialInfo(result.trialInfo);
+        setBlockReason(result.blockReason || 'not_verified');
+        setShowVerificationModal(true);
+        return;
+      }
       
       if (!result.success && !result.requires2FA) {
         setError(t('invalidCredentials'));
@@ -373,6 +387,14 @@ export default function LoginPage() {
         </div>
       </div>
       </div>
+      
+      {/* Verification Required Modal */}
+      <VerificationRequiredModal
+        isOpen={showVerificationModal}
+        onClose={() => setShowVerificationModal(false)}
+        clubInfo={trialInfo?.club_info || null}
+        blockReason={blockReason}
+      />
     </div>
   );
 }

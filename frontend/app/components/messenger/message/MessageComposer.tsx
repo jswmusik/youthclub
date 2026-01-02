@@ -53,7 +53,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
             {/* File Preview */}
             {file && (
                 <div className={`flex items-center gap-2 mb-2 p-2 rounded-lg max-w-full min-w-0 flex-shrink-0 ${
-                    darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                    darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
                 }`}>
                     <span className={`text-xs truncate flex-1 min-w-0 ${
                         darkMode ? 'text-[var(--brand-light)]/80' : 'text-gray-600'
@@ -82,7 +82,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                     className={`p-2 sm:p-2.5 rounded-full transition-colors touch-manipulation flex-shrink-0 ${
                         darkMode 
                             ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] active:bg-[var(--dark-500)]' 
-                            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200'
+                            : 'text-gray-400 hover:text-gray-600 hover:bg-[#EBEBFE] active:bg-gray-200'
                     }`}
                     disabled={disabled || sending}
                     aria-label={t('attachFile')}
@@ -112,7 +112,7 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                     className={`flex-1 border-0 rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-base transition-all resize-none h-[40px] max-h-[40px] min-h-[40px] overflow-y-auto overflow-x-hidden w-full max-w-full min-w-0 break-words ${
                         darkMode 
                             ? 'bg-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:bg-[var(--dark-700)]' 
-                            : 'bg-gray-50 focus:ring-2 focus:ring-[#4D4DA4] focus:bg-white'
+                            : 'bg-[#F8F7FE] focus:ring-2 focus:ring-[#4D4DA4] focus:bg-white'
                     }`}
                     rows={1}
                     disabled={disabled || sending}

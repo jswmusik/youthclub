@@ -2,15 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Edit, Calendar, User, FileText, Users, Tag, 
   Star, Eye, EyeOff, Globe, Clock, Sparkles
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 import api from '../../lib/api';
 import { sanitizeHtml } from '../../lib/sanitize';
 import { getMediaUrl } from '../../app/utils';
+
+// Map locale codes to date-fns locales
+const localeMap: Record<string, Locale> = {
+  en: enUS,
+  sv: sv,
+  da: da,
+  nb: nb,
+  fi: fi,
+};
 
 interface ArticleDetailProps {
   articleId: string;
@@ -20,6 +31,8 @@ interface ArticleDetailProps {
 export default function ArticleDetailView({ articleId, basePath }: ArticleDetailProps) {
   const searchParams = useSearchParams();
   const t = useTranslations('articleDetail');
+  const locale = useLocale();
+  const dateLocale = localeMap[locale] || enUS;
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -69,12 +82,15 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
     return name.charAt(0).toUpperCase();
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return format(date, 'd MMMM yyyy', { locale: dateLocale });
+    } catch {
+      return '-';
+    }
   };
 
   if (loading) {
@@ -176,7 +192,7 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               {/* Author */}
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] font-bold text-sm">
                   {getAuthorInitials(article.author_name || '')}
                 </div>
                 <div>
@@ -268,8 +284,8 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mt-6">
           <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                <Users className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                <Users className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
@@ -280,8 +296,8 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
           <div className="p-6">
             {article.target_roles && article.target_roles.includes("ALL") ? (
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--brand-green)]/20 flex items-center justify-center">
-                  <Globe className="w-5 h-5 text-[var(--brand-green)]" />
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-green)] flex items-center justify-center">
+                  <Globe className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <p className="font-medium text-[var(--brand-light)]">{t('targetAudience.visibleToEveryone')}</p>
@@ -311,8 +327,8 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mt-6 mb-6">
           <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('articleDetails.title')}</h2>
@@ -326,14 +342,14 @@ export default function ArticleDetailView({ articleId, basePath }: ArticleDetail
                 <Clock className="w-5 h-5 text-[var(--brand-light)]/40" />
                 <div>
                   <p className="text-xs text-[var(--brand-light)]/50 uppercase">{t('articleDetails.created')}</p>
-                  <p className="text-sm text-[var(--brand-light)]">{formatDate(article.created_at)}</p>
+                  <p className="text-sm text-[var(--brand-light)]">{formatDate(article.published_at)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--dark-700)]/50">
                 <Edit className="w-5 h-5 text-[var(--brand-light)]/40" />
                 <div>
                   <p className="text-xs text-[var(--brand-light)]/50 uppercase">{t('articleDetails.lastUpdated')}</p>
-                  <p className="text-sm text-[var(--brand-light)]">{formatDate(article.updated_at || article.created_at)}</p>
+                  <p className="text-sm text-[var(--brand-light)]">{formatDate(article.updated_at || article.published_at)}</p>
                 </div>
               </div>
             </div>

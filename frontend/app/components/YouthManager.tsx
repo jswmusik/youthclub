@@ -297,7 +297,32 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     fetchAllUsersForAnalytics();
   }, []);
 
-  // Debounced Search/Filter Update - only reset page when user actually changes filters
+  // Sync filter state from URL params on mount or external navigation (back/forward)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlGender = searchParams.get('legal_gender') || '';
+    const urlStatus = searchParams.get('verification_status') || '';
+    const urlMunicipality = searchParams.get('municipality') || '';
+    const urlClub = searchParams.get('preferred_club') || '';
+    
+    // Only update if URL params differ from current state (external navigation)
+    if (urlSearch !== searchInput || urlGender !== genderFilter || urlStatus !== statusFilter || urlMunicipality !== municipalityFilter || urlClub !== clubFilter) {
+      setSearchInput(urlSearch);
+      setGenderFilter(urlGender);
+      setStatusFilter(urlStatus);
+      setMunicipalityFilter(urlMunicipality);
+      setClubFilter(urlClub);
+      // Update refs to match URL
+      initialSearchRef.current = urlSearch;
+      initialGenderRef.current = urlGender;
+      initialStatusRef.current = urlStatus;
+      initialMunicipalityRef.current = urlMunicipality;
+      initialClubRef.current = urlClub;
+      hasUserChangedFilters.current = false;
+    }
+  }, [searchParams]);
+
+  // Debounced Search/Filter Update - only update URL when user actually changes filters
   useEffect(() => {
     const searchChanged = searchInput !== initialSearchRef.current;
     const genderChanged = genderFilter !== initialGenderRef.current;
@@ -305,19 +330,19 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
     const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
     const clubChanged = clubFilter !== initialClubRef.current;
     
-    if (!searchChanged && !genderChanged && !statusChanged && !municipalityChanged && !clubChanged && !hasUserChangedFilters.current) {
+    if (!searchChanged && !genderChanged && !statusChanged && !municipalityChanged && !clubChanged) {
       return;
     }
     
     hasUserChangedFilters.current = true;
 
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (searchInput) params.set('search', searchInput); else params.delete('search');
-      if (genderFilter) params.set('legal_gender', genderFilter); else params.delete('legal_gender');
-      if (statusFilter) params.set('verification_status', statusFilter); else params.delete('verification_status');
-      if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
-      if (clubFilter) params.set('preferred_club', clubFilter); else params.delete('preferred_club');
+      const params = new URLSearchParams();
+      if (searchInput) params.set('search', searchInput);
+      if (genderFilter) params.set('legal_gender', genderFilter);
+      if (statusFilter) params.set('verification_status', statusFilter);
+      if (municipalityFilter) params.set('municipality', municipalityFilter);
+      if (clubFilter) params.set('preferred_club', clubFilter);
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
       
@@ -329,7 +354,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       initialClubRef.current = clubFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, genderFilter, statusFilter, municipalityFilter, clubFilter, searchParams, pathname, router]);
+  }, [searchInput, genderFilter, statusFilter, municipalityFilter, clubFilter, pathname, router]);
 
   useEffect(() => {
     fetchYouth();
@@ -643,7 +668,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -681,7 +706,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               {/* Total Youth */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
@@ -692,7 +717,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               {/* New Last 7 Days */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                     <UserPlus className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('newLast7Days')}</span>
@@ -703,8 +728,8 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               {/* Gender Breakdown */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                    <UsersRound className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                    <UsersRound className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('gender')}</span>
                 </div>
@@ -719,7 +744,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               {/* Verification Status */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('verified')}</span>

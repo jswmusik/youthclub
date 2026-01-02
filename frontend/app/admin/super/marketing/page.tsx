@@ -313,8 +313,8 @@ export default function MarketingPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Megaphone className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Megaphone className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
@@ -326,8 +326,8 @@ export default function MarketingPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.hero')}</span>
             </div>
@@ -336,8 +336,8 @@ export default function MarketingPage() {
 
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                <Globe className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                <Globe className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.seo')}</span>
             </div>
@@ -348,7 +348,7 @@ export default function MarketingPage() {
 
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                 <Quote className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.testimonials')}</span>
@@ -358,8 +358,8 @@ export default function MarketingPage() {
 
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                <Eye className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                <Eye className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.active')}</span>
             </div>

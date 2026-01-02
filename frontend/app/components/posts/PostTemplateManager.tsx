@@ -361,8 +361,16 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
             setShowDeleteModal(false);
             setTemplateToDelete(null);
             fetchData(); 
-        } catch (err) {
-            error(t('toast.failedToDelete'));
+        } catch (err: any) {
+            // If template is already deleted (404), refresh the list to remove it from UI
+            if (err?.response?.status === 404) {
+                info(t('toast.templateAlreadyDeleted') || 'Template was already deleted');
+                setShowDeleteModal(false);
+                setTemplateToDelete(null);
+                fetchData(); // Refresh to remove ghost template
+            } else {
+                error(t('toast.failedToDelete'));
+            }
         } finally {
             setIsDeleting(false);
         }
@@ -453,8 +461,8 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-4 sm:px-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <Sparkles className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <Sparkles className="w-6 h-6 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -495,8 +503,8 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                     {/* Total Templates */}
                                     <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                                <Sparkles className="h-4 w-4 text-white" />
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                                                <Sparkles className="h-4 w-4 text-[var(--dark-900)]" />
                                             </div>
                                             <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.total')}</span>
                                         </div>
@@ -506,8 +514,8 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                     {/* Active Templates */}
                                     <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-green)]/30 transition-all">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[#34D399] flex items-center justify-center">
-                                                <ToggleRight className="h-4 w-4 text-white" />
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)] flex items-center justify-center">
+                                                <ToggleRight className="h-4 w-4 text-[var(--dark-900)]" />
                                             </div>
                                             <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.active')}</span>
                                         </div>
@@ -517,8 +525,8 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                     {/* Total Usage */}
                                     <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-blue)]/30 transition-all">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                                                <FileText className="h-4 w-4 text-white" />
+                                            <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)] flex items-center justify-center">
+                                                <FileText className="h-4 w-4 text-[var(--dark-900)]" />
                                             </div>
                                             <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.used')}</span>
                                         </div>
@@ -645,7 +653,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                 >
                                     <div className="p-4 border-y border-[var(--dark-600)]">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0 text-white">
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 text-[var(--dark-900)]">
                                                 {ICON_MAP[template.icon] || <Megaphone className="w-5 h-5" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -692,7 +700,7 @@ export default function PostTemplateManager({ basePath }: PostTemplateManagerPro
                                         <tr key={template.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/50 transition-colors">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0 text-white">
+                                                    <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 text-[var(--dark-900)]">
                                                         {ICON_MAP[template.icon] || <Megaphone className="w-4 h-4" />}
                                                     </div>
                                                     <div>

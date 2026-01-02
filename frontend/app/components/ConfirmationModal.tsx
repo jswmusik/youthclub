@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+
 interface ConfirmationModalProps {
   isVisible: boolean;
   onClose: () => void;
@@ -25,7 +28,27 @@ export default function ConfirmationModal({
   variant = 'info',
   darkMode = false,
 }: ConfirmationModalProps) {
-  if (!isVisible) return null;
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track component mount for portal
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isVisible) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isVisible]);
+
+  if (!isVisible || !isMounted) return null;
 
   const handleConfirm = () => {
     if (!isLoading) {
@@ -112,9 +135,9 @@ export default function ConfirmationModal({
 
   const styles = darkMode ? darkVariantStyles[variant] : lightVariantStyles[variant];
 
-  return (
+  const modalContent = (
     <div
-      className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${
+      className={`fixed inset-0 backdrop-blur-sm flex items-center justify-center z-[99999] p-4 ${
         darkMode ? 'bg-black/70' : 'bg-black/60'
       }`}
       onClick={handleBackdropClick}
@@ -207,5 +230,7 @@ export default function ConfirmationModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 

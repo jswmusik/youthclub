@@ -161,7 +161,7 @@ export default function EventActionModal({
                         className={`absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                             darkMode 
                                 ? 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)]'
-                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                                : 'text-gray-400 hover:text-gray-600 hover:bg-[#EBEBFE]'
                         }`}
                     >
                         <X className="w-5 h-5" />
@@ -208,7 +208,7 @@ export default function EventActionModal({
                             <div className={`p-4 rounded-xl border ${
                                 darkMode 
                                     ? 'bg-[var(--dark-700)] border-[var(--dark-500)]'
-                                    : 'bg-gray-50 border-gray-200'
+                                    : 'bg-[#F8F7FE] border-[#4D4DA4]/15'
                             }`}>
                                 <p className={`text-sm text-center ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                                     {t('pastRecurringMessage')}
@@ -255,7 +255,7 @@ export default function EventActionModal({
                                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left ${
                                                 darkMode 
                                                     ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                                                    : 'bg-gray-50 hover:bg-gray-100'
+                                                    : 'bg-[#F8F7FE] hover:bg-[#EBEBFE]'
                                             }`}
                                         >
                                             <FileEdit className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`} />
@@ -291,7 +291,7 @@ export default function EventActionModal({
                                         darkMode 
                                             ? 'bg-[var(--brand-red)]/20 hover:bg-[var(--brand-red)]/30 border border-[var(--brand-red)]/30'
                                             : eventIsPast 
-                                            ? 'bg-gray-50 hover:bg-gray-100' 
+                                            ? 'bg-[#F8F7FE] hover:bg-[#EBEBFE]' 
                                             : 'bg-red-50 hover:bg-red-100'
                                     }`}
                                 >
@@ -320,7 +320,7 @@ export default function EventActionModal({
                         className={`w-full mt-4 px-4 py-3 rounded-xl font-semibold transition-colors ${
                             darkMode 
                                 ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                                : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                                : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'
                         }`}
                     >
                         {t('actions.cancel')}
@@ -411,7 +411,7 @@ export default function EventActionModal({
                                 className={`w-full px-4 py-3 rounded-xl text-left transition-colors border-2 ${
                                     darkMode 
                                         ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border-transparent hover:border-[var(--brand-light)]/20'
-                                        : 'bg-gray-50 hover:bg-gray-100 border-transparent hover:border-gray-300'
+                                        : 'bg-[#F8F7FE] hover:bg-[#EBEBFE] border-transparent hover:border-gray-300'
                                 }`}
                             >
                                 <div className={`font-semibold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('confirmations.deleteInstance.deleteOnlyThis.title')}</div>
@@ -443,7 +443,7 @@ export default function EventActionModal({
                             className={`w-full px-4 py-3 rounded-xl font-semibold transition-colors ${
                                 darkMode 
                                     ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                                    : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                                    : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'
                             }`}
                         >
                             {t('confirmations.deleteInstance.cancel')}

@@ -235,7 +235,7 @@ export default function YouthDetailView({ userId, basePath }: YouthDetailProps) 
         <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
             {/* Avatar */}
-            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[var(--dark-800)] shadow-xl bg-[var(--dark-700)] flex items-center justify-center overflow-hidden flex-shrink-0">
               {user.avatar ? (
                 <img 
                   src={getMediaUrl(user.avatar) || ''} 

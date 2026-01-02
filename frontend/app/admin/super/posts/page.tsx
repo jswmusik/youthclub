@@ -582,8 +582,8 @@ export default function SuperAdminPostsPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-4 sm:px-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <FileText className="w-6 h-6 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -629,7 +629,7 @@ export default function SuperAdminPostsPage() {
                                 </Tooltip>
                             ) : (
                                 <Link href="/admin/super/posts/quick" className="flex-1 sm:flex-none">
-                                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-[var(--dark-900)] font-semibold hover:opacity-90 transition-all">
+                                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all">
                                         <Zap className="h-4 w-4" /> {t('quickPostButton')}
                                     </button>
                                 </Link>
@@ -664,8 +664,8 @@ export default function SuperAdminPostsPage() {
                                         {/* Total Posts */}
                                         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                                    <FileText className="h-4 w-4 text-white" />
+                                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                                                    <FileText className="h-4 w-4 text-[var(--dark-900)]" />
                                                 </div>
                                                 <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.totalPosts')}</span>
                                             </div>
@@ -675,8 +675,8 @@ export default function SuperAdminPostsPage() {
                                         {/* New (7 Days) */}
                                         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-blue)]/30 transition-all">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                                                    <UserPlus className="h-4 w-4 text-white" />
+                                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)] flex items-center justify-center">
+                                                    <UserPlus className="h-4 w-4 text-[var(--dark-900)]" />
                                                 </div>
                                                 <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.new7Days')}</span>
                                             </div>
@@ -686,8 +686,8 @@ export default function SuperAdminPostsPage() {
                                         {/* New (30 Days) */}
                                         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-green)]/30 transition-all">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-green)] to-[#34D399] flex items-center justify-center">
-                                                    <UserPlus className="h-4 w-4 text-white" />
+                                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-green)] flex items-center justify-center">
+                                                    <UserPlus className="h-4 w-4 text-[var(--dark-900)]" />
                                                 </div>
                                                 <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.new30Days')}</span>
                                             </div>
@@ -695,10 +695,10 @@ export default function SuperAdminPostsPage() {
                                         </div>
 
                                         {/* Average Views */}
-                                        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-pink)]/30 transition-all">
+                                        <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)] hover:border-[var(--brand-purple)]/30 transition-all">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-pink)] to-[#FF8FA3] flex items-center justify-center">
-                                                    <TrendingUp className="h-4 w-4 text-white" />
+                                                <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)] flex items-center justify-center">
+                                                    <TrendingUp className="h-4 w-4 text-[var(--dark-900)]" />
                                                 </div>
                                                 <span className="text-xs text-[var(--brand-light)]/60 font-medium">{t('analytics.avgViews')}</span>
                                             </div>
@@ -853,8 +853,8 @@ export default function SuperAdminPostsPage() {
                                 >
                                     <div className="p-4 border-y border-[var(--dark-600)]">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                <FileText className="h-5 w-5 text-white" />
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                <FileText className="h-5 w-5 text-[var(--dark-900)]" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
@@ -895,8 +895,8 @@ export default function SuperAdminPostsPage() {
                                         <tr key={post.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/50 transition-colors">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                        <FileText className="h-4 w-4 text-white" />
+                                                    <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                        <FileText className="h-4 w-4 text-[var(--dark-900)]" />
                                                     </div>
                                                     <div>
                                                         <div className="font-semibold text-[var(--brand-light)] flex items-center gap-2">

@@ -28,7 +28,7 @@ class CountryAdmin(admin.ModelAdmin):
 @admin.register(Municipality)
 class MunicipalityAdmin(admin.ModelAdmin):
     # Added new settings to list_display
-    list_display = ('name', 'country', 'municipality_code', 'allow_self_registration', 'require_guardian_at_registration')
+    list_display = ('name', 'country', 'municipality_code', 'allow_self_registration', 'require_guardian_at_registration', 'trial_period_days')
     list_filter = ('country', 'allow_self_registration', 'require_guardian_at_registration')
     search_fields = ('name', 'municipality_code')
     
@@ -41,6 +41,10 @@ class MunicipalityAdmin(admin.ModelAdmin):
             'fields': ('allow_self_registration', 'require_guardian_at_registration'),
             'description': 'Control how youth members register for clubs in this municipality.'
         }),
+        ('Trial Period Settings', {
+            'fields': ('trial_period_days',),
+            'description': 'Set how many days new youth members can access the platform before verification. Set to 0 to require verification immediately.'
+        }),
         ('Contact & Branding', {
             'fields': ('email', 'phone', 'website_link', 'social_media', 'avatar', 'hero_image')
         }),
@@ -48,7 +52,7 @@ class MunicipalityAdmin(admin.ModelAdmin):
 
 @admin.register(Club)
 class ClubAdmin(admin.ModelAdmin):
-    list_display = ('name', 'municipality', 'email', 'get_self_reg', 'get_guardian_req')
+    list_display = ('name', 'municipality', 'email', 'get_self_reg', 'get_guardian_req', 'get_trial_days')
     list_filter = ('municipality__country', 'municipality')
     search_fields = ('name', 'email')
     inlines = [RegularOpeningHourInline, DateOverrideInline, ClubClosureInline]
@@ -60,6 +64,10 @@ class ClubAdmin(admin.ModelAdmin):
         ('Registration Overrides', {
             'fields': ('allow_self_registration_override', 'require_guardian_override'),
             'description': 'Set to True/False to override the Municipality default. Leave Empty (None) to use default.'
+        }),
+        ('Trial Period Override', {
+            'fields': ('trial_period_days_override',),
+            'description': 'Set a number to override the Municipality default trial period. Leave Empty (None) to use default. Set to 0 to disable trial period for this club.'
         }),
         ('Contact & Location', {
             'fields': ('email', 'phone', 'address', 'latitude', 'longitude', 'terms_and_conditions', 'club_policies')
@@ -82,6 +90,13 @@ class ClubAdmin(admin.ModelAdmin):
         val = obj.require_guardian_override
         if val is None:
             return f"Default ({obj.municipality.require_guardian_at_registration})"
+        return val
+
+    @admin.display(description='Trial Days')
+    def get_trial_days(self, obj):
+        val = obj.trial_period_days_override
+        if val is None:
+            return f"Default ({obj.municipality.trial_period_days})"
         return val
 
 @admin.register(Interest)

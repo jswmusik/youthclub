@@ -2,15 +2,28 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from .models import GuardianYouthLink, User, UserLoginHistory
+from .trial_service import get_user_trial_info
 
 
 @receiver(post_save, sender=UserLoginHistory)
 def update_last_active_on_login(sender, instance, created, **kwargs):
     """
     Update user's last_active_at when a login is recorded.
+    Also starts trial period for unverified youth members if applicable.
     """
     if created:
         User.objects.filter(pk=instance.user_id).update(last_active_at=timezone.now())
+        
+        # Start trial for unverified youth members
+        try:
+            user = User.objects.get(pk=instance.user_id)
+            if user.role == 'YOUTH_MEMBER' and user.verification_status != 'VERIFIED':
+                trial_info = get_user_trial_info(user)
+                if trial_info.get('should_start_trial') and not user.trial_started_at:
+                    user.trial_started_at = timezone.now()
+                    user.save(update_fields=['trial_started_at'])
+        except User.DoesNotExist:
+            pass
 
 
 @receiver(post_save, sender=GuardianYouthLink)

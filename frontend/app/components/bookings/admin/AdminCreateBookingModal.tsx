@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import api from '../../../../lib/api';
-import { X, Search, User, Calendar, Clock, Loader2, Plus, CalendarDays, Users, Check, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Search, User, Calendar, Clock, Loader2, Plus, CalendarDays, Users, Check, AlertTriangle, RefreshCw, UserPlus, Trash2 } from 'lucide-react';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { useToast } from '../../../../hooks/useToast';
@@ -45,12 +45,35 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
   const [recurringType, setRecurringType] = useState<'FOREVER' | 'WEEKS'>('WEEKS');
   const [recurringWeeks, setRecurringWeeks] = useState<number>(4);
   
+  // Extra participants state
+  const [participants, setParticipants] = useState<string[]>([]);
+  const [participantName, setParticipantName] = useState('');
+  
   // Available Slots State
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   
   // Search State
   const [userSearch, setUserSearch] = useState('');
+  
+  // Get max participants from selected resource (default to 1 if not set)
+  const maxParticipants = selectedResource?.max_participants || 1;
+  // The main booker counts as 1, so extra participants allowed = max - 1
+  const maxExtraParticipants = Math.max(0, maxParticipants - 1);
+  
+  const addParticipant = () => {
+    if (!participantName.trim()) return;
+    if (participants.length >= maxExtraParticipants) {
+      error(t('toast.maxParticipantsReached'));
+      return;
+    }
+    setParticipants([...participants, participantName.trim()]);
+    setParticipantName('');
+  };
+  
+  const removeParticipant = (index: number) => {
+    setParticipants(participants.filter((_, i) => i !== index));
+  };
   
   // Toast State
   const { success, error, info, warning } = useToast();
@@ -131,7 +154,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             target_user_id: selectedUser.id, // Using our new backend field
             start_time: selectedSlot.start,
             end_time: selectedSlot.end,
-            participants: [] // Admins usually just book the main slot
+            participants: participants // Include extra participants if any
         };
         
         // Add recurring fields if enabled
@@ -187,6 +210,19 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             errorMessage = err.message;
         }
         
+        // Check if it's a weekly limit error and translate it
+        if (errorMessage.toLowerCase().includes('weekly booking limit') || 
+            errorMessage.toLowerCase().includes('weekly limit') ||
+            errorMessage.toLowerCase().includes('reached the weekly')) {
+            // Extract the numbers from the error message if possible
+            const maxMatch = errorMessage.match(/Maximum (\d+)/i);
+            const currentMatch = errorMessage.match(/currently have (\d+)/i);
+            const maxBookings = maxMatch ? maxMatch[1] : '?';
+            const currentBookings = currentMatch ? currentMatch[1] : '?';
+            
+            errorMessage = t('toast.weeklyLimitReached', { max: maxBookings, current: currentBookings });
+        }
+        
         error(errorMessage);
         setLoading(false);
     }
@@ -215,8 +251,8 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
           <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-[var(--dark-500)] rounded-full sm:hidden" />
           
           <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-              <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-[var(--brand-light)]">{t('title')}</h2>
@@ -435,7 +471,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="h-10 w-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
-                        <Clock className="h-5 w-5 text-white" />
+                        <Clock className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-bold text-[var(--brand-light)] text-base">
@@ -444,7 +480,7 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                         <div className="text-xs text-[var(--brand-primary)] mt-0.5">{t('preSelectedFromCalendar')}</div>
                       </div>
                     </div>
-                    <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--brand-primary)] text-white">
+                    <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--brand-primary)] text-[var(--dark-900)]">
                       {t('locked')}
                     </span>
                   </div>
@@ -511,7 +547,92 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
             </div>
           )}
 
-          {/* Step 5: Recurring Booking Options */}
+          {/* Step 5: Extra Participants (Optional) */}
+          {selectedSlot && maxExtraParticipants > 0 && (
+            <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] overflow-hidden">
+              <div className="px-4 py-3 bg-[var(--dark-600)] border-b border-[var(--dark-500)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)] flex items-center justify-center">
+                      <UserPlus className="w-4 h-4 text-[var(--dark-900)]" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-[var(--brand-light)]">{t('steps.extraParticipants')}</span>
+                      <span className="text-xs text-[var(--brand-light)]/50 ml-2">({t('optional')})</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[var(--brand-light)]/50">
+                    {participants.length}/{maxExtraParticipants}
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-[var(--brand-light)]/60">
+                  {t('extraParticipantsHint', { max: maxExtraParticipants })}
+                </p>
+                
+                {/* Add participant input */}
+                {participants.length < maxExtraParticipants && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder={t('participantNamePlaceholder')}
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addParticipant();
+                        }
+                      }}
+                      className="flex-1 h-10 px-4 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:border-[var(--brand-primary)] transition-colors text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={addParticipant}
+                      disabled={!participantName.trim()}
+                      className="h-10 px-4 bg-[var(--brand-primary)] text-[var(--dark-900)] rounded-xl font-medium text-sm hover:bg-[var(--brand-primary)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {t('addParticipant')}
+                    </button>
+                  </div>
+                )}
+                
+                {/* List of added participants */}
+                {participants.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {participants.map((name, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-[var(--dark-600)] border border-[var(--dark-500)] rounded-full"
+                      >
+                        <span className="text-sm text-[var(--brand-light)]">{name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeParticipant(index)}
+                          className="w-5 h-5 rounded-full bg-[var(--brand-red)]/20 hover:bg-[var(--brand-red)] text-[var(--brand-red)] hover:text-white flex items-center justify-center transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {participants.length >= maxExtraParticipants && (
+                  <div className="bg-[var(--brand-peach)]/10 rounded-xl border border-[var(--brand-peach)]/30 p-3">
+                    <p className="text-xs text-[var(--brand-peach)] font-medium flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      {t('maxParticipantsReachedHint')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Recurring Booking Options */}
           {selectedSlot && (
             <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] overflow-hidden">
               <div className="px-4 py-3 bg-[var(--dark-600)] border-b border-[var(--dark-500)]">

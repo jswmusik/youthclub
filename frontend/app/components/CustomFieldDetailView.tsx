@@ -140,7 +140,7 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
             <ArrowLeft className="h-4 w-4" /> {t('backToList')}
           </Link>
           <Link href={buildUrlWithParams(`${basePath}/edit/${field.id}`)}>
-            <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-medium transition-all">
+            <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-medium transition-all">
               <Edit className="h-4 w-4" />
               {t('editField')}
             </button>
@@ -263,8 +263,8 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-700)] overflow-hidden">
               <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-700)]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Info className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Info className="w-5 h-5 text-[var(--dark-900)]" />
                   </div>
                   <div>
                     <h2 className="font-semibold text-[var(--brand-light)]">{t('fieldDetails')}</h2>
@@ -444,8 +444,8 @@ export default function CustomFieldDetailView({ fieldId, basePath }: CustomField
                 <div className="p-4 sm:p-6">
                   <div className="p-4 bg-[var(--dark-700)] rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                        <ShieldCheck className="w-5 h-5 text-white" />
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                        <ShieldCheck className="w-5 h-5 text-[var(--dark-900)]" />
                       </div>
                       <div>
                         <p className="text-[var(--brand-light)] font-semibold">

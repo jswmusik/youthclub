@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { motion } from 'framer-motion';
 import { cmsApi } from '@/lib/cms-api';
 import { sanitizeHtml } from '@/lib/sanitize';
@@ -82,6 +83,8 @@ function processContentWithIds(content: string | undefined | null, tocItems: Tab
 
 export default function DynamicCmsPage() {
   const { slug } = useParams();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<string>('');
@@ -90,6 +93,12 @@ export default function DynamicCmsPage() {
   const [tocLeft, setTocLeft] = useState(0);
   const contentSectionRef = useRef<HTMLDivElement>(null);
   const tocPlaceholderRef = useRef<HTMLDivElement>(null);
+
+  // Theme detection - default to light mode for public pages
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = mounted && theme === 'dark';
 
   // Compute TOC items from page content (memoized)
   const tocItems = useMemo(() => {
@@ -256,7 +265,7 @@ export default function DynamicCmsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}>
         <motion.div 
           className="flex flex-col items-center gap-4"
           initial={{ opacity: 0, y: 20 }}
@@ -265,7 +274,7 @@ export default function DynamicCmsPage() {
           <div className="w-16 h-16 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
-          <p className="text-[var(--brand-light)]/60 text-sm">Laddar innehåll...</p>
+          <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>Laddar innehåll...</p>
         </motion.div>
       </div>
     );
@@ -273,19 +282,21 @@ export default function DynamicCmsPage() {
 
   if (!page) {
     return (
-      <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}>
         <motion.div 
           className="text-center max-w-md mx-auto px-4"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <div className="w-20 h-20 mx-auto mb-6 bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center">
+          <div className={`w-20 h-20 mx-auto mb-6 border flex items-center justify-center ${
+            darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' : 'bg-white border-gray-200'
+          }`}>
             <span className="text-4xl">🔍</span>
           </div>
-          <h1 className="text-2xl font-bold text-[var(--brand-light)] mb-3">
+          <h1 className={`text-2xl font-bold mb-3 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
             Sidan hittades inte
           </h1>
-          <p className="text-[var(--brand-light)]/60 mb-6">
+          <p className={`mb-6 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
             Sidan du letar efter finns inte eller har flyttats.
           </p>
           <Link 
@@ -309,7 +320,7 @@ export default function DynamicCmsPage() {
   const hasHeroImage = page.show_hero && heroImageUrl;
 
   return (
-    <article className="min-h-screen bg-[var(--dark-900)]">
+    <article className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}>
       {/* JSON-LD Schema */}
       <script
         type="application/ld+json"
@@ -349,14 +360,20 @@ export default function DynamicCmsPage() {
               animate={{ scale: 1 }}
               transition={{ duration: 1.2, ease: "easeOut" }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/50 to-transparent" />
+            <div className={`absolute inset-0 bg-gradient-to-t ${
+              darkMode 
+                ? 'from-[var(--dark-900)] via-[var(--dark-900)]/50 to-transparent' 
+                : 'from-gray-50 via-gray-50/50 to-transparent'
+            }`} />
           </>
         ) : (
           <>
-            <div className="absolute inset-0 bg-[var(--dark-900)]" />
+            <div className={`absolute inset-0 ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`} />
             {/* Subtle gradient orbs for non-image hero - smaller and less prominent */}
             <motion.div 
-              className="absolute top-0 -left-20 w-[300px] h-[300px] rounded-full bg-[var(--brand-primary)]/10 blur-[100px]"
+              className={`absolute top-0 -left-20 w-[300px] h-[300px] rounded-full blur-[100px] ${
+                darkMode ? 'bg-[var(--brand-primary)]/10' : 'bg-[#4D4DA4]/10'
+              }`}
               animate={{ 
                 x: [0, 20, 0],
                 y: [0, -15, 0],
@@ -364,7 +381,9 @@ export default function DynamicCmsPage() {
               transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div 
-              className="absolute top-20 right-0 w-[250px] h-[250px] rounded-full bg-[var(--brand-purple)]/8 blur-[80px]"
+              className={`absolute top-20 right-0 w-[250px] h-[250px] rounded-full blur-[80px] ${
+                darkMode ? 'bg-[var(--brand-purple)]/8' : 'bg-[#FFE8F0]/80'
+              }`}
               animate={{ 
                 x: [0, -15, 0],
                 y: [0, 20, 0],
@@ -386,12 +405,14 @@ export default function DynamicCmsPage() {
             >
               <Link 
                 href="/" 
-                className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
+                className={`hover:text-[var(--brand-primary)] transition-colors ${
+                  darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'
+                }`}
               >
                 Hem
               </Link>
-              <ChevronRight className="w-4 h-4 text-[var(--brand-light)]/40" />
-              <span className="text-[var(--brand-light)]">{page.title}</span>
+              <ChevronRight className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`} />
+              <span className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}>{page.title}</span>
             </motion.nav>
             
             {/* Title - Tilted, boxed in primary color with black text */}
@@ -414,7 +435,11 @@ export default function DynamicCmsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <p className="text-lg sm:text-xl font-bold text-[var(--brand-light)] bg-[var(--dark-900)] px-5 py-3">
+                <p className={`text-lg sm:text-xl font-bold px-5 py-3 ${
+                  darkMode 
+                    ? 'text-[var(--brand-light)] bg-[var(--dark-900)]' 
+                    : 'text-white bg-gray-900'
+                }`}>
                   {page.hero_tagline}
                 </p>
               </motion.div>
@@ -442,9 +467,9 @@ export default function DynamicCmsPage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-[var(--brand-light)] font-medium text-sm">{page.author_name}</p>
+                    <p className={`font-medium text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{page.author_name}</p>
                     {page.author_title && (
-                      <p className="text-[var(--brand-light)]/50 text-xs">{page.author_title}</p>
+                      <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{page.author_title}</p>
                     )}
                   </div>
                 </div>
@@ -452,7 +477,7 @@ export default function DynamicCmsPage() {
               
               {/* Date */}
               {page.updated_at && (
-                <div className="flex items-center gap-2 text-[var(--brand-light)]/60 text-sm">
+                <div className={`flex items-center gap-2 text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                   <Clock className="w-4 h-4" />
                   <span>
                     {format(new Date(page.updated_at), 'd MMMM yyyy', { locale: sv })}
@@ -462,24 +487,36 @@ export default function DynamicCmsPage() {
               
               {/* Share Buttons - All visible inline */}
               <div className="flex items-center gap-2 ml-auto">
-                <span className="text-[var(--brand-light)]/50 text-sm mr-1">Dela:</span>
+                <span className={`text-sm mr-1 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>Dela:</span>
                 <button
                   onClick={shareOnTwitter}
-                  className="w-9 h-9 flex items-center justify-center bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
+                  className={`w-9 h-9 flex items-center justify-center transition-all ${
+                    darkMode 
+                      ? 'bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]' 
+                      : 'bg-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-300'
+                  }`}
                   title="Dela på X"
                 >
                   <X className="w-4 h-4" />
                 </button>
                 <button
                   onClick={shareOnFacebook}
-                  className="w-9 h-9 flex items-center justify-center bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
+                  className={`w-9 h-9 flex items-center justify-center transition-all ${
+                    darkMode 
+                      ? 'bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]' 
+                      : 'bg-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-300'
+                  }`}
                   title="Dela på Facebook"
                 >
                   <Facebook className="w-4 h-4" />
                 </button>
                 <button
                   onClick={shareOnLinkedIn}
-                  className="w-9 h-9 flex items-center justify-center bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] transition-all"
+                  className={`w-9 h-9 flex items-center justify-center transition-all ${
+                    darkMode 
+                      ? 'bg-[var(--dark-800)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]' 
+                      : 'bg-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-300'
+                  }`}
                   title="Dela på LinkedIn"
                 >
                   <Linkedin className="w-4 h-4" />
@@ -498,7 +535,7 @@ export default function DynamicCmsPage() {
       </div>
 
       {/* Content Section */}
-      <div className="relative bg-[var(--dark-900)]" ref={contentSectionRef}>
+      <div className={`relative ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`} ref={contentSectionRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className={`flex gap-12 ${hasToc ? 'lg:flex-row items-start' : ''}`}>
             {/* Table of Contents - Fixed when scrolling */}
@@ -527,7 +564,11 @@ export default function DynamicCmsPage() {
                       <List className="w-4 h-4" />
                       <span className="text-sm font-bold uppercase tracking-wider">Innehåll</span>
                     </div>
-                    <nav className="bg-[var(--dark-800)] border border-[var(--dark-600)]">
+                    <nav className={`border ${
+                      darkMode 
+                        ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
+                        : 'bg-white border-gray-200 shadow-sm'
+                    }`}>
                       {tocItems.map((item, index) => (
                         <a
                           key={index}
@@ -547,7 +588,9 @@ export default function DynamicCmsPage() {
                           className={`block py-3 px-4 text-sm transition-all border-l-4 ${
                             activeSection === item.anchor
                               ? 'border-[var(--brand-primary)] text-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
-                              : 'border-transparent text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
+                              : darkMode 
+                                ? 'border-transparent text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)]'
+                                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                           }`}
                         >
                           {item.title}
@@ -568,27 +611,7 @@ export default function DynamicCmsPage() {
             >
               {processedContent && (
                 <div 
-                  className="cms-content prose prose-lg max-w-none
-                    prose-headings:text-[var(--brand-light)] prose-headings:font-heading prose-headings:font-bold prose-headings:scroll-mt-24
-                    prose-h1:text-3xl prose-h1:sm:text-4xl prose-h1:mb-6 prose-h1:mt-12 prose-h1:first:mt-0
-                    prose-h2:text-2xl prose-h2:sm:text-3xl prose-h2:mb-5 prose-h2:mt-14
-                    prose-h3:text-xl prose-h3:sm:text-2xl prose-h3:mb-4 prose-h3:mt-10 prose-h3:text-[var(--brand-light)]/90
-                    prose-p:text-[var(--brand-light)]/75 prose-p:leading-[1.85] prose-p:mb-6 prose-p:text-[17px]
-                    prose-a:text-[var(--brand-primary)] prose-a:no-underline prose-a:hover:underline prose-a:font-medium
-                    prose-strong:text-[var(--brand-light)] prose-strong:font-semibold
-                    prose-em:text-[var(--brand-light)]/85
-                    prose-ul:text-[var(--brand-light)]/75 prose-ul:my-6 prose-ul:space-y-2 prose-ul:text-[17px]
-                    prose-ol:text-[var(--brand-light)]/75 prose-ol:my-6 prose-ol:space-y-2 prose-ol:text-[17px]
-                    prose-li:marker:text-[var(--brand-primary)]
-                    prose-blockquote:border-l-4 prose-blockquote:border-[var(--brand-primary)] prose-blockquote:bg-[var(--dark-800)]/50 prose-blockquote:backdrop-blur-sm prose-blockquote:py-5 prose-blockquote:px-6 prose-blockquote:text-[var(--brand-light)]/85 prose-blockquote:not-italic prose-blockquote:my-8
-                    prose-code:text-[var(--brand-primary)] prose-code:bg-[var(--dark-800)] prose-code:px-2 prose-code:py-1 prose-code:text-sm
-                    prose-pre:bg-[var(--dark-800)] prose-pre:border prose-pre:border-[var(--dark-600)]
-                    prose-img:shadow-2xl prose-img:my-10
-                    prose-hr:border-[var(--dark-700)] prose-hr:my-14
-                    prose-table:border-collapse prose-table:w-full
-                    prose-th:bg-[var(--dark-800)] prose-th:text-[var(--brand-light)] prose-th:px-5 prose-th:py-3 prose-th:text-left prose-th:border prose-th:border-[var(--dark-600)]
-                    prose-td:px-5 prose-td:py-3 prose-td:border prose-td:border-[var(--dark-700)] prose-td:text-[var(--brand-light)]/75
-                  "
+                  className={`cms-content ${darkMode ? 'cms-content-dark' : 'cms-content-light'}`}
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(processedContent) }} 
                 />
               )}
@@ -611,7 +634,11 @@ export default function DynamicCmsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link 
               href="/"
-              className="inline-flex items-center gap-3 px-6 py-3.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all group"
+              className={`inline-flex items-center gap-3 px-6 py-3.5 font-bold transition-all group ${
+                darkMode 
+                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90' 
+                  : 'bg-[#4D4DA4] text-white hover:bg-[#3D3D94]'
+              }`}
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
               Tillbaka till startsidan

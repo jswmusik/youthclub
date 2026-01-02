@@ -9,7 +9,7 @@ import { enUS } from 'date-fns/locale';
 import BookingDetailModal from './BookingDetailModal';
 import { 
   Users, ChevronLeft, ChevronRight, Search, X, Eye, 
-  BarChart3, ChevronUp, ChevronDown, Clock, CalendarCheck, Trash2
+  BarChart3, ChevronUp, ChevronDown, Clock, CalendarCheck, Trash2, Sparkles
 } from 'lucide-react';
 import { getMediaUrl, getInitials } from '@/app/utils';
 
@@ -260,8 +260,8 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
             className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--dark-900)]" />
               </div>
               <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
@@ -278,8 +278,8 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
               {/* Pending Requests */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.pending')}</span>
                 </div>
@@ -289,8 +289,8 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
               {/* Resources */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                    <CalendarCheck className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                    <CalendarCheck className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.resources')}</span>
                 </div>
@@ -301,8 +301,8 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
               {(scope === 'MUNICIPALITY' || scope === 'SUPER') && (
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all col-span-2 sm:col-span-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                      <Users className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                      <Users className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.clubs')}</span>
                   </div>
@@ -412,7 +412,12 @@ export default function BookingRequestList({ scope }: { scope?: 'CLUB' | 'MUNICI
           <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
             <CalendarCheck className="w-8 h-8 text-[var(--brand-light)]/30" />
           </div>
-          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('emptyState.noPendingRequests')}</h3>
+          <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2 flex items-center justify-center gap-2">
+            {t('emptyState.noPendingRequests')}
+            <div className="w-6 h-6 rounded-lg bg-[var(--brand-peach)] flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-[var(--dark-900)]" />
+            </div>
+          </h3>
           <p className="text-[var(--brand-light)]/50 text-sm">{t('emptyState.allProcessed')}</p>
         </div>
       ) : (

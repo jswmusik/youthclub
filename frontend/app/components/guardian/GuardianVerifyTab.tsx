@@ -66,7 +66,7 @@ const getStatusColor = (status: string) => {
     case 'REJECTED':
       return 'bg-[var(--brand-red)]/20 text-[var(--brand-red)] border-[var(--brand-red)]/30';
     case 'DELETED':
-      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      return 'bg-[#F8F7FE]0/20 text-gray-400 border-gray-500/30';
     default:
       return 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 border-[var(--dark-500)]';
   }
@@ -263,12 +263,12 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
       <div className={`rounded-2xl border overflow-hidden ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white border-gray-200'
+          : 'bg-white border-[#4D4DA4]/15'
       }`}>
         <div className={`px-6 py-5 border-b ${
           darkMode 
             ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' 
-            : 'border-gray-100 bg-gray-50'
+            : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
         }`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
@@ -336,12 +336,12 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
       <div className={`rounded-2xl border overflow-hidden ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white border-gray-200'
+          : 'bg-white border-[#4D4DA4]/15'
       }`}>
         <div className={`px-6 py-5 border-b ${
           darkMode 
             ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' 
-            : 'border-gray-100 bg-gray-50'
+            : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -385,7 +385,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
                   className={`p-4 rounded-xl border ${
                     darkMode 
                       ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                      : 'bg-gray-50 border-gray-200'
+                      : 'bg-[#F8F7FE] border-[#4D4DA4]/15'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -451,12 +451,12 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
           <div className={`rounded-2xl border overflow-hidden ${
             darkMode 
               ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-              : 'bg-white border-gray-200'
+              : 'bg-white border-[#4D4DA4]/15'
           }`}>
             <div className={`px-6 py-5 border-b ${
               darkMode 
                 ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' 
-                : 'border-gray-100 bg-gray-50'
+                : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
             }`}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#235971] to-[#1a4357] flex items-center justify-center">
@@ -477,7 +477,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
               <div className={`p-4 rounded-xl border-2 border-dashed ${
                 darkMode 
                   ? 'border-[var(--dark-500)] bg-[var(--dark-700)]/30' 
-                  : 'border-gray-200 bg-gray-50'
+                  : 'border-[#4D4DA4]/15 bg-[#F8F7FE]'
               }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -514,12 +514,12 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
           <div className={`rounded-2xl border overflow-hidden ${
             darkMode 
               ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-              : 'bg-white border-gray-200'
+              : 'bg-white border-[#4D4DA4]/15'
           }`}>
             <div className={`px-6 py-5 border-b ${
               darkMode 
                 ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' 
-                : 'border-gray-100 bg-gray-50'
+                : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'
             }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -546,7 +546,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
 
             <div className="p-6 space-y-6">
               {!canUpload ? (
-                <div className={`p-4 rounded-xl ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'}`}>
+                <div className={`p-4 rounded-xl ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'}`}>
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-[var(--brand-peach)] flex-shrink-0 mt-0.5" />
                     <div>
@@ -582,7 +582,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
                                 ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
                                 : darkMode
                                   ? 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
-                                  : 'border-gray-200 bg-gray-50 hover:border-[var(--brand-primary)]/50'
+                                  : 'border-[#4D4DA4]/15 bg-[#F8F7FE] hover:border-[var(--brand-primary)]/50'
                             }`}
                           >
                             <Icon className={`w-6 h-6 mx-auto mb-2 ${
@@ -621,7 +621,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
                         className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
                           darkMode
                             ? 'border-[var(--dark-500)] bg-[var(--dark-700)]/50 hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-700)]'
-                            : 'border-gray-300 bg-gray-50 hover:border-[var(--brand-primary)]/50 hover:bg-gray-100'
+                            : 'border-gray-300 bg-[#F8F7FE] hover:border-[var(--brand-primary)]/50 hover:bg-[#EBEBFE]'
                         }`}
                       >
                         <Upload className={`w-10 h-10 mx-auto mb-3 ${
@@ -715,7 +715,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
 
               {/* Info Note */}
               <div className={`p-4 rounded-xl ${
-                darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-50'
+                darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#F8F7FE]'
               }`}>
                 <div className="flex items-start gap-3">
                   <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
@@ -740,7 +740,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
             darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'
           }`}>
             <div className={`flex items-center justify-between px-6 py-4 border-b ${
-              darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'
+              darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/15'
             }`}>
               <div>
                 <h3 className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
@@ -755,7 +755,7 @@ export default function GuardianVerifyTab({ user, darkMode = false, onVerificati
                 className={`p-2 rounded-lg transition-colors ${
                   darkMode
                     ? 'hover:bg-[var(--dark-600)] text-[var(--brand-light)]/60'
-                    : 'hover:bg-gray-100 text-gray-500'
+                    : 'hover:bg-[#EBEBFE] text-gray-500'
                 }`}
               >
                 <X className="w-5 h-5" />

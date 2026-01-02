@@ -4,8 +4,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { useAuth } from '../../context/AuthContext';
-import { Avatar } from './posts/PostCard';
 import { fetchUnreadNotificationCount, visits } from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api';
 import ActiveVisitModal from './visits/ActiveVisitModal';
@@ -31,24 +31,33 @@ import {
 interface NavBarProps {
     onMenuToggle?: () => void;
     showBackButton?: boolean;
-    darkMode?: boolean;
+    darkMode?: boolean; // Deprecated - theme is now detected automatically
     hideBottomNavOnMobile?: boolean;
     hideCheckedInIndicator?: boolean;
 }
 
-export default function NavBar({ onMenuToggle, showBackButton = false, darkMode = false, hideBottomNavOnMobile = false, hideCheckedInIndicator = false }: NavBarProps) {
+export default function NavBar({ onMenuToggle, showBackButton = false, darkMode: _darkModeProp = false, hideBottomNavOnMobile = false, hideCheckedInIndicator = false }: NavBarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const { hasFeature } = useLicense();
     const t = useTranslations('nav');
     const tVisits = useTranslations('visits');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [messageUnreadCount, setMessageUnreadCount] = useState(0);
     const [activeVisit, setActiveVisit] = useState<{id: number, is_checked_in: boolean, club_name?: string, check_in_at?: string} | null>(null);
     const [showVisitModal, setShowVisitModal] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    
+    // Avoid hydration mismatch for theme
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
 
     const handleLogout = () => {
         logout();
@@ -176,9 +185,9 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 className="flex-shrink-0 h-8 sm:h-10 flex items-center hover:opacity-80 transition-opacity active:scale-95"
                             >
                                 <img 
-                                    src="/ua-icon-2026.svg" 
+                                    src="/ua-logo-2026.svg" 
                                     alt="Ungdomsappen Logo" 
-                                    className="h-full w-auto object-contain"
+                                    className={`h-full w-auto object-contain ${darkMode ? 'brightness-0 invert' : ''}`}
                                 />
                             </button>
                         </div>
@@ -318,14 +327,20 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode 
                                 }`}
                                 title={`${user?.first_name} ${user?.last_name}`}
                             >
-                                {user ? (
-                                    <Avatar
-                                        src={user.avatar || null}
+                                {user?.avatar ? (
+                                    <img
+                                        src={user.avatar}
                                         alt={`${user.first_name} ${user.last_name}`}
-                                        firstName={user.first_name || ''}
-                                        lastName={user.last_name || ''}
-                                        size="md"
+                                        className="w-full h-full object-cover"
                                     />
+                                ) : user ? (
+                                    <div className={`w-full h-full flex items-center justify-center text-sm font-semibold ${
+                                        darkMode 
+                                            ? 'bg-[var(--brand-secondary)]/20 text-[var(--brand-purple)]' 
+                                            : 'bg-[#EBEBFE] text-[#4D4DA4]'
+                                    }`}>
+                                        {(user.first_name?.[0] || '').toUpperCase()}{(user.last_name?.[0] || '').toUpperCase()}
+                                    </div>
                                 ) : (
                                     <div className={`w-full h-full flex items-center justify-center ${
                                         darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'

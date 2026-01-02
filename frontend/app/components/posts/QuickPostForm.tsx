@@ -384,8 +384,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div className="flex-1">
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateSelection.title')} <span className="text-[var(--brand-red)]">*</span></h2>
@@ -485,8 +485,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                                    <FileText className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                    <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('postContent.title')}</h2>
@@ -542,8 +542,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-pink)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <Image className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-pink)] flex items-center justify-center">
+                                    <Image className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('media.title')}</h2>
@@ -565,7 +565,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         onClick={() => setValue('postType', type)} 
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             postType === type 
-                                                ? 'bg-[var(--brand-primary)] text-white' 
+                                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
                                                 : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                         }`}
                                     >
@@ -641,10 +641,10 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                                         sendPush 
-                                            ? 'bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-pink)]' 
+                                            ? 'bg-[var(--brand-primary)]' 
                                             : 'bg-[var(--dark-600)]'
                                     }`}>
-                                        <Bell className={`w-5 h-5 ${sendPush ? 'text-white' : 'text-[var(--brand-light)]/50'}`} />
+                                        <Bell className={`w-5 h-5 ${sendPush ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/50'}`} />
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('pushNotification.title')}</h2>
@@ -685,8 +685,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     <div className="p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
                                         <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider mb-2 font-medium">{t('pushNotification.preview')}</p>
                                         <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                <Bell className="w-5 h-5 text-white" />
+                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                <Bell className="w-5 h-5 text-[var(--dark-900)]" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-semibold text-[var(--brand-light)] truncate">
@@ -756,8 +756,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-blue)] flex items-center justify-center">
-                                    <Send className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                                    <Send className="w-5 h-5 text-[var(--dark-900)]" />
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('publish.title')}</h2>
@@ -779,7 +779,11 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         onClick={() => setStatus(value as any)} 
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             status === value 
-                                                ? `bg-[var(--brand-${color})] text-white` 
+                                                ? value === 'PUBLISHED' 
+                                                    ? 'bg-[var(--brand-green)] text-[var(--dark-900)]'
+                                                    : value === 'DRAFT'
+                                                        ? 'bg-[var(--brand-blue)] text-white'
+                                                        : 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                                 : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                         }`}
                                     >
@@ -810,8 +814,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
                             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                                        <Settings className="w-5 h-5 text-white" />
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                                        <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('templateSettings.title')}</h2>

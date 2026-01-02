@@ -1091,10 +1091,15 @@ class PostTemplateViewSet(viewsets.ModelViewSet):
         
         queryset = PostTemplate.objects.all()
         
-        # Filter by is_active unless explicitly requested
-        show_inactive = self.request.query_params.get('show_inactive', 'false').lower() == 'true'
-        if not show_inactive:
-            queryset = queryset.filter(is_active=True)
+        # For detail actions (retrieve, update, destroy, toggle_active), include inactive templates
+        # so admins can edit/delete/view inactive templates
+        if self.action in ['retrieve', 'update', 'partial_update', 'destroy', 'toggle_active', 'duplicate']:
+            pass  # Don't filter by is_active for these actions
+        else:
+            # Filter by is_active unless explicitly requested (for list action)
+            show_inactive = self.request.query_params.get('show_inactive', 'false').lower() == 'true'
+            if not show_inactive:
+                queryset = queryset.filter(is_active=True)
         
         # Super Admin sees only SUPER scope templates
         if user.role == 'SUPER_ADMIN':

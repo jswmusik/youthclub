@@ -143,6 +143,38 @@ class CookieConsent(models.Model):
         return f"Cookie Policy v{self.version}"
 
 
+class Boilerplate(models.Model):
+    """
+    Reusable text templates that can be inserted into various forms.
+    Used for legal documents, terms and conditions, club policies, etc.
+    """
+    USAGE_CHOICES = (
+        ('terms_and_conditions', 'Villkor'),
+        ('club_policies', 'Klubbregler'),
+        ('privacy_policy', 'Integritetspolicy'),
+        ('general', 'Allmän'),
+    )
+
+    name = models.CharField(max_length=255, help_text="Internal name for the template")
+    usage = models.CharField(max_length=50, choices=USAGE_CHOICES, default='general', help_text="Where this template can be used")
+    content = models.TextField(blank=True, default='', help_text="The template content (supports HTML)")
+    description = models.TextField(blank=True, help_text="Description of what this template is for")
+    
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = "Boilerplate"
+        verbose_name_plural = "Boilerplates"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_usage_display()})"
+
+
 class PricingPageContent(models.Model):
     """
     Singleton model for managing pricing page content.

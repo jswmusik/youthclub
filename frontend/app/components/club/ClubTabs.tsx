@@ -88,7 +88,7 @@ export default function ClubTabs({ activeTab, onChange, excludeTabs = [], darkMo
     } ${
       darkMode 
         ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-        : 'bg-white border-gray-200 shadow-sm'
+        : 'bg-white border-[#4D4DA4]/10 shadow-sm'
     }`}>
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <nav 
@@ -99,7 +99,7 @@ export default function ClubTabs({ activeTab, onChange, excludeTabs = [], darkMo
           {/* Animated indicator */}
           <div 
             className={`absolute bottom-0 h-0.5 transition-all duration-300 ease-out ${
-              darkMode ? 'bg-[var(--brand-primary)]' : 'bg-blue-500'
+              darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#4D4DA4]'
             }`}
             style={{
               left: indicatorStyle.left,

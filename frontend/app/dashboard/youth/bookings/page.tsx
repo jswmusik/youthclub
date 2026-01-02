@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 
 import api from '../../../../lib/api';
@@ -27,12 +28,20 @@ export default function YouthBookingsPage() {
   const { user } = useAuth();
   const t = useTranslations('bookings');
   const tSidebar = useTranslations('sidebar');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('upcoming');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+
+  // Theme detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = !mounted || theme === 'dark';
 
   // Minimum loading time for skeleton display
   useEffect(() => {
@@ -122,9 +131,9 @@ export default function YouthBookingsPage() {
   const showSkeleton = loading || !minLoadingComplete;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="flex-1">
-      <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
+      <NavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} showBackButton={true} />
       
       {/* Mobile Sidebar Overlay */}
       <div 
@@ -136,21 +145,21 @@ export default function YouthBookingsPage() {
       
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] border-r border-[var(--dark-600)] transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 left-0 h-screen w-64 z-50 border-r transform transition-transform duration-300 md:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-gray-200'}`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-          <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tSidebar('menu')}</h1>
+        <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'}`}>
+          <h1 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
+            className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-          <YouthSidebar activePath={pathname} darkMode={true} />
+          <YouthSidebar activePath={pathname} />
         </div>
       </aside>
       
@@ -159,7 +168,7 @@ export default function YouthBookingsPage() {
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
           <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-            <YouthSidebar activePath={pathname} darkMode={true} />
+            <YouthSidebar activePath={pathname} />
           </aside>
           
           {/* Content wrapper with left margin for sidebar */}
@@ -175,11 +184,11 @@ export default function YouthBookingsPage() {
                       <div>
                         <div className="flex items-center gap-2 sm:gap-3 mb-1">
                           <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                          <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                          <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                             {t('myBookings')}
                           </h1>
                         </div>
-                        <p className="text-[var(--brand-light)]/60 text-sm pl-8 sm:pl-10">
+                        <p className={`text-sm pl-8 sm:pl-10 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                           {filter === 'upcoming' && t('upcomingReservations')}
                           {filter === 'history' && t('pastBookings')}
                           {filter === 'cancelled' && t('cancelledBookings')}
@@ -195,14 +204,16 @@ export default function YouthBookingsPage() {
                     </div>
 
                     {/* Filters Section */}
-                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
+                    <div className={`rounded-none sm:rounded-2xl border-y sm:border p-3 sm:p-4 ${
+                      darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                    }`}>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => setFilter('upcoming')}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             filter === 'upcoming'
-                              ? 'bg-[var(--brand-third)] text-[var(--dark-900)]'
-                              : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                              ? 'bg-[#10B981] text-white'
+                              : darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                           }`}
                         >
                           <Calendar className="w-3.5 h-3.5" />
@@ -213,8 +224,8 @@ export default function YouthBookingsPage() {
                           onClick={() => setFilter('history')}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             filter === 'history'
-                              ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]'
-                              : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                              ? 'bg-[var(--brand-purple)] text-white'
+                              : darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                           }`}
                         >
                           <Clock className="w-3.5 h-3.5" />
@@ -225,8 +236,8 @@ export default function YouthBookingsPage() {
                           onClick={() => setFilter('cancelled')}
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                             filter === 'cancelled'
-                              ? 'bg-[var(--brand-red)] text-[var(--brand-light)]'
-                              : 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                              ? 'bg-[var(--brand-red)] text-white'
+                              : darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/60 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800'
                           }`}
                         >
                           <XCircle className="w-3.5 h-3.5" />
@@ -237,15 +248,17 @@ export default function YouthBookingsPage() {
                   </div>
 
                   {filteredBookings.length === 0 ? (
-                <div className="text-center py-12 mx-4 sm:mx-0 bg-[var(--dark-800)] rounded-xl sm:rounded-2xl border border-[var(--dark-600)]">
+                <div className={`text-center py-12 mx-4 sm:mx-0 rounded-xl sm:rounded-2xl border ${
+                  darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                }`}>
                   <div className="max-w-md mx-auto px-4">
                     {filter === 'upcoming' && (
                       <>
                         <div className="w-20 h-20 bg-[var(--brand-primary)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <Calendar className="w-10 h-10 text-[var(--brand-primary)]" />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noUpcomingBookings')}</p>
-                        <p className="text-sm text-[var(--brand-light)]/60 mb-4">{t('noUpcomingBookingsMessage')}</p>
+                        <p className={`mb-2 font-bold text-lg font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noUpcomingBookings')}</p>
+                        <p className={`text-sm mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('noUpcomingBookingsMessage')}</p>
                         <Link 
                           href="/dashboard/youth/bookings/new"
                           className="inline-flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-5 py-2.5 rounded-xl font-bold hover:bg-[var(--brand-primary)]/90 transition-all"
@@ -256,11 +269,11 @@ export default function YouthBookingsPage() {
                     )}
                     {filter === 'history' && (
                       <>
-                        <div className="w-20 h-20 bg-[var(--dark-700)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                          <Clock className="w-10 h-10 text-[var(--brand-light)]/40" />
+                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'}`}>
+                          <Clock className={`w-10 h-10 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-[#4D4DA4]/40'}`} />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noBookingHistory')}</p>
-                        <p className="text-sm text-[var(--brand-light)]/60">{t('noBookingHistoryMessage')}</p>
+                        <p className={`mb-2 font-bold text-lg font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noBookingHistory')}</p>
+                        <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('noBookingHistoryMessage')}</p>
                       </>
                     )}
                     {filter === 'cancelled' && (
@@ -268,8 +281,8 @@ export default function YouthBookingsPage() {
                         <div className="w-20 h-20 bg-[var(--brand-red)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
                           <XCircle className="w-10 h-10 text-[var(--brand-red)]" />
                         </div>
-                        <p className="text-[var(--brand-light)] mb-2 font-bold text-lg font-heading">{t('noCancelledBookings')}</p>
-                        <p className="text-sm text-[var(--brand-light)]/60">{t('noCancelledBookingsMessage')}</p>
+                        <p className={`mb-2 font-bold text-lg font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noCancelledBookings')}</p>
+                        <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('noCancelledBookingsMessage')}</p>
                       </>
                     )}
                   </div>
@@ -281,7 +294,7 @@ export default function YouthBookingsPage() {
                           key={booking.id} 
                           booking={booking}
                           onClick={() => setSelectedBooking(booking)}
-                          darkMode={true}
+                          darkMode={darkMode}
                         />
                       ))}
                     </div>
@@ -302,7 +315,7 @@ export default function YouthBookingsPage() {
             fetchMyBookings();
             setSelectedBooking(null);
           }}
-          darkMode={true}
+          darkMode={darkMode}
         />
       )}
       </div>

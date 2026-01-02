@@ -45,7 +45,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
             <div className={`flex items-center p-3 rounded-xl border ${
               darkMode 
                 ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
             }`}>
               <Mail className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
               <span className="truncate">{user.email}</span>
@@ -56,7 +56,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
               <div className={`flex items-center p-3 rounded-xl border ${
                 darkMode 
                   ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                  : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
                 <Phone className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
                 <span>{user.phone_number}</span>
@@ -68,7 +68,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
               <div className={`flex items-center p-3 rounded-xl border ${
                 darkMode 
                   ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                  : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
                 <MapPin className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
                 <span>{user.assigned_municipality.name}</span>
@@ -79,7 +79,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
             <div className={`flex items-center p-3 rounded-xl border ${
               darkMode 
                 ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
             }`}>
               <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
               <span>{t('joined') || 'Joined'} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
@@ -186,7 +186,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
               className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-3 ${
                 darkMode
                   ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-[#4D4DA4]/15 shadow-sm'
               }`}
             >
               <Calendar className="w-5 h-5" />
@@ -198,7 +198,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
               className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-3 ${
                 darkMode
                   ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-[#4D4DA4]/15 shadow-sm'
               }`}
             >
               <Building2 className="w-5 h-5" />
@@ -210,7 +210,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
               className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-all flex items-center gap-3 ${
                 darkMode
                   ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] border border-[var(--dark-500)]'
-                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
+                  : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-[#4D4DA4]/15 shadow-sm'
               }`}
             >
               <Activity className="w-5 h-5" />

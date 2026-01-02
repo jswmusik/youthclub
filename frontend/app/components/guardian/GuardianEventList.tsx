@@ -196,9 +196,9 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
         };
       case 'CANCELLED':
         return { 
-          bg: darkMode ? 'bg-gray-500/20' : 'bg-gray-100', 
+          bg: darkMode ? 'bg-[#F8F7FE]0/20' : 'bg-[#EBEBFE]', 
           text: darkMode ? 'text-gray-400' : 'text-gray-600',
-          border: darkMode ? 'border-gray-500/30' : 'border-gray-200',
+          border: darkMode ? 'border-gray-500/30' : 'border-[#4D4DA4]/15',
           icon: <XCircle className="w-3.5 h-3.5" />,
           label: t('statusCancelled') || 'Avbokad'
         };
@@ -212,9 +212,9 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
         };
       default:
         return { 
-          bg: darkMode ? 'bg-gray-500/20' : 'bg-gray-100', 
+          bg: darkMode ? 'bg-[#F8F7FE]0/20' : 'bg-[#EBEBFE]', 
           text: darkMode ? 'text-gray-400' : 'text-gray-600',
-          border: darkMode ? 'border-gray-500/30' : 'border-gray-200',
+          border: darkMode ? 'border-gray-500/30' : 'border-[#4D4DA4]/15',
           icon: null,
           label: status
         };
@@ -285,7 +285,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
 
       {/* Tabs */}
       <div className={`flex gap-1 p-1 rounded-xl mb-6 ${
-        darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-100'
+        darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'
       }`}>
         <TabButton 
           label={t('approvals') || "Approvals"}
@@ -463,7 +463,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
                     className={`w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm transition-colors ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 focus:border-[var(--brand-primary)]' 
-                        : 'bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-[#4D4DA4]'
+                        : 'bg-white border-[#4D4DA4]/15 text-gray-800 placeholder:text-gray-400 focus:border-[#4D4DA4]'
                     } focus:outline-none`}
                   />
                   {historySearch && (
@@ -486,7 +486,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
                     className={`appearance-none pl-10 pr-10 py-2.5 rounded-xl border text-sm cursor-pointer transition-colors ${
                       darkMode 
                         ? 'bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] focus:border-[var(--brand-primary)]' 
-                        : 'bg-white border-gray-200 text-gray-800 focus:border-[#4D4DA4]'
+                        : 'bg-white border-[#4D4DA4]/15 text-gray-800 focus:border-[#4D4DA4]'
                     } focus:outline-none`}
                   >
                     {timeFilterOptions.map((option) => (
@@ -529,7 +529,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
                       className={`group rounded-xl overflow-hidden border transition-all cursor-pointer ${
                         darkMode 
                           ? 'bg-[var(--dark-700)] border-[var(--dark-600)] hover:border-[var(--dark-500)]' 
-                          : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-white'
+                          : 'bg-[#F8F7FE] border-[#4D4DA4]/15 hover:border-gray-300 hover:bg-white'
                       }`}
                       onClick={() => router.push(`/dashboard/guardian/events/${event.id}`)}
                     >
@@ -538,7 +538,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
                         <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
                           darkMode 
                             ? 'bg-[var(--dark-600)]' 
-                            : 'bg-white shadow-sm border border-gray-100'
+                            : 'bg-white shadow-sm border border-[#4D4DA4]/10'
                         }`}>
                           <span className={`text-lg font-bold ${
                             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'
@@ -660,7 +660,7 @@ function EmptyState({ message, icon, darkMode }: { message: string; icon?: React
     <div className={`p-12 text-center rounded-xl border-2 border-dashed ${
       darkMode 
         ? 'border-[var(--dark-600)] bg-[var(--dark-700)]/50' 
-        : 'border-gray-200 bg-gray-50/50'
+        : 'border-[#4D4DA4]/15 bg-[#F8F7FE]/50'
     }`}>
       <div className={`mx-auto mb-3 ${
         darkMode ? 'text-[var(--brand-light)]/20' : 'text-gray-300'

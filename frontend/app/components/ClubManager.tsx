@@ -297,9 +297,9 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
     hasUserChangedFilters.current = true;
 
     const timer = setTimeout(() => {
-        const params = new URLSearchParams(searchParams.toString());
-        if (searchInput) params.set('search', searchInput); else params.delete('search');
-        if (municipalityFilter) params.set('municipality', municipalityFilter); else params.delete('municipality');
+        const params = new URLSearchParams();
+        if (searchInput) params.set('search', searchInput);
+        if (municipalityFilter) params.set('municipality', municipalityFilter);
         params.set('page', '1'); 
         router.replace(`${pathname}?${params.toString()}`);
         
@@ -308,7 +308,8 @@ export default function ClubManager({ basePath, scope }: ClubManagerProps) {
         initialMunicipalityRef.current = municipalityFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, municipalityFilter, router, pathname, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput, municipalityFilter, router, pathname]);
 
   // Fetch Data on URL Change
   useEffect(() => {

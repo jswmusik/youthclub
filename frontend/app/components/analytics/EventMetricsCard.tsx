@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Calendar, Users, Trophy, Target, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { EventMetrics } from '@/lib/analytics-api';
 
@@ -33,6 +34,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.Reac
 };
 
 export default function EventMetricsCard({ events }: Props) {
+  const t = useTranslations('analyticsAdmin.events');
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
@@ -54,8 +56,8 @@ export default function EventMetricsCard({ events }: Props) {
             <Calendar className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--brand-light)]">Event Analytics</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">Performance overview</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
       </div>
@@ -66,7 +68,7 @@ export default function EventMetricsCard({ events }: Props) {
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all group">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-[var(--brand-purple)] group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-[var(--brand-light)]/50">Events</span>
+              <span className="text-xs text-[var(--brand-light)]/50">{t('eventsLabel')}</span>
             </div>
             <div className="text-2xl font-bold text-[var(--brand-purple)]">{events.total_events}</div>
           </div>
@@ -74,7 +76,7 @@ export default function EventMetricsCard({ events }: Props) {
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all group">
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-4 h-4 text-[var(--brand-green)] group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-[var(--brand-light)]/50">Registrations</span>
+              <span className="text-xs text-[var(--brand-light)]/50">{t('registrations')}</span>
             </div>
             <div className="text-2xl font-bold text-[var(--brand-green)]">{events.total_registrations}</div>
           </div>
@@ -82,7 +84,7 @@ export default function EventMetricsCard({ events }: Props) {
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[#F97316]/50 transition-all group">
             <div className="flex items-center gap-2 mb-2">
               <Target className="w-4 h-4 text-[#F97316] group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-[var(--brand-light)]/50">Show-up Rate</span>
+              <span className="text-xs text-[var(--brand-light)]/50">{t('showUpRate')}</span>
             </div>
             <div className="text-2xl font-bold text-[#F97316]">{events.show_up_rate}%</div>
           </div>
@@ -90,7 +92,7 @@ export default function EventMetricsCard({ events }: Props) {
           <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all group">
             <div className="flex items-center gap-2 mb-2">
               <Trophy className="w-4 h-4 text-[var(--brand-blue)] group-hover:scale-110 transition-transform" />
-              <span className="text-xs text-[var(--brand-light)]/50">Avg. Capacity</span>
+              <span className="text-xs text-[var(--brand-light)]/50">{t('avgCapacity')}</span>
             </div>
             <div className="text-2xl font-bold text-[var(--brand-blue)]">{events.avg_capacity_utilization}%</div>
           </div>
@@ -99,7 +101,7 @@ export default function EventMetricsCard({ events }: Props) {
         {/* Status Breakdown */}
         {events.status_breakdown && events.status_breakdown.length > 0 && (
           <div className="mb-6">
-            <h4 className="text-sm font-medium text-[var(--brand-light)]/60 mb-3">Registration Status</h4>
+            <h4 className="text-sm font-medium text-[var(--brand-light)]/60 mb-3">{t('registrationStatus')}</h4>
             <div className="flex flex-wrap gap-2">
               {events.status_breakdown.map((status) => {
                 const style = STATUS_STYLES[status.status] || STATUS_STYLES.PENDING;
@@ -120,7 +122,7 @@ export default function EventMetricsCard({ events }: Props) {
         {/* Top Events */}
         {events.top_events && events.top_events.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-[var(--brand-light)]/60 mb-3">Top Events by Registrations</h4>
+            <h4 className="text-sm font-medium text-[var(--brand-light)]/60 mb-3">{t('topEvents')}</h4>
             <div className="space-y-2">
               {events.top_events.map((event, index) => (
                 <div 
@@ -166,8 +168,8 @@ export default function EventMetricsCard({ events }: Props) {
         {events.total_events === 0 && (
           <div className="text-center py-12 text-[var(--brand-light)]/40">
             <Calendar className="w-16 h-16 mx-auto mb-3 opacity-30" />
-            <p className="text-lg font-medium">No events in this period</p>
-            <p className="text-sm mt-1">Create an event to start tracking analytics</p>
+            <p className="text-lg font-medium">{t('noEvents')}</p>
+            <p className="text-sm mt-1">{t('createEventHint')}</p>
           </div>
         )}
       </div>

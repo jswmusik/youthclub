@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { CalendarCheck, Users, DoorOpen, Gamepad2, Trophy } from 'lucide-react';
 import { BookingMetrics } from '@/lib/analytics-api';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function BookingAnalyticsCard({ data }: Props) {
+  const t = useTranslations('analyticsAdmin.booking');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -49,26 +51,26 @@ export default function BookingAnalyticsCard({ data }: Props) {
             <CalendarCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--brand-light)]">Booking Analytics</h3>
-            <p className="text-xs text-[var(--brand-light)]/50">Room & equipment reservations</p>
+            <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
+            <p className="text-xs text-[var(--brand-light)]/50">{t('subtitle')}</p>
           </div>
         </div>
         <div className="text-right">
           <p className="text-2xl font-bold text-[var(--brand-light)]">{data.total_bookings}</p>
-          <p className="text-xs text-[var(--brand-light)]/50">Total Bookings</p>
+          <p className="text-xs text-[var(--brand-light)]/50">{t('totalBookings')}</p>
         </div>
       </div>
 
       {data.total_bookings === 0 ? (
         <div className="flex flex-col items-center justify-center h-[200px] text-[var(--brand-light)]/40">
           <CalendarCheck className="w-12 h-12 mb-2 opacity-50" />
-          <p className="text-sm">No bookings in this period</p>
+          <p className="text-sm">{t('noBookings')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gender Breakdown */}
           <div>
-            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">Who's Booking?</h4>
+            <h4 className="text-sm font-medium text-[var(--brand-light)]/70 mb-4">{t('whosBooking')}</h4>
             
             {/* Gender Donut */}
             <div className="flex items-center gap-6">
@@ -136,21 +138,21 @@ export default function BookingAnalyticsCard({ data }: Props) {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: genderColors.male }} />
-                  <span className="text-xs text-[var(--brand-light)]/70">Male</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('male')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.gender_breakdown.male_pct}%
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: genderColors.female }} />
-                  <span className="text-xs text-[var(--brand-light)]/70">Female</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('female')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.gender_breakdown.female_pct}%
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: genderColors.other }} />
-                  <span className="text-xs text-[var(--brand-light)]/70">Other</span>
+                  <span className="text-xs text-[var(--brand-light)]/70">{t('other')}</span>
                   <span className="text-xs font-bold text-[var(--brand-light)] ml-auto">
                     {data.gender_breakdown.other_pct}%
                   </span>
@@ -162,13 +164,13 @@ export default function BookingAnalyticsCard({ data }: Props) {
             <div className="mt-4 pt-4 border-t border-[var(--dark-600)] grid grid-cols-2 gap-3">
               <div className="bg-[var(--dark-700)] rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-[var(--brand-light)]">{data.unique_bookers}</p>
-                <p className="text-[10px] text-[var(--brand-light)]/50">Unique Bookers</p>
+                <p className="text-[10px] text-[var(--brand-light)]/50">{t('uniqueBookers')}</p>
               </div>
               <div className="bg-[var(--dark-700)] rounded-lg p-3 text-center">
                 <p className="text-lg font-bold text-[var(--brand-light)]">
                   {data.unique_bookers > 0 ? (data.total_bookings / data.unique_bookers).toFixed(1) : 0}
                 </p>
-                <p className="text-[10px] text-[var(--brand-light)]/50">Bookings/Person</p>
+                <p className="text-[10px] text-[var(--brand-light)]/50">{t('bookingsPerPerson')}</p>
               </div>
             </div>
           </div>
@@ -177,13 +179,13 @@ export default function BookingAnalyticsCard({ data }: Props) {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Trophy className="w-4 h-4 text-[#FBBF24]" />
-              <h4 className="text-sm font-medium text-[var(--brand-light)]/70">Top 8 Most Booked</h4>
+              <h4 className="text-sm font-medium text-[var(--brand-light)]/70">{t('topMostBooked')}</h4>
             </div>
             
             {data.top_resources.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[180px] text-[var(--brand-light)]/40">
                 <DoorOpen className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-xs">No resources booked</p>
+                <p className="text-xs">{t('noResourcesBooked')}</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">

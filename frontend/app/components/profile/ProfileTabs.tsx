@@ -82,7 +82,7 @@ export default function ProfileTabs({ activeTab, onTabChange, isSticky = false, 
     } ${
       darkMode 
         ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
-        : 'bg-white border-gray-200 shadow-sm'
+        : 'bg-white border-[#4D4DA4]/15 shadow-sm'
     }`}>
       <div className="max-w-6xl mx-auto px-2 sm:px-4 md:px-6">
         <nav 

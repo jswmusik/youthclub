@@ -35,8 +35,8 @@ function SuperBookingCalendarPageContent() {
           
           {/* Title and description */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <CalendarDays className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -57,8 +57,8 @@ function LoadingFallback() {
   const t = useTranslations('bookingsAdmin.calendar');
   return (
     <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-        <CalendarDays className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+        <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
       </div>
       <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>

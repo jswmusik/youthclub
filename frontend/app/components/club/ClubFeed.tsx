@@ -108,7 +108,7 @@ export default function ClubFeed({ clubId, darkMode = false }: ClubFeedProps) {
       <div className={`py-12 text-center rounded-none sm:rounded-xl border-y sm:border mx-0 ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white shadow-sm border-gray-100'
+          : 'bg-white shadow-sm border-[#4D4DA4]/10'
       }`}>
         <p className={`text-lg ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
           No updates from this club yet.

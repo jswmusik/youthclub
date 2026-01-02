@@ -9,9 +9,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, MapPin, Building2, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Clock, 
-  Plus, Trash2, FileText, Tag, Map
+  Plus, Trash2, FileText, Map
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import { useToast } from '../../hooks/useToast';
@@ -19,6 +20,37 @@ import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { createClubSchema, type ClubFormData } from '@/lib/validations/club';
+
+// Dynamically import rich text editors to avoid SSR issues
+const LegalRichTextEditor = dynamic(
+  () => import('./LegalRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
+
+const DarkRichTextEditor = dynamic(
+  () => import('./DarkRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface Option { id: number; name: string; }
 
@@ -110,8 +142,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
       club_categories: initialData?.club_categories || '',
       terms_and_conditions: initialData?.terms_and_conditions || '',
       club_policies: initialData?.club_policies || '',
-      allow_self_registration_override: initialData?.allow_self_registration_override === null ? '' : String(initialData?.allow_self_registration_override),
-      require_guardian_override: initialData?.require_guardian_override === null ? '' : String(initialData?.require_guardian_override),
+      allow_self_registration_override: initialData?.allow_self_registration_override == null ? '' : String(initialData?.allow_self_registration_override),
+      require_guardian_override: initialData?.require_guardian_override == null ? '' : String(initialData?.require_guardian_override),
     },
     mode: 'onBlur',
   });
@@ -602,39 +634,15 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                 <label htmlFor="description" className={labelClasses}>
                   {t('basicInfo.descriptionLabel')} <span className="text-[var(--brand-primary)]">*</span>
                 </label>
-                <textarea 
-                  id="description"
-                  rows={4} 
+                <DarkRichTextEditor
+                  value={formData.description || ''}
+                  onChange={(content) => setValue('description', content)}
                   placeholder={t('basicInfo.descriptionPlaceholder')}
-                  {...register('description')}
-                  onFocus={() => setFocusedField('description')}
-                  onBlur={(e) => {
-                    setFocusedField(null);
-                    register('description').onBlur(e);
-                  }}
-                  className={`${inputClasses('description', !!errors.description)} resize-none`}
+                  minHeight="150px"
                 />
                 {errors.description && (
                   <p className="text-[var(--brand-red)] text-sm mt-1">{errors.description.message}</p>
                 )}
-              </div>
-
-              {/* Categories */}
-              <div>
-                <label htmlFor="club_categories" className={labelClasses}>
-                  <Tag className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-purple)]" />
-                  {t('basicInfo.categories')}
-                </label>
-                <input 
-                  id="club_categories"
-                  type="text"
-                  placeholder={t('basicInfo.categoriesPlaceholder')}
-                  value={formData.club_categories}
-                  onChange={e => setFormData({ ...formData, club_categories: e.target.value })}
-                  onFocus={() => setFocusedField('club_categories')}
-                  onBlur={() => setFocusedField(null)}
-                  className={inputClasses('club_categories')}
-                />
               </div>
 
               {/* Divider */}
@@ -857,10 +865,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     type="number"
                     step="any"
                     placeholder={t('contactLocation.latitudePlaceholder')}
-                    value={formData.latitude}
-                    onChange={e => setFormData({ ...formData, latitude: e.target.value })}
+                    {...register('latitude')}
                     onFocus={() => setFocusedField('latitude')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('latitude').onBlur(e);
+                    }}
                     className={`${inputClasses('latitude')} font-mono`}
                   />
                 </div>
@@ -873,10 +883,12 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                     type="number"
                     step="any"
                     placeholder={t('contactLocation.longitudePlaceholder')}
-                    value={formData.longitude}
-                    onChange={e => setFormData({ ...formData, longitude: e.target.value })}
+                    {...register('longitude')}
                     onFocus={() => setFocusedField('longitude')}
-                    onBlur={() => setFocusedField(null)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      register('longitude').onBlur(e);
+                    }}
                     className={`${inputClasses('longitude')} font-mono`}
                   />
                 </div>
@@ -1099,20 +1111,14 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {/* Card Content */}
             <div className="p-6 space-y-6">
               <div>
-                <label htmlFor="terms_and_conditions" className={labelClasses}>
-                  {t('legalDocuments.termsConditions')} <span className="text-[var(--brand-primary)]">*</span>
-                </label>
-                <textarea 
-                  id="terms_and_conditions"
-                  rows={5} 
+                <LegalRichTextEditor
+                  value={formData.terms_and_conditions || ''}
+                  onChange={(content) => setValue('terms_and_conditions', content)}
                   placeholder={t('legalDocuments.termsPlaceholder')}
-                  {...register('terms_and_conditions')}
-                  onFocus={() => setFocusedField('terms_and_conditions')}
-                  onBlur={(e) => {
-                    setFocusedField(null);
-                    register('terms_and_conditions').onBlur(e);
-                  }}
-                  className={`${inputClasses('terms_and_conditions', !!errors.terms_and_conditions)} resize-none`}
+                  usage="terms_and_conditions"
+                  label={`${t('legalDocuments.termsConditions')} *`}
+                  insertTemplateLabel={t('legalDocuments.insertTemplate')}
+                  minHeight="180px"
                 />
                 {errors.terms_and_conditions && (
                   <p className="text-[var(--brand-red)] text-sm mt-1">{errors.terms_and_conditions.message}</p>
@@ -1120,20 +1126,14 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
               </div>
 
               <div>
-                <label htmlFor="club_policies" className={labelClasses}>
-                  {t('legalDocuments.clubPolicies')} <span className="text-[var(--brand-primary)]">*</span>
-                </label>
-                <textarea 
-                  id="club_policies"
-                  rows={5} 
+                <LegalRichTextEditor
+                  value={formData.club_policies || ''}
+                  onChange={(content) => setValue('club_policies', content)}
                   placeholder={t('legalDocuments.policiesPlaceholder')}
-                  {...register('club_policies')}
-                  onFocus={() => setFocusedField('club_policies')}
-                  onBlur={(e) => {
-                    setFocusedField(null);
-                    register('club_policies').onBlur(e);
-                  }}
-                  className={`${inputClasses('club_policies', !!errors.club_policies)} resize-none`}
+                  usage="club_policies"
+                  label={`${t('legalDocuments.clubPolicies')} *`}
+                  insertTemplateLabel={t('legalDocuments.insertTemplate')}
+                  minHeight="180px"
                 />
                 {errors.club_policies && (
                   <p className="text-[var(--brand-red)] text-sm mt-1">{errors.club_policies.message}</p>
@@ -1174,7 +1174,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   className={`${selectClasses('allow_self_registration_override')} w-auto py-2.5 px-4`}
                   style={selectArrowStyle}
                   value={formData.allow_self_registration_override} 
-                  onChange={e => setFormData({...formData, allow_self_registration_override: e.target.value})}
+                  onChange={e => setValue('allow_self_registration_override', e.target.value)}
                 >
                   <option value="">{t('registrationSettings.useDefault')}</option>
                   <option value="true">{t('registrationSettings.yesAllow')}</option>
@@ -1197,7 +1197,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   className={`${selectClasses('require_guardian_override')} w-auto py-2.5 px-4`}
                   style={selectArrowStyle}
                   value={formData.require_guardian_override} 
-                  onChange={e => setFormData({...formData, require_guardian_override: e.target.value})}
+                  onChange={e => setValue('require_guardian_override', e.target.value)}
                 >
                   <option value="">{t('registrationSettings.useDefault')}</option>
                   <option value="true">{t('registrationSettings.yesRequire')}</option>

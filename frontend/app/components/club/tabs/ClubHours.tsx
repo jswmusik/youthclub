@@ -56,9 +56,9 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
     <div className={`rounded-xl sm:rounded-xl overflow-hidden max-w-3xl mx-auto border ${
       darkMode 
         ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-        : 'bg-white shadow-sm border-gray-100'
+        : 'bg-white shadow-sm border-[#4D4DA4]/10'
     }`}>
-      <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-100'}`}>
+      <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
         <h2 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('title')}</h2>
         <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('subtitle')}</p>
       </div>
@@ -79,7 +79,7 @@ export default function ClubHours({ club, darkMode = false }: ClubHoursProps) {
                     : 'bg-blue-50/50' 
                   : darkMode 
                     ? 'hover:bg-[var(--dark-700)]' 
-                    : 'hover:bg-gray-50'
+                    : 'hover:bg-[#F8F7FE]'
                 }
               `}
             >

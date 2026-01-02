@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission
+from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission, Boilerplate
 
 
 class FeatureShowcaseSerializer(serializers.ModelSerializer):
@@ -147,3 +147,24 @@ class ContactSubmissionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactSubmission
         fields = ['name', 'email', 'organization', 'subject', 'message']
+
+
+class BoilerplateSerializer(serializers.ModelSerializer):
+    usage_display = serializers.CharField(source='get_usage_display', read_only=True)
+    
+    class Meta:
+        model = Boilerplate
+        fields = [
+            'id', 'name', 'usage', 'usage_display', 'content', 'description',
+            'is_active', 'order', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class BoilerplateListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for listing boilerplates."""
+    usage_display = serializers.CharField(source='get_usage_display', read_only=True)
+    
+    class Meta:
+        model = Boilerplate
+        fields = ['id', 'name', 'usage', 'usage_display', 'content', 'description', 'is_active', 'order']

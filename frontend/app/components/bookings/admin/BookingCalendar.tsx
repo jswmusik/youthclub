@@ -195,7 +195,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
   const getStatusStyles = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-[var(--brand-primary)] border-l-4 border-[var(--brand-purple)] text-white shadow-sm';
+        return 'bg-[var(--brand-primary)] border-l-4 border-[var(--brand-purple)] text-[var(--dark-900)] shadow-sm';
       case 'PENDING':
         return 'bg-[var(--brand-peach)] border-l-4 border-[var(--brand-peach)] text-[var(--dark-900)] shadow-sm';
       case 'CANCELLED':
@@ -212,8 +212,8 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] h-full flex flex-col">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-3 animate-pulse">
-              <CalendarIcon className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center mx-auto mb-3 animate-pulse">
+              <CalendarIcon className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <div className="text-[var(--brand-light)]/50 animate-pulse">{t('loading')}</div>
           </div>
@@ -605,7 +605,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
                       const getStatusBadge = () => {
                         switch (b.status) {
                           case 'APPROVED':
-                            return 'bg-[var(--brand-primary)] text-white';
+                            return 'bg-[var(--brand-primary)] text-[var(--dark-900)]';
                           case 'PENDING':
                             return 'bg-[var(--brand-peach)] text-[var(--dark-900)]';
                           case 'CANCELLED':
@@ -660,41 +660,61 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
             );
           })}
           
-          {bookings.length === 0 && (
+          {!selectedResource && !loading && (
+            <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-8 text-center">
+              <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center mx-auto mb-3">
+                <Package className="w-6 h-6 text-[var(--dark-900)]" />
+              </div>
+              <p className="text-sm text-[var(--brand-light)]/60 font-medium mb-1">
+                {t('emptyState.selectResource')}
+              </p>
+              <p className="text-xs text-[var(--brand-light)]/40">
+                {t('emptyState.selectResourceHint')}
+              </p>
+            </div>
+          )}
+          {bookings.length === 0 && selectedResource && !loading && (
             <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] p-8 text-center">
               <div className="w-12 h-12 rounded-xl bg-[var(--dark-600)] flex items-center justify-center mx-auto mb-3">
                 <CalendarIcon className="w-6 h-6 text-[var(--brand-light)]/40" />
               </div>
               <p className="text-sm text-[var(--brand-light)]/60 font-medium mb-1">
-                {selectedResource 
-                  ? t('mobile.noBookingsForResource')
-                  : t('mobile.noBookingsForWeek')}
+                {t('mobile.noBookingsForResource')}
               </p>
               <p className="text-xs text-[var(--brand-light)]/40">
-                {selectedResource 
-                  ? t('mobile.noBookingsHint')
-                  : t('mobile.noBookingsHintGeneral')}
+                {t('mobile.noBookingsHint')}
               </p>
             </div>
           )}
         </div>
 
         {/* Empty State Message - Desktop */}
-        {bookings.length === 0 && !loading && (!selectedResource || availableSlots.length === 0) && (
+        {!selectedResource && !loading && (
+          <div className="hidden lg:flex p-8 text-center border-t border-[var(--dark-600)] bg-[var(--dark-700)] items-center justify-center">
+            <div>
+              <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center mx-auto mb-3">
+                <Package className="w-6 h-6 text-[var(--dark-900)]" />
+              </div>
+              <p className="text-[var(--brand-light)]/60 font-medium mb-2">
+                {t('emptyState.selectResource')}
+              </p>
+              <p className="text-sm text-[var(--brand-light)]/40">
+                {t('emptyState.selectResourceHint')}
+              </p>
+            </div>
+          </div>
+        )}
+        {bookings.length === 0 && !loading && selectedResource && availableSlots.length === 0 && (
           <div className="hidden lg:flex p-8 text-center border-t border-[var(--dark-600)] bg-[var(--dark-700)] items-center justify-center">
             <div>
               <div className="w-12 h-12 rounded-xl bg-[var(--dark-600)] flex items-center justify-center mx-auto mb-3">
                 <CalendarIcon className="w-6 h-6 text-[var(--brand-light)]/40" />
               </div>
               <p className="text-[var(--brand-light)]/60 font-medium mb-2">
-                {selectedResource 
-                  ? t('emptyState.noBookingsForResource')
-                  : t('emptyState.noBookingsForWeek')}
+                {t('emptyState.noBookingsForResource')}
               </p>
               <p className="text-sm text-[var(--brand-light)]/40">
-                {selectedResource 
-                  ? t('emptyState.hintForResource')
-                  : t('emptyState.hintGeneral')}
+                {t('emptyState.hintForResource')}
               </p>
             </div>
           </div>

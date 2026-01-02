@@ -32,7 +32,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
         <div className={`rounded-xl p-6 border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-            : 'bg-white shadow-sm border-gray-100'
+            : 'bg-white shadow-sm border-[#4D4DA4]/10'
         }`}>
           <h3 className={`text-lg font-bold mb-6 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
@@ -112,7 +112,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
         <div className={`rounded-xl p-2 h-full min-h-[400px] border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-            : 'bg-white shadow-sm border-gray-100'
+            : 'bg-white shadow-sm border-[#4D4DA4]/10'
         }`}>
            {hasCoords ? (
              <LoadScript googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || ""}>
@@ -128,7 +128,7 @@ export default function ClubContact({ club, darkMode = false }: ClubContactProps
              <div className={`h-full w-full flex flex-col items-center justify-center rounded-lg ${
                darkMode 
                  ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/40' 
-                 : 'bg-gray-50 text-gray-400'
+                 : 'bg-[#F8F7FE] text-gray-400'
              }`}>
                 <svg className="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 01-.806-.984A1 1 0 0021 6.618l-5.447 2.724A1 1 0 0015 16.382V5.618a1 1 0 011.447-.894L9 7m0 13V7" />

@@ -26,7 +26,7 @@ export default function NewsSidebar({ tags, selectedTag, onSelectTag, onSearch }
                     <input 
                         type="text" 
                         placeholder="Search news..." 
-                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full pl-9 pr-4 py-2 bg-[#F8F7FE] border border-[#4D4DA4]/15 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                         value={searchVal}
                         onChange={(e) => setSearchVal(e.target.value)}
                     />
@@ -44,7 +44,7 @@ export default function NewsSidebar({ tags, selectedTag, onSelectTag, onSearch }
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         selectedTag === null 
                         ? 'bg-blue-50 text-blue-700' 
-                        : 'text-gray-600 hover:bg-gray-50'
+                        : 'text-gray-600 hover:bg-[#F8F7FE]'
                     }`}
                 >
                     All Stories
@@ -56,7 +56,7 @@ export default function NewsSidebar({ tags, selectedTag, onSelectTag, onSearch }
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             selectedTag === tag.id 
                             ? 'bg-blue-50 text-blue-700' 
-                            : 'text-gray-600 hover:bg-gray-50'
+                            : 'text-gray-600 hover:bg-[#F8F7FE]'
                         }`}
                     >
                         {tag.name}

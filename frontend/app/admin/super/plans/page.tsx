@@ -281,9 +281,12 @@ export default function PlanManagementPage() {
           <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-light)]">{t('title')}</h1>
           <p className="text-[var(--brand-light)]/60 mt-1">{t('description')}</p>
         </div>
-        <Button onClick={openNew} className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90">
-          <Plus className="w-4 h-4 mr-2" /> {t('createNewPlan')}
-        </Button>
+        <button 
+          onClick={openNew} 
+          className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all shadow-lg shadow-[var(--brand-primary)]/20"
+        >
+          <Plus className="w-4 h-4" /> {t('createNewPlan')}
+        </button>
       </div>
 
       {/* Stats */}
@@ -336,9 +339,12 @@ export default function PlanManagementPage() {
               <p className="text-[var(--brand-light)]/60 text-center mb-4">
                 {t('emptyState.createFirstPlan')}
               </p>
-              <Button onClick={openNew} className="bg-[var(--brand-primary)]">
-                <Plus className="w-4 h-4 mr-2" /> {t('emptyState.createPlan')}
-              </Button>
+              <button 
+                onClick={openNew} 
+                className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
+              >
+                <Plus className="w-4 h-4" /> {t('emptyState.createPlan')}
+              </button>
             </CardContent>
           </Card>
         ) : (
@@ -408,12 +414,12 @@ export default function PlanManagementPage() {
                 </div>
 
                 <div className="pt-4 border-t border-[var(--dark-600)] flex gap-2">
-                  <Button 
-                    className="flex-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90" 
+                  <button 
+                    className="flex-1 flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold rounded-xl py-2.5 px-4 transition-all" 
                     onClick={() => openEdit(plan)}
                   >
-                    <Edit className="w-4 h-4 mr-2" /> {t('planCard.edit')}
-                  </Button>
+                    <Edit className="w-4 h-4" /> {t('planCard.edit')}
+                  </button>
                   <Button 
                     variant="outline"
                     size="icon"
@@ -437,9 +443,9 @@ export default function PlanManagementPage() {
 
       {/* CREATE/EDIT DIALOG */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[var(--dark-800)] border-[var(--dark-600)]">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[var(--dark-800)] border-[var(--dark-600)] rounded-2xl shadow-2xl">
           <DialogHeader className="pb-4 border-b border-[var(--dark-600)]">
-            <DialogTitle className="text-xl text-[var(--brand-light)]">
+            <DialogTitle className="text-xl font-bold text-[var(--brand-light)]">
               {editingPlan.id ? t('dialog.editPlan') : t('dialog.createNewPlan')}
             </DialogTitle>
             <DialogDescription className="text-[var(--brand-light)]/60">
@@ -641,17 +647,17 @@ export default function PlanManagementPage() {
             >
               {t('dialog.cancel')}
             </Button>
-            <Button 
+            <button 
               onClick={handleSave} 
-              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90"
+              className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold rounded-xl px-5 py-2.5 transition-all shadow-lg shadow-[var(--brand-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={saving}
             >
               {saving ? (
-                <>{t('dialog.saving')}</>
+                <span>{t('dialog.saving')}</span>
               ) : (
-                <><Save className="w-4 h-4 mr-2" /> {editingPlan.id ? t('dialog.updatePlan') : t('dialog.createPlan')}</>
+                <><Save className="w-4 h-4" /> {editingPlan.id ? t('dialog.updatePlan') : t('dialog.createPlan')}</>
               )}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -122,7 +122,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false, hid
     <div className={`rounded-none sm:rounded-xl overflow-hidden border-y sm:border ${
       darkMode 
         ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-        : 'bg-white border-gray-200 shadow-lg'
+        : 'bg-white border-[#4D4DA4]/15 shadow-lg'
     }`}>
       
       {/* 1. COVER IMAGE AREA */}
@@ -147,7 +147,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false, hid
           className={`absolute top-4 right-4 p-2 rounded-full backdrop-blur-sm transition opacity-0 group-hover:opacity-100 ${
             darkMode
               ? 'bg-[var(--dark-700)]/90 hover:bg-[var(--dark-600)] text-[var(--brand-light)] border border-[var(--dark-500)]'
-              : 'bg-white/90 hover:bg-white text-gray-700 shadow-sm border border-gray-200'
+              : 'bg-white/90 hover:bg-white text-gray-700 shadow-sm border border-[#4D4DA4]/15'
           }`}
           title={t('changeCover')}
         >
@@ -237,7 +237,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false, hid
                     className={`w-full px-3 py-1 text-sm border rounded-lg outline-none ${
                       darkMode
                         ? 'border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)]'
-                        : 'border-gray-300 bg-gray-50 text-gray-800 focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]'
+                        : 'border-gray-300 bg-[#F8F7FE] text-gray-800 focus:ring-2 focus:ring-[#4D4DA4] focus:border-[#4D4DA4]'
                     }`}
                    />
                  </div>
@@ -247,7 +247,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false, hid
                    className={`group flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg cursor-pointer transition w-fit border ${
                      darkMode
                        ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40'
-                       : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border-gray-200 hover:border-[#4D4DA4]/40'
+                       : 'text-gray-700 bg-[#F8F7FE] hover:bg-[#EBEBFE] border-[#4D4DA4]/15 hover:border-[#4D4DA4]/40'
                    }`}
                  >
                    <MessageCircle className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`} />
@@ -286,7 +286,7 @@ export default function ProfileHeader({ user, primaryClub, darkMode = false, hid
                className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition ${
                  darkMode
                    ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]'
-                   : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm'
+                   : 'bg-white border-[#4D4DA4]/15 hover:bg-[#F8F7FE] text-gray-700 shadow-sm'
                }`}
              >
                 <Settings className="w-4 h-4" />

@@ -29,15 +29,15 @@ export default function FeaturesList() {
   const [loading, setLoading] = useState(true);
   const [featureToDelete, setFeatureToDelete] = useState<FeatureShowcase | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { showToast } = useToast();
+  const { success, error } = useToast();
 
   const fetchFeatures = async () => {
     try {
       const data = await cmsApi.getFeatures();
       setFeatures(data);
-    } catch (error) {
-      console.error("Failed to fetch features", error);
-      showToast(t('toast.loadFailed'), "error");
+    } catch (err) {
+      console.error("Failed to fetch features", err);
+      error(t('toast.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,10 +52,10 @@ export default function FeaturesList() {
     setIsDeleting(true);
     try {
       await cmsApi.deleteFeature(featureToDelete.id);
-      showToast(t('toast.deleted'), "success");
+      success(t('toast.deleted'));
       fetchFeatures();
-    } catch (error) {
-      showToast(t('toast.deleteFailed'), "error");
+    } catch (err) {
+      error(t('toast.deleteFailed'));
     } finally {
       setIsDeleting(false);
       setFeatureToDelete(null);
@@ -87,8 +87,8 @@ export default function FeaturesList() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.totalFeatures')}</span>
           </div>
@@ -97,7 +97,7 @@ export default function FeaturesList() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
               <Eye className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.active')}</span>
@@ -107,8 +107,8 @@ export default function FeaturesList() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-              <EyeOff className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+              <EyeOff className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.inactive')}</span>
           </div>
@@ -117,8 +117,8 @@ export default function FeaturesList() {
 
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-              <Image className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+              <Image className="h-5 w-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.mediaTypes')}</span>
           </div>
@@ -226,13 +226,13 @@ export default function FeaturesList() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Link href={`/admin/super/cms/features/edit/${feature.id}`}>
-                      <button className="p-2.5 text-[var(--brand-blue)] hover:bg-[var(--brand-blue)]/10 rounded-xl transition-all">
+                      <button className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/20 transition-all flex items-center justify-center">
                         <Pencil className="w-4 h-4" />
                       </button>
                     </Link>
                     <button
                       onClick={() => setFeatureToDelete(feature)}
-                      className="p-2.5 text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-xl transition-all"
+                      className="w-9 h-9 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-all flex items-center justify-center"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

@@ -6,7 +6,7 @@ import api from '../../../../lib/api';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { enUS } from 'date-fns/locale';
-import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package, CalendarDays, ArrowLeft } from 'lucide-react';
+import { X, Check, AlertCircle, Clock, Calendar, User, XCircle, Users, Package, CalendarDays, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { getMediaUrl, getInitials } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
 
@@ -25,6 +25,12 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
   const [processing, setProcessing] = useState(false);
   const { success, error, info, warning } = useToast();
   const [showCancelOptions, setShowCancelOptions] = useState(false);
+  
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    type: 'single' | 'instance' | 'series';
+  }>({ show: false, type: 'single' });
 
   // Check if this is a recurring booking
   const isRecurringBooking = booking.is_recurring || booking.parent_booking;
@@ -291,9 +297,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                       if (isRecurringBooking) {
                         setShowCancelOptions(true);
                       } else {
-                        if (window.confirm(t('confirmations.cancelBooking'))) {
-                          handleAction('cancel', false);
-                        }
+                        setConfirmModal({ show: true, type: 'single' });
                       }
                     }}
                     disabled={processing}
@@ -314,11 +318,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                     </div>
                     <div className="space-y-2">
                       <button
-                        onClick={() => {
-                          if (window.confirm(t('confirmations.cancelThisInstance'))) {
-                            handleAction('cancel', false);
-                          }
-                        }}
+                        onClick={() => setConfirmModal({ show: true, type: 'instance' })}
                         disabled={processing}
                         className="w-full p-4 bg-[var(--dark-700)] border-2 border-[var(--brand-primary)]/50 text-[var(--brand-light)] hover:bg-[var(--dark-600)] hover:border-[var(--brand-primary)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
                       >
@@ -326,11 +326,7 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
                         <div className="text-xs text-[var(--brand-light)]/60 mt-0.5 font-normal">{t('approvedActions.cancelThisInstanceDescription')}</div>
                       </button>
                       <button
-                        onClick={() => {
-                          if (window.confirm(t('confirmations.cancelEntireSeries'))) {
-                            handleAction('cancel', true);
-                          }
-                        }}
+                        onClick={() => setConfirmModal({ show: true, type: 'series' })}
                         disabled={processing}
                         className="w-full p-4 bg-[var(--brand-peach)]/10 border-2 border-[var(--brand-peach)]/50 text-[var(--brand-light)] hover:bg-[var(--brand-peach)]/20 hover:border-[var(--brand-peach)] font-semibold rounded-xl text-left transition-colors disabled:opacity-50"
                       >
@@ -376,7 +372,77 @@ export default function BookingDetailModal({ booking, onClose, onUpdate, darkMod
         </div>
       </div>
       
-      {/* Toast Notification */}
+      {/* Confirmation Modal */}
+      {confirmModal.show && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+        >
+          <div 
+            className="bg-[var(--dark-800)] w-full max-w-md rounded-2xl shadow-2xl border border-[var(--dark-600)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            style={{ animation: 'slideUp 0.2s ease-out' }}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-[var(--dark-900)]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--brand-light)]">
+                    {t('confirmModal.title')}
+                  </h3>
+                  <p className="text-sm text-[var(--brand-light)]/50">
+                    {t('confirmModal.subtitle')}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-sm text-[var(--brand-light)]/80 leading-relaxed">
+                {confirmModal.type === 'single' && t('confirmations.cancelBooking')}
+                {confirmModal.type === 'instance' && t('confirmations.cancelThisInstance')}
+                {confirmModal.type === 'series' && t('confirmations.cancelEntireSeries')}
+              </p>
+              
+              {confirmModal.type === 'series' && (
+                <div className="mt-4 p-3 rounded-xl bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30">
+                  <p className="text-xs text-[var(--brand-peach)] font-medium flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    {t('confirmModal.seriesWarning')}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[var(--dark-600)] bg-[var(--dark-700)]/30 flex gap-3">
+              <button
+                onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                disabled={processing}
+                className="flex-1 h-11 bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)] font-medium rounded-xl transition-colors disabled:opacity-50"
+              >
+                {t('confirmModal.cancel')}
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmModal({ ...confirmModal, show: false });
+                  handleAction('cancel', confirmModal.type === 'series');
+                }}
+                disabled={processing}
+                className="flex-1 h-11 bg-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/90 text-[var(--dark-900)] font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <XCircle className="w-4 h-4" />
+                {t('confirmModal.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Animation Styles */}
       <style jsx global>{`
         @keyframes fadeIn {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 
 import { useAuth } from '../../../../context/AuthContext';
 import Cookies from 'js-cookie';
@@ -19,7 +20,15 @@ export default function QuestionnaireFeedPage() {
   const { user } = useAuth();
   const t = useTranslations('questionnaires');
   const tSidebar = useTranslations('sidebar');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Theme detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = !mounted || theme === 'dark';
 
   useEffect(() => {
     // Check if user is authenticated
@@ -37,9 +46,9 @@ export default function QuestionnaireFeedPage() {
   }, [user, router]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="flex-1">
-      <NavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <NavBar darkMode={darkMode} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
       
       {/* Mobile Sidebar Overlay */}
       <div 
@@ -65,7 +74,7 @@ export default function QuestionnaireFeedPage() {
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-          <YouthSidebar activePath={pathname} darkMode={true} />
+          <YouthSidebar activePath={pathname} darkMode={darkMode} />
         </div>
       </aside>
       
@@ -74,7 +83,7 @@ export default function QuestionnaireFeedPage() {
         <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
           {/* Desktop Sidebar - Fixed position aligned with container */}
           <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-            <YouthSidebar activePath={pathname} darkMode={true} />
+            <YouthSidebar activePath={pathname} darkMode={darkMode} />
           </aside>
           
           {/* Content wrapper with left margin for sidebar */}
@@ -94,7 +103,7 @@ export default function QuestionnaireFeedPage() {
               </div>
               
               {/* Questionnaire Feed */}
-              <QuestionnaireFeed darkMode={true} />
+              <QuestionnaireFeed darkMode={darkMode} />
             </main>
           </div>
         </div>

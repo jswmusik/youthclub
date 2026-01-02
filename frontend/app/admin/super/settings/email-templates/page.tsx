@@ -53,19 +53,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '../../../../../hooks/useToast';
 import dynamic from 'next/dynamic';
 
+// Loading component for the editor (text will be replaced with translation)
+const EditorLoadingPlaceholder = () => (
+  <div className="h-64 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border border-[var(--dark-500)]">
+    <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+      <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+    </div>
+  </div>
+);
+
 // Dynamically import the rich text editor to avoid SSR issues
 const DarkRichTextEditor = dynamic(
   () => import('@/app/components/DarkRichTextEditor'),
   { 
     ssr: false,
-    loading: () => (
-      <div className="h-64 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border border-[var(--dark-500)]">
-        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
-          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
-          <span>Loading editor...</span>
-        </div>
-      </div>
-    )
+    loading: () => <EditorLoadingPlaceholder />
   }
 );
 
@@ -109,24 +111,24 @@ interface EmailLog {
 
 interface Language {
   value: string;
-  label: string;
+  labelKey: string;
 }
 
 const LANGUAGES: Language[] = [
-  { value: 'sv', label: 'Swedish' },
-  { value: 'en', label: 'English' },
-  { value: 'ar', label: 'Arabic' },
-  { value: 'da', label: 'Danish' },
-  { value: 'fi', label: 'Finnish' },
-  { value: 'nb', label: 'Norwegian' },
-  { value: 'prs', label: 'Dari/Persian' },
-  { value: 'so', label: 'Somali' },
+  { value: 'sv', labelKey: 'languages.swedish' },
+  { value: 'en', labelKey: 'languages.english' },
+  { value: 'ar', labelKey: 'languages.arabic' },
+  { value: 'da', labelKey: 'languages.danish' },
+  { value: 'fi', labelKey: 'languages.finnish' },
+  { value: 'nb', labelKey: 'languages.norwegian' },
+  { value: 'prs', labelKey: 'languages.dariPersian' },
+  { value: 'so', labelKey: 'languages.somali' },
 ];
 
 export default function EmailTemplatesPage() {
   const t = useTranslations('emailTemplates');
   const { user } = useAuth();
-  const { showToast } = useToast();
+  const { success, error: showError } = useToast();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,9 +167,9 @@ export default function EmailTemplatesPage() {
     try {
       const response = await api.get('/emails/templates/');
       setTemplates(response.data.results || response.data);
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      showToast(t('toast.loadFailed'), 'error');
+    } catch (err) {
+      console.error('Error fetching templates:', err);
+      showError(t('toast.loadFailed'));
     }
   }, []);
 
@@ -211,9 +213,9 @@ export default function EmailTemplatesPage() {
         setEditedBodyHtml('');
         setEditedBodyText('');
       }
-    } catch (error) {
-      console.error('Error fetching template details:', error);
-      showToast(t('toast.loadDetailsFailed'), 'error');
+    } catch (err) {
+      console.error('Error fetching template details:', err);
+      showError(t('toast.loadDetailsFailed'));
     }
   };
 
@@ -246,10 +248,10 @@ export default function EmailTemplatesPage() {
       
       // Refresh template
       await handleSelectTemplate(selectedTemplate);
-      showToast(t('toast.saveSuccess'), 'success');
-    } catch (error) {
-      console.error('Error saving translation:', error);
-      showToast(t('toast.saveFailed'), 'error');
+      success(t('toast.saveSuccess'));
+    } catch (err) {
+      console.error('Error saving translation:', err);
+      showError(t('toast.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -261,10 +263,10 @@ export default function EmailTemplatesPage() {
         is_active: !template.is_active,
       });
       await fetchTemplates();
-      showToast(template.is_active ? t('toast.templateDisabled') : t('toast.templateEnabled'), 'success');
-    } catch (error) {
-      console.error('Error toggling template:', error);
-      showToast(t('toast.updateFailed'), 'error');
+      success(template.is_active ? t('toast.templateDisabled') : t('toast.templateEnabled'));
+    } catch (err) {
+      console.error('Error toggling template:', err);
+      showError(t('toast.updateFailed'));
     }
   };
 
@@ -278,9 +280,9 @@ export default function EmailTemplatesPage() {
       });
       setPreviewContent(response.data);
       setShowPreview(true);
-    } catch (error) {
-      console.error('Error generating preview:', error);
-      showToast(t('toast.previewFailed'), 'error');
+    } catch (err) {
+      console.error('Error generating preview:', err);
+      showError(t('toast.previewFailed'));
     } finally {
       setIsPreviewLoading(false);
     }
@@ -297,16 +299,16 @@ export default function EmailTemplatesPage() {
       });
       
       if (response.data.success) {
-        showToast(t('toast.testSent', { email: testEmail }), 'success');
+        success(t('toast.testSent', { email: testEmail }));
         setShowTestModal(false);
         setTestEmail('');
         fetchLogs(); // Refresh logs
       } else {
-        showToast(response.data.error || t('toast.testFailed'), 'error');
+        showError(response.data.error || t('toast.testFailed'));
       }
-    } catch (error: any) {
-      console.error('Error sending test email:', error);
-      showToast(error.response?.data?.error || t('toast.testFailed'), 'error');
+    } catch (err: any) {
+      console.error('Error sending test email:', err);
+      showError(err.response?.data?.error || t('toast.testFailed'));
     } finally {
       setIsSendingTest(false);
     }
@@ -339,8 +341,8 @@ export default function EmailTemplatesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-            <Mail className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+            <Mail className="h-6 w-6 text-[var(--dark-900)]" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -356,14 +358,14 @@ export default function EmailTemplatesPage() {
         <TabsList className="bg-[var(--dark-700)] border border-[var(--dark-500)] p-1">
           <TabsTrigger 
             value="templates" 
-            className="text-[var(--brand-light)]/70 data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-white"
+            className="text-[var(--brand-light)]/70 data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-[var(--dark-900)]"
           >
             <FileText className="h-4 w-4 mr-2" />
             {t('tabs.templates')}
           </TabsTrigger>
           <TabsTrigger 
             value="logs" 
-            className="text-[var(--brand-light)]/70 data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-white"
+            className="text-[var(--brand-light)]/70 data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-[var(--dark-900)]"
           >
             <History className="h-4 w-4 mr-2" />
             {t('tabs.emailLogs')}
@@ -413,12 +415,12 @@ export default function EmailTemplatesPage() {
                         </p>
                         <div className="flex items-center gap-1 mt-2">
                           {template.translations?.length > 0 ? (
-                            template.translations.map((t) => (
+                            template.translations.map((trans) => (
                               <span
-                                key={t.language}
+                                key={trans.language}
                                 className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--dark-600)] text-[var(--brand-light)]/70"
                               >
-                                {t.language.toUpperCase()}
+                                {trans.language.toUpperCase()}
                               </span>
                             ))
                           ) : (
@@ -470,7 +472,7 @@ export default function EmailTemplatesPage() {
                         <SelectContent>
                           {LANGUAGES.map((lang) => (
                             <SelectItem key={lang.value} value={lang.value}>
-                              {lang.label}
+                              {t(lang.labelKey)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -479,14 +481,14 @@ export default function EmailTemplatesPage() {
                       {/* Quick language badges */}
                       <div className="hidden sm:flex items-center gap-1">
                         {LANGUAGES.map((lang) => {
-                          const hasTranslation = selectedTemplate.translations?.some(t => t.language === lang.value);
+                          const hasTranslation = selectedTemplate.translations?.some(trans => trans.language === lang.value);
                           return (
                             <button
                               key={lang.value}
                               onClick={() => handleLanguageChange(lang.value)}
                               className={`text-xs px-2 py-1 rounded transition-colors ${
                                 selectedLanguage === lang.value
-                                  ? 'bg-[var(--brand-primary)] text-white'
+                                  ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                   : hasTranslation
                                   ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
                                   : 'bg-[var(--dark-700)] text-[var(--brand-light)]/40 hover:bg-[var(--dark-600)]'
@@ -542,7 +544,7 @@ export default function EmailTemplatesPage() {
                             onClick={() => setEditorMode('rich')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                               editorMode === 'rich'
-                                ? 'bg-[var(--brand-primary)] text-white'
+                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                 : 'text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)]'
                             }`}
                           >
@@ -554,7 +556,7 @@ export default function EmailTemplatesPage() {
                             onClick={() => setEditorMode('html')}
                             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                               editorMode === 'html'
-                                ? 'bg-[var(--brand-primary)] text-white'
+                                ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                                 : 'text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)]'
                             }`}
                           >
@@ -633,7 +635,7 @@ export default function EmailTemplatesPage() {
                     <Button
                       onClick={handleSaveTranslation}
                       disabled={isSaving || !editedSubject || !editedBodyHtml}
-                      className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-white"
+                      className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]"
                     >
                       {isSaving ? (
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />

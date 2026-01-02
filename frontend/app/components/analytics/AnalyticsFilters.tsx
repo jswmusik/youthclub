@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Filter, Calendar, Users, ChevronDown, ChevronUp, UsersRound, Heart, Sliders, Building2, Search, X, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { analyticsApi, FilterOptions } from '@/lib/analytics-api';
@@ -18,18 +19,6 @@ interface Interest {
   name: string;
 }
 
-const ALL_GRADES = [
-  { value: 1, label: '1st Grade' },
-  { value: 2, label: '2nd Grade' },
-  { value: 3, label: '3rd Grade' },
-  { value: 4, label: '4th Grade' },
-  { value: 5, label: '5th Grade' },
-  { value: 6, label: '6th Grade' },
-  { value: 7, label: '7th Grade' },
-  { value: 8, label: '8th Grade' },
-  { value: 9, label: '9th Grade' },
-];
-
 const selectArrowStyle = {
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat',
@@ -38,10 +27,23 @@ const selectArrowStyle = {
 };
 
 export default function AnalyticsFilters({ filters, setFilters, onApply, isLoading, showClubFilter = false }: FilterProps) {
+  const t = useTranslations('analyticsAdmin.filters');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
   const [interests, setInterests] = useState<Interest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+
+  const ALL_GRADES = [
+    { value: 1, label: t('grade1') },
+    { value: 2, label: t('grade2') },
+    { value: 3, label: t('grade3') },
+    { value: 4, label: t('grade4') },
+    { value: 5, label: t('grade5') },
+    { value: 6, label: t('grade6') },
+    { value: 7, label: t('grade7') },
+    { value: 8, label: t('grade8') },
+    { value: 9, label: t('grade9') },
+  ];
 
   const loadFilterOptions = useCallback(async (clubId?: number | null) => {
     try {
@@ -148,7 +150,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Start Date */}
             <div className="col-span-1">
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3 h-3" /> Start Date
+                <Calendar className="w-3 h-3" /> {t('startDate')}
               </label>
               <input
                 type="date"
@@ -161,7 +163,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* End Date */}
             <div className="col-span-1">
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-1.5 flex items-center gap-1.5">
-                <Calendar className="w-3 h-3" /> End Date
+                <Calendar className="w-3 h-3" /> {t('endDate')}
               </label>
               <input
                 type="date"
@@ -175,7 +177,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {showClubFilter && filterOptions && filterOptions.clubs.length > 0 && (
               <div className="col-span-1">
                 <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-1.5 flex items-center gap-1.5">
-                  <Building2 className="w-3 h-3" /> Club
+                  <Building2 className="w-3 h-3" /> {t('club')}
                 </label>
                 <select
                   className={`w-full h-10 px-3 bg-[var(--dark-700)] border-2 rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer ${
@@ -185,7 +187,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                   value={filters.club_id || ''}
                   onChange={(e) => handleClubChange(e.target.value ? parseInt(e.target.value) : null)}
                 >
-                  <option value="">All Clubs</option>
+                  <option value="">{t('allClubs')}</option>
                   {filterOptions.clubs.map((club) => (
                     <option key={club.id} value={club.id}>
                       {club.name}
@@ -198,8 +200,8 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Group Filter */}
             <div className="col-span-1">
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-1.5 flex items-center gap-1.5">
-                <UsersRound className="w-3 h-3" /> Group
-                {isGroupSelected && <span className="text-[var(--brand-blue)] text-[10px]">(Active)</span>}
+                <UsersRound className="w-3 h-3" /> {t('group')}
+                {isGroupSelected && <span className="text-[var(--brand-blue)] text-[10px]">{t('groupActive')}</span>}
               </label>
               <select
                 className={`w-full h-10 px-3 bg-[var(--dark-700)] border-2 rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer ${
@@ -209,11 +211,11 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 value={filters.group_id || ''}
                 onChange={(e) => handleChange('group_id', e.target.value ? parseInt(e.target.value) : null)}
               >
-                <option value="">All Youth Members</option>
+                <option value="">{t('allYouthMembers')}</option>
                 {filterOptions?.groups.map((group) => (
                   <option key={group.id} value={group.id}>
                     {group.name}
-                    {group.club__name ? ` (${group.club__name})` : ' (Municipality-wide)'}
+                    {group.club__name ? ` (${group.club__name})` : ` ${t('municipalityWide')}`}
                   </option>
                 ))}
               </select>
@@ -222,7 +224,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Gender Filter */}
             <div className="col-span-1">
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-1.5 flex items-center gap-1.5">
-                <Users className="w-3 h-3" /> Gender
+                <Users className="w-3 h-3" /> {t('gender')}
               </label>
               <select
                 className="w-full h-10 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer disabled:opacity-50"
@@ -231,10 +233,10 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 value={filters.genders && filters.genders.length === 1 ? filters.genders[0] : ''}
                 onChange={(e) => handleChange('genders', e.target.value ? [e.target.value] : [])}
               >
-                <option value="">All Genders</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
+                <option value="">{t('allGenders')}</option>
+                <option value="MALE">{t('male')}</option>
+                <option value="FEMALE">{t('female')}</option>
+                <option value="OTHER">{t('other')}</option>
               </select>
             </div>
 
@@ -245,7 +247,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 className="h-10 px-3 flex items-center gap-2 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:border-[var(--brand-primary)]/50 transition-all text-sm"
               >
                 <Sliders className="w-4 h-4" />
-                <span className="hidden sm:inline">More</span>
+                <span className="hidden sm:inline">{t('more')}</span>
                 {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </button>
               <button
@@ -258,7 +260,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 ) : (
                   <Search className="w-4 h-4" />
                 )}
-                <span className="text-sm">{isLoading ? 'Loading...' : 'Update'}</span>
+                <span className="text-sm">{isLoading ? t('loading') : t('update')}</span>
               </button>
             </div>
           </div>
@@ -266,21 +268,21 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
           {/* Active Filters */}
           {hasActiveFilters && (
             <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[var(--dark-600)]">
-              <span className="text-xs text-[var(--brand-light)]/40">Active:</span>
+              <span className="text-xs text-[var(--brand-light)]/40">{t('active')}</span>
               <div className="flex flex-wrap gap-1.5">
                 {filters.club_id && filterOptions && (
                   <span className="px-2 py-0.5 bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] rounded-full text-xs font-medium border border-[var(--brand-purple)]/30">
-                    Club: {filterOptions.clubs.find(c => c.id === filters.club_id)?.name}
+                    {t('club')}: {filterOptions.clubs.find(c => c.id === filters.club_id)?.name}
                   </span>
                 )}
                 {isGroupSelected && filterOptions && (
                   <span className="px-2 py-0.5 bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] rounded-full text-xs font-medium border border-[var(--brand-blue)]/30">
-                    Group: {filterOptions.groups.find(g => g.id === filters.group_id)?.name}
+                    {t('group')}: {filterOptions.groups.find(g => g.id === filters.group_id)?.name}
                   </span>
                 )}
                 {!isGroupSelected && filters.grades?.length > 0 && (
                   <span className="px-2 py-0.5 bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] rounded-full text-xs font-medium border border-[var(--brand-purple)]/30">
-                    {filters.grades.length} grade(s)
+                    {filters.grades.length} {t('grades')}
                   </span>
                 )}
                 {!isGroupSelected && filters.genders?.length > 0 && (
@@ -290,12 +292,12 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 )}
                 {!isGroupSelected && filters.interests?.length > 0 && (
                   <span className="px-2 py-0.5 bg-[var(--brand-green)]/20 text-[var(--brand-green)] rounded-full text-xs font-medium border border-[var(--brand-green)]/30">
-                    {filters.interests.length} interest(s)
+                    {filters.interests.length} {t('interests')}
                   </span>
                 )}
                 {!isGroupSelected && (filters.age_min || filters.age_max) && (
                   <span className="px-2 py-0.5 bg-[#F97316]/20 text-[#F97316] rounded-full text-xs font-medium border border-[#F97316]/30">
-                    Age: {filters.age_min || '0'}-{filters.age_max || '∞'}
+                    {t('age')} {filters.age_min || '0'}-{filters.age_max || '∞'}
                   </span>
                 )}
               </div>
@@ -303,7 +305,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 onClick={clearFilters}
                 className="ml-auto px-2 py-1 text-xs font-medium text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 rounded-lg transition-all flex items-center gap-1"
               >
-                <X className="w-3 h-3" /> Clear
+                <X className="w-3 h-3" /> {t('clear')}
               </button>
             </div>
           )}
@@ -317,7 +319,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
         <div className={`border-t border-[var(--dark-600)] p-4 sm:p-6 bg-[var(--dark-900)]/50 ${isGroupSelected ? 'opacity-60' : ''}`}>
           {isGroupSelected && (
             <div className="mb-4 p-3 bg-[var(--brand-blue)]/10 border border-[var(--brand-blue)]/30 rounded-xl text-sm text-[var(--brand-blue)]">
-              <strong>Note:</strong> A group is selected. The filters below are disabled because groups are pre-built segments.
+              {t('groupNote')}
             </div>
           )}
 
@@ -325,7 +327,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Grades Multi-Select */}
             <div>
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-2 flex items-center gap-1.5">
-                <Filter className="w-3 h-3" /> Grades
+                <Filter className="w-3 h-3" /> {t('gradesLabel')}
               </label>
               <div className="max-h-48 overflow-y-auto bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl p-2 space-y-1">
                 {ALL_GRADES.map((grade) => (
@@ -346,12 +348,12 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Age Range */}
             <div>
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-2 flex items-center gap-1.5">
-                <Users className="w-3 h-3" /> Age Range
+                <Users className="w-3 h-3" /> {t('ageRange')}
               </label>
               <div className="flex gap-2">
                 <input
                   type="number"
-                  placeholder="Min"
+                  placeholder={t('min')}
                   min="0"
                   max="25"
                   disabled={isGroupSelected}
@@ -362,7 +364,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                 <span className="text-[var(--brand-light)]/30 self-center">-</span>
                 <input
                   type="number"
-                  placeholder="Max"
+                  placeholder={t('max')}
                   min="0"
                   max="25"
                   disabled={isGroupSelected}
@@ -376,15 +378,15 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Interests Multi-Select */}
             <div>
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-2 flex items-center gap-1.5">
-                <Heart className="w-3 h-3" /> Interests
+                <Heart className="w-3 h-3" /> {t('interestsLabel')}
               </label>
               <div className="max-h-48 overflow-y-auto bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl p-2 space-y-1">
                 {loadingData ? (
                   <div className="text-sm text-[var(--brand-light)]/40 p-2 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                    <Loader2 className="w-4 h-4 animate-spin" /> {t('loading')}
                   </div>
                 ) : interests.length === 0 ? (
-                  <div className="text-sm text-[var(--brand-light)]/40 p-2">No interests defined</div>
+                  <div className="text-sm text-[var(--brand-light)]/40 p-2">{t('noInterestsDefined')}</div>
                 ) : (
                   interests.map((interest) => (
                     <label key={interest.id} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--dark-600)] px-2 py-1.5 rounded-lg transition-colors">
@@ -405,16 +407,16 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
             {/* Custom Fields */}
             <div>
               <label className="text-xs font-medium text-[var(--brand-light)]/50 mb-2 flex items-center gap-1.5">
-                <Sliders className="w-3 h-3" /> Custom Fields
+                <Sliders className="w-3 h-3" /> {t('customFields')}
               </label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {loadingData ? (
                   <div className="text-sm text-[var(--brand-light)]/40 p-2 flex items-center gap-2 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                    <Loader2 className="w-4 h-4 animate-spin" /> {t('loading')}
                   </div>
                 ) : customFields.length === 0 ? (
                   <div className="text-sm text-[var(--brand-light)]/40 p-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl">
-                    No custom fields available
+                    {t('noCustomFieldsAvailable')}
                   </div>
                 ) : (
                   customFields.map((field) => (
@@ -430,7 +432,7 @@ export default function AnalyticsFilters({ filters, setFilters, onApply, isLoadi
                         className="w-full h-9 px-3 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-lg text-[var(--brand-light)] text-sm outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer disabled:opacity-50"
                         style={selectArrowStyle}
                       >
-                        <option value="">All</option>
+                        <option value="">{t('all')}</option>
                         {field.options.map((option) => (
                           <option key={option} value={option}>
                             {option}

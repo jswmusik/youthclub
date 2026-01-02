@@ -34,7 +34,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
   const tLayout = useTranslations('cmsAdmin.features.layout');
   const tStatus = useTranslations('cmsAdmin.features.status');
   const router = useRouter();
-  const { showToast } = useToast();
+  const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
@@ -89,7 +89,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
     
     // Client-side validation
     if (!formData.title.trim()) {
-      showToast(t('titleRequired'), "error");
+      error(t('titleRequired'));
       return;
     }
     
@@ -106,20 +106,20 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
 
       if (isEditing && initialData) {
         await cmsApi.updateFeature(initialData.id, data);
-        showToast(t('updated'), "success");
+        success(t('updated'));
       } else {
         await cmsApi.createFeature(data);
-        showToast(t('created'), "success");
+        success(t('created'));
       }
       router.push('/admin/super/cms/features');
       router.refresh();
-    } catch (error: any) {
-      console.error('Feature save error:', error);
+    } catch (err: any) {
+      console.error('Feature save error:', err);
       
       // Try to extract error message from response
       let errorMessage = t('saveFailed');
-      if (error?.response?.data) {
-        const errorData = error.response.data;
+      if (err?.response?.data) {
+        const errorData = err.response.data;
         if (typeof errorData === 'string') {
           errorMessage = errorData;
         } else if (typeof errorData === 'object') {
@@ -133,7 +133,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
         }
       }
       
-      showToast(errorMessage, "error");
+      error(errorMessage);
     } finally {
       setSaving(false);
     }

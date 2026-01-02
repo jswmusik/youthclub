@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 
 import api from '@/lib/api';
@@ -28,7 +29,15 @@ export default function YouthEventsPage() {
     const t = useTranslations('events');
     const tSidebar = useTranslations('sidebar');
     const tCommon = useTranslations('common');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    // Theme detection
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const darkMode = !mounted || theme === 'dark';
     const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
@@ -227,12 +236,11 @@ export default function YouthEventsPage() {
     const showSkeleton = loading || !minLoadingComplete;
 
     return (
-        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+        <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
             <div className="flex-1">
             <NavBar 
                 onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 showBackButton={true}
-                darkMode={true}
             />
             
             {/* Mobile Sidebar Overlay */}
@@ -245,21 +253,21 @@ export default function YouthEventsPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
+                <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
+                    <h1 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                    <YouthSidebar activePath={pathname} darkMode={true} />
+                    <YouthSidebar activePath={pathname} />
                 </div>
             </aside>
             
@@ -268,7 +276,7 @@ export default function YouthEventsPage() {
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
                     <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                        <YouthSidebar activePath={pathname} darkMode={true} />
+                        <YouthSidebar activePath={pathname} />
                     </aside>
                     
                     {/* Content wrapper with left margin for sidebar */}
@@ -285,12 +293,12 @@ export default function YouthEventsPage() {
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                                         <div>
                                             <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                                                <CalendarDays className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                                                <h1 className={`text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold`}>
+                                                <CalendarDays className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                     {t('discoverEvents')}
                                                 </h1>
                                             </div>
-                                            <p className="text-[var(--brand-light)]/60 text-sm pl-9">
+                                            <p className={`text-sm pl-9 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                                                 {hasActiveFilters 
                                                     ? `${filteredAndSortedEvents.length} ${filteredAndSortedEvents.length !== 1 ? t('eventsFoundPlural') : t('eventsFound')} ${t('found')}`
                                                     : `${upcomingEvents.length} ${t('upcomingEventsNearYou')}`}
@@ -299,7 +307,11 @@ export default function YouthEventsPage() {
                                         <div className="flex flex-wrap gap-3">
                                             <Link 
                                                 href="/dashboard/youth/events/calendar"
-                                                className="inline-flex items-center gap-2 bg-[var(--brand-green)] text-[var(--dark-900)] px-4 py-2.5 rounded-xl font-semibold hover:bg-[var(--brand-green)]/90 transition-all text-sm"
+                                                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-all text-sm ${
+                                                    darkMode 
+                                                        ? 'bg-[var(--brand-green)] text-[var(--dark-900)] hover:bg-[var(--brand-green)]/90' 
+                                                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                                }`}
                                             >
                                                 <Calendar className="w-4 h-4" />
                                                 {t('eventCalendar')}
@@ -315,21 +327,27 @@ export default function YouthEventsPage() {
                                     </div>
 
                                     {/* Search & Filters */}
-                                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 py-3 sm:p-4 -mx-4 sm:mx-0">
+                                    <div className={`rounded-none sm:rounded-2xl border-y sm:border px-4 py-3 sm:p-4 -mx-4 sm:mx-0 ${
+                                        darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                    }`}>
                                 {/* Search Bar */}
                                 <div className="relative mb-3">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
+                                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`} />
                                     <input 
                                         type="text" 
                                         placeholder={t('searchEventsPlaceholder')}
-                                        className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 transition-all"
+                                        className={`w-full rounded-xl py-3 pl-12 pr-4 text-sm outline-none focus:ring-2 transition-all ${
+                                            darkMode 
+                                                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] placeholder:text-[var(--brand-light)]/40 focus:ring-[var(--brand-primary)]/30'
+                                                : 'bg-white border border-[#4D4DA4]/15 text-gray-800 placeholder:text-gray-400 focus:ring-[#4D4DA4]/30'
+                                        }`}
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
                                     />
                                     {search && (
                                         <button 
                                             onClick={() => setSearch('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60"
+                                            className={`absolute right-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]/60' : 'text-gray-400 hover:text-gray-600'}`}
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -339,14 +357,14 @@ export default function YouthEventsPage() {
                                 {/* Filter Chips */}
                                 <div className="flex flex-wrap items-center gap-2">
                                     {/* Sort Options */}
-                                    <div className="flex items-center gap-1 mr-2 pr-2 border-r border-[var(--dark-500)]">
-                                        <ArrowUpDown className="w-3.5 h-3.5 text-[var(--brand-light)]/50" />
+                                    <div className={`flex items-center gap-1 mr-2 pr-2 border-r ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
+                                        <ArrowUpDown className={`w-3.5 h-3.5 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-400'}`} />
                                         <button
                                             onClick={() => setSortBy('closest')}
                                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
                                                 sortBy === 'closest'
                                                     ? 'bg-[var(--brand-sky)] text-[var(--dark-900)]'
-                                                    : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
+                                                    : darkMode ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]' : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <Clock className="w-3 h-3" />
@@ -357,7 +375,7 @@ export default function YouthEventsPage() {
                                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
                                                 sortBy === 'newest'
                                                     ? 'bg-[var(--brand-sky)] text-[var(--dark-900)]'
-                                                    : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
+                                                    : darkMode ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]' : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <Sparkles className="w-3 h-3" />
@@ -368,7 +386,7 @@ export default function YouthEventsPage() {
                                             className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
                                                 sortBy === 'recurring'
                                                     ? 'bg-[var(--brand-sky)] text-[var(--dark-900)]'
-                                                    : 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]'
+                                                    : darkMode ? 'text-[var(--brand-light)]/60 hover:text-[var(--brand-light)]' : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
                                             <Repeat className="w-3 h-3" />
@@ -382,7 +400,7 @@ export default function YouthEventsPage() {
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                             (fromDate || toDate) 
                                                 ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
-                                                : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                : darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]' : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20'
                                         }`}
                                     >
                                         <Calendar className="w-3.5 h-3.5" />
@@ -396,7 +414,7 @@ export default function YouthEventsPage() {
                                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                                 filterMyClub
                                                     ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                                                    : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                    : darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]' : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20'
                                             }`}
                                         >
                                             <Building2 className="w-3.5 h-3.5" />
@@ -410,7 +428,7 @@ export default function YouthEventsPage() {
                                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                                 filterMyMunicipality
                                                     ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                                                    : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                    : darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]' : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20'
                                             }`}
                                         >
                                             <MapPin className="w-3.5 h-3.5" />
@@ -422,8 +440,8 @@ export default function YouthEventsPage() {
                                         onClick={() => setFilterMyEvents(!filterMyEvents)}
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                             filterMyEvents
-                                                ? 'bg-[var(--brand-green)] text-[var(--dark-900)]'
-                                                : 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]'
+                                                ? darkMode ? 'bg-[var(--brand-green)] text-[var(--dark-900)]' : 'bg-emerald-500 text-white'
+                                                : darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-500)]' : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20'
                                         }`}
                                     >
                                         <UserCheck className="w-3.5 h-3.5" />
@@ -443,21 +461,29 @@ export default function YouthEventsPage() {
 
                                         {/* Date Range Picker (Expandable) */}
                                         {showDateFilters && (
-                                            <div className="mt-3 pt-3 border-t border-[var(--dark-600)] flex flex-col sm:flex-row gap-3 sm:gap-3">
+                                            <div className={`mt-3 pt-3 border-t flex flex-col sm:flex-row gap-3 sm:gap-3 ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                                                 <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('from')}</label>
+                                                    <label className={`block text-xs mb-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('from')}</label>
                                                     <input
                                                         type="date"
-                                                        className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
+                                                        className={`w-full rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 ${
+                                                            darkMode 
+                                                                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] focus:ring-[var(--brand-primary)]/30'
+                                                                : 'bg-white border border-[#4D4DA4]/15 text-gray-800 focus:ring-[#4D4DA4]/30'
+                                                        }`}
                                                         value={fromDate}
                                                         onChange={e => setFromDate(e.target.value)}
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0 sm:min-w-[140px]">
-                                                    <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('to')}</label>
+                                                    <label className={`block text-xs mb-1 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('to')}</label>
                                                     <input
                                                         type="date"
-                                                        className="w-full bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-lg py-2 px-3 text-sm text-[var(--brand-light)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
+                                                        className={`w-full rounded-lg py-2 px-3 text-sm outline-none focus:ring-2 ${
+                                                            darkMode 
+                                                                ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] focus:ring-[var(--brand-primary)]/30'
+                                                                : 'bg-white border border-[#4D4DA4]/15 text-gray-800 focus:ring-[#4D4DA4]/30'
+                                                        }`}
                                                         value={toDate}
                                                         onChange={e => setToDate(e.target.value)}
                                                         min={fromDate || undefined}
@@ -466,7 +492,7 @@ export default function YouthEventsPage() {
                                                 {(fromDate || toDate) && (
                                                     <button
                                                         onClick={() => { setFromDate(''); setToDate(''); }}
-                                                        className="self-start sm:self-end px-3 py-2 text-xs text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] whitespace-nowrap"
+                                                        className={`self-start sm:self-end px-3 py-2 text-xs hover:text-[var(--brand-red)] whitespace-nowrap ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}
                                                     >
                                                         {t('clearDates')}
                                                     </button>
@@ -478,13 +504,15 @@ export default function YouthEventsPage() {
 
                                 {/* Events List */}
                                 {filteredAndSortedEvents.length === 0 ? (
-                                    <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
+                                    <div className={`text-center py-16 rounded-none sm:rounded-2xl border-y sm:border ${
+                                        darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                    }`}>
                                         <div className="max-w-sm mx-auto">
-                                            <div className="w-16 h-16 bg-[var(--dark-700)] rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <Calendar className="w-8 h-8 text-[var(--brand-light)]/40" />
+                                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'}`}>
+                                                <Calendar className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-[#4D4DA4]/40'}`} />
                                             </div>
-                                            <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noEventsFound')}</h3>
-                                            <p className="text-sm text-[var(--brand-light)]/60 mb-4">
+                                            <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noEventsFound')}</h3>
+                                            <p className={`text-sm mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                 {hasActiveFilters 
                                                     ? t('tryAdjustingFilters')
                                                     : t('checkBackLater')}
@@ -492,7 +520,7 @@ export default function YouthEventsPage() {
                                             {hasActiveFilters && (
                                                 <button
                                                     onClick={clearFilters}
-                                                    className="inline-flex items-center gap-2 text-[var(--brand-primary)] font-semibold hover:underline"
+                                                    className={`inline-flex items-center gap-2 font-semibold hover:underline ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}
                                                 >
                                                     {t('clearAllFilters')}
                                                     <span>→</span>
@@ -503,7 +531,7 @@ export default function YouthEventsPage() {
                                 ) : (
                                     <div className="space-y-2 sm:space-y-3">
                                         {filteredAndSortedEvents.map(event => (
-                                            <EventCard key={event.id} event={event} darkMode={true} />
+                                            <EventCard key={event.id} event={event} darkMode={darkMode} />
                                         ))}
                                     </div>
                                 )}

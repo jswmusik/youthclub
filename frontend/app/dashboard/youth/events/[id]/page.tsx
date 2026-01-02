@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { getMediaUrl } from '@/app/utils';
@@ -79,8 +80,10 @@ export default function EventDetailPage() {
     const params = useParams();
     const router = useRouter();
     const { user } = useAuth();
+    const { theme } = useTheme();
     const t = useTranslations('events');
     const tSidebar = useTranslations('sidebar');
+    const [mounted, setMounted] = useState(false);
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const [isRegModalOpen, setRegModalOpen] = useState(false);
@@ -89,6 +92,12 @@ export default function EventDetailPage() {
     const [isLiked, setIsLiked] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const { success, error, info, warning } = useToast();
+    
+    // Theme detection
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const darkMode = !mounted || theme === 'dark';
     
     // Gallery State
     const [activeSlide, setActiveSlide] = useState(0);
@@ -129,8 +138,8 @@ export default function EventDetailPage() {
 
     if (loading || !event) {
         return (
-            <div className="min-h-screen bg-[var(--dark-900)]">
-                <NavBar darkMode={true} hideBottomNavOnMobile={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+            <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+                <NavBar hideBottomNavOnMobile={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
                 <div className="pt-24 sm:pt-28 md:pt-32 flex items-center justify-center min-h-[60vh]">
                     <div className="flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
@@ -169,8 +178,8 @@ export default function EventDetailPage() {
     const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
-            <NavBar showBackButton={true} darkMode={true} hideBottomNavOnMobile={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+            <NavBar showBackButton={true} hideBottomNavOnMobile={true} onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
             
             {/* Mobile Sidebar Overlay */}
             <div 
@@ -182,21 +191,21 @@ export default function EventDetailPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
+                <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'}`}>
+                    <h1 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                    <YouthSidebar activePath="/dashboard/youth/events" darkMode={true} />
+                    <YouthSidebar activePath="/dashboard/youth/events" />
                 </div>
             </aside>
             
@@ -232,8 +241,8 @@ export default function EventDetailPage() {
                             )}
                         </>
                     ) : (
-                        <div className="w-full h-full bg-[var(--dark-700)] flex items-center justify-center">
-                            <Calendar className="w-24 h-24 text-[var(--brand-light)]/20" />
+                        <div className={`w-full h-full flex items-center justify-center ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'}`}>
+                            <Calendar className={`w-24 h-24 ${darkMode ? 'text-[var(--brand-light)]/20' : 'text-[#4D4DA4]/20'}`} />
                         </div>
                     )}
                     
@@ -319,74 +328,84 @@ export default function EventDetailPage() {
                     <div className="flex-1 space-y-4 sm:space-y-6">
                         {/* Quick Info Cards - No gradients, solid colors */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-0 sm:gap-4">
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-5 border-b sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all">
+                            <div className={`rounded-none sm:rounded-2xl p-5 border-b sm:border transition-all ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' : 'bg-white shadow-sm border-[#4D4DA4]/15 hover:border-[#4D4DA4]/30'
+                            }`}>
                                 <div className="flex items-center gap-3">
                                     <div className="bg-[var(--brand-purple)] p-3 rounded-xl">
-                                        <Calendar className="w-5 h-5 text-[var(--brand-light)]" />
+                                        <Calendar className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('dateLabel')}</p>
-                                        <p className="font-bold text-[var(--brand-light)]">
+                                        <p className={`text-xs uppercase tracking-wider font-medium ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('dateLabel')}</p>
+                                        <p className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                             {eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </p>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-5 border-b sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all">
+                            <div className={`rounded-none sm:rounded-2xl p-5 border-b sm:border transition-all ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' : 'bg-white shadow-sm border-[#4D4DA4]/15 hover:border-[#4D4DA4]/30'
+                            }`}>
                                 <div className="flex items-center gap-3">
                                     <div className="bg-[var(--brand-primary)] p-3 rounded-xl">
                                         <Clock className="w-5 h-5 text-[var(--dark-900)]" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('timeLabel')}</p>
-                                        <p className="font-bold text-[var(--brand-light)]">
+                                        <p className={`text-xs uppercase tracking-wider font-medium ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('timeLabel')}</p>
+                                        <p className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                             {new Date(event.start_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - {new Date(event.end_date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
                                         </p>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-5 border-b sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all">
+                            <div className={`rounded-none sm:rounded-2xl p-5 border-b sm:border transition-all ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' : 'bg-white shadow-sm border-[#4D4DA4]/15 hover:border-[#4D4DA4]/30'
+                            }`}>
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-[var(--brand-green)] p-3 rounded-xl">
-                                        <MapPin className="w-5 h-5 text-[var(--dark-900)]" />
+                                    <div className="bg-[#10B981] p-3 rounded-xl">
+                                        <MapPin className="w-5 h-5 text-white" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-[var(--brand-light)]/50 uppercase tracking-wider font-medium">{t('locationLabel')}</p>
-                                        <p className="font-bold text-[var(--brand-light)] truncate max-w-[150px]">{event.location_name}</p>
+                                        <p className={`text-xs uppercase tracking-wider font-medium ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('locationLabel')}</p>
+                                        <p className={`font-bold truncate max-w-[150px] ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{event.location_name}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
                         {/* About Section */}
-                        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
-                            <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
+                        <div className={`rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border ${
+                            darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                        }`}>
+                            <h2 className={`text-xl font-bold mb-4 flex items-center gap-3 font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                 <span className="w-1 h-6 bg-[var(--brand-primary)] rounded-full"></span>
                                 {t('aboutThisEvent')}
                             </h2>
                             <div 
-                                className="prose prose-invert max-w-none leading-relaxed event-description-content" 
+                                className={`prose max-w-none leading-relaxed event-description-content ${darkMode ? 'prose-invert' : 'prose-gray'}`}
                                 dangerouslySetInnerHTML={{ __html: sanitizeAndStripColors(event.description) }} 
                             />
                         </div>
                         
                         {/* Location & Map Section */}
                         {(event.location_name || event.address || ((event as any).is_map_visible && event.latitude && event.longitude)) && (
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
-                                <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
-                                    <span className="w-1 h-6 bg-[var(--brand-green)] rounded-full"></span>
+                            <div className={`rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                            }`}>
+                                <h2 className={`text-xl font-bold mb-4 flex items-center gap-3 font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
+                                    <span className="w-1 h-6 bg-[#10B981] rounded-full"></span>
                                     {t('locationLabel')}
                                 </h2>
                                 
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="flex-1">
                                         {event.location_name && (
-                                            <h3 className="font-semibold text-[var(--brand-light)] text-lg mb-1">{event.location_name}</h3>
+                                            <h3 className={`font-semibold text-lg mb-1 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{event.location_name}</h3>
                                         )}
                                         {event.address && (
-                                            <p className="text-[var(--brand-light)]/60 mb-4">{event.address}</p>
+                                            <p className={`mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{event.address}</p>
                                         )}
                                         
                                         {event.latitude && event.longitude && (
@@ -438,8 +457,10 @@ export default function EventDetailPage() {
                         
                         {/* Documents Section */}
                         {(event as any).documents?.length > 0 && (
-                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border border-[var(--dark-600)]">
-                                <h2 className="text-xl font-bold text-[var(--brand-light)] mb-4 flex items-center gap-3 font-heading">
+                            <div className={`rounded-none sm:rounded-2xl p-6 md:p-8 border-y sm:border ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                            }`}>
+                                <h2 className={`text-xl font-bold mb-4 flex items-center gap-3 font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                     <span className="w-1 h-6 bg-[var(--brand-peach)] rounded-full"></span>
                                     {t('documentsAndResources')}
                                 </h2>
@@ -450,14 +471,16 @@ export default function EventDetailPage() {
                                             href={getMediaUrl(doc.file) || '#'} 
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30 transition-all group"
+                                            className={`flex items-center gap-4 p-4 rounded-xl border transition-all group ${
+                                                darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' : 'bg-[#F8F7FE] border-[#4D4DA4]/10 hover:border-[#4D4DA4]/30'
+                                            }`}
                                         >
-                                            <div className="bg-[var(--dark-600)] p-3 rounded-xl">
+                                            <div className={`p-3 rounded-xl ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}>
                                                 <FileText className="w-5 h-5 text-[var(--brand-primary)]" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-semibold text-[var(--brand-light)] truncate">{doc.title}</div>
-                                                {doc.description && <div className="text-sm text-[var(--brand-light)]/60 truncate">{doc.description}</div>}
+                                                <div className={`font-semibold truncate ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{doc.title}</div>
+                                                {doc.description && <div className={`text-sm truncate ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{doc.description}</div>}
                                             </div>
                                         </a>
                                     ))}
@@ -470,40 +493,50 @@ export default function EventDetailPage() {
                     <div className="lg:w-[380px] hidden lg:block">
                         <div className="sticky top-24 space-y-4">
                             {/* Registration Card */}
-                            <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
+                            <div className={`rounded-2xl border overflow-hidden ${
+                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                            }`}>
                                 {/* Card Header - Purple theme */}
-                                <div className="bg-[var(--brand-purple)] p-6 text-[var(--brand-light)]">
+                                <div className={`p-6 ${darkMode ? 'bg-[var(--brand-purple)] text-[var(--brand-light)]' : 'bg-[#EBEBFE] text-gray-900'}`}>
                                     <div className="flex items-center justify-between mb-3">
-                                        <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('eventPrice')}</span>
+                                        <span className={`text-sm font-medium ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>{t('eventPrice')}</span>
                                         <div className="flex gap-2">
                                             <button 
                                                 onClick={() => setIsLiked(!isLiked)}
-                                                className={`p-2 rounded-full transition-all ${isLiked ? 'bg-[var(--brand-light)]/20 text-[var(--brand-primary)]' : 'bg-[var(--brand-light)]/10 hover:bg-[var(--brand-light)]/20'}`}
+                                                className={`p-2 rounded-full transition-all ${
+                                                    isLiked 
+                                                        ? (darkMode ? 'bg-[var(--brand-light)]/20 text-[var(--brand-primary)]' : 'bg-[#4D4DA4]/20 text-[#4D4DA4]')
+                                                        : (darkMode ? 'bg-[var(--brand-light)]/10 hover:bg-[var(--brand-light)]/20' : 'bg-[#4D4DA4]/10 hover:bg-[#4D4DA4]/20 text-[#4D4DA4]')
+                                                }`}
                                             >
                                                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
                                             </button>
-                                            <button className="p-2 rounded-full bg-[var(--brand-light)]/10 hover:bg-[var(--brand-light)]/20 transition-all">
+                                            <button className={`p-2 rounded-full transition-all ${
+                                                darkMode ? 'bg-[var(--brand-light)]/10 hover:bg-[var(--brand-light)]/20' : 'bg-[#4D4DA4]/10 hover:bg-[#4D4DA4]/20 text-[#4D4DA4]'
+                                            }`}>
                                                 <Share2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
                                     <div className="text-4xl font-bold tracking-tight">
-                                        {event.cost ? `${event.cost} SEK` : 'Free'}
+                                        {event.cost ? `${event.cost} SEK` : t('free')}
                                     </div>
                                     {!event.cost && (
-                                        <p className="text-sm text-[var(--brand-light)]/70 mt-1">{t('noRegistrationFee')}</p>
+                                        <p className={`text-sm mt-1 ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>{t('noRegistrationFee')}</p>
                                     )}
                                 </div>
                                 
                                 <div className="p-6 space-y-4">
                                     {/* Availability */}
                                     {event.allow_registration && event.max_seats > 0 && (
-                                        <div className="flex items-center justify-between p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)]">
+                                        <div className={`flex items-center justify-between p-3 rounded-xl border ${
+                                            darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'
+                                        }`}>
                                             <div className="flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-[var(--brand-green)]" />
-                                                <span className="text-sm text-[var(--brand-light)]/60">{t('availability')}</span>
+                                                <Users className="w-4 h-4 text-[#10B981]" />
+                                                <span className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('availability')}</span>
                                             </div>
-                                            <span className={`font-bold text-sm ${isFull ? 'text-[var(--brand-red)]' : 'text-[var(--brand-green)]'}`}>
+                                            <span className={`font-bold text-sm ${isFull ? 'text-[var(--brand-red)]' : 'text-[#10B981]'}`}>
                                                 {isFull ? t('full') : `${seatsLeft} ${t('spotsLeft')}`}
                                             </span>
                                         </div>
@@ -511,12 +544,14 @@ export default function EventDetailPage() {
                                     
                                     {/* Registration deadline */}
                                     {event.allow_registration && event.registration_close_date && (
-                                        <div className="flex items-center justify-between p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-600)]">
+                                        <div className={`flex items-center justify-between p-3 rounded-xl border ${
+                                            darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'
+                                        }`}>
                                             <div className="flex items-center gap-2">
-                                                <UserPlus className="w-4 h-4 text-[var(--brand-green)]" />
-                                                <span className="text-sm text-[var(--brand-light)]/60">{t('registerBy')}</span>
+                                                <UserPlus className="w-4 h-4 text-[#10B981]" />
+                                                <span className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('registerBy')}</span>
                                             </div>
-                                            <span className="font-bold text-sm text-[var(--brand-light)]">
+                                            <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                 {new Date(event.registration_close_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
@@ -535,7 +570,9 @@ export default function EventDetailPage() {
                                             </div>
                                             <button 
                                                 onClick={() => setCancelModalOpen(true)}
-                                                className="w-full bg-[var(--dark-700)] text-[var(--brand-light)]/70 font-semibold py-3 rounded-xl hover:bg-[var(--brand-red)]/10 hover:text-[var(--brand-red)] transition-all flex items-center justify-center gap-2"
+                                                className={`w-full font-semibold py-3 rounded-xl hover:bg-[var(--brand-red)]/10 hover:text-[var(--brand-red)] transition-all flex items-center justify-center gap-2 ${
+                                                    darkMode ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/70' : 'bg-[#F8F7FE] text-gray-600'
+                                                }`}
                                             >
                                                 <XCircle className="w-4 h-4" />
                                                 {t('cancelRegistration')}
@@ -545,7 +582,11 @@ export default function EventDetailPage() {
                                         <button 
                                             onClick={() => setRegModalOpen(true)}
                                             disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
-                                            className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-4 rounded-xl hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50 disabled:cursor-not-allowed transition-all"
+                                            className={`w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-4 rounded-xl hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+                                                !event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)
+                                                    ? (darkMode ? 'disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50' : 'disabled:bg-gray-200 disabled:text-gray-500')
+                                                    : ''
+                                            }`}
                                         >
                                             {!event.allow_registration ? t('noRegistrationRequired') : 
                                              isRegistrationClosed ? t('registrationClosed') :
@@ -557,7 +598,9 @@ export default function EventDetailPage() {
                             
                             {/* Social Proof */}
                             {event.confirmed_participants_count > 0 && (
-                                <div className="bg-[var(--dark-800)] rounded-2xl p-4 border border-[var(--dark-600)]">
+                                <div className={`rounded-2xl p-4 border ${
+                                    darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                                }`}>
                                     <div className="flex items-center gap-3">
                                         <div className="flex -space-x-2">
                                             {[...Array(Math.min(3, event.confirmed_participants_count))].map((_, i) => (
@@ -578,11 +621,13 @@ export default function EventDetailPage() {
             </div>
             
             {/* Mobile Sticky Bottom Bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-[var(--dark-800)] border-t border-[var(--dark-600)] p-4 lg:hidden z-40 safe-area-bottom">
+            <div className={`fixed bottom-0 left-0 right-0 border-t p-4 lg:hidden z-40 safe-area-bottom ${
+                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-gray-200 shadow-lg'
+            }`}>
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
                     <div className="flex-shrink-0">
-                        <p className="text-xs text-[var(--brand-light)]/50">{t('price')}</p>
-                        <p className="font-bold text-lg text-[var(--brand-light)]">{event.cost ? `${event.cost} SEK` : t('free')}</p>
+                        <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('price')}</p>
+                        <p className={`font-bold text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{event.cost ? `${event.cost} SEK` : t('free')}</p>
                     </div>
                     <div className="flex-1">
                         {isRegistered ? (
@@ -602,7 +647,9 @@ export default function EventDetailPage() {
                             <button 
                                 onClick={() => setRegModalOpen(true)}
                                 disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
-                                className="w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-3 rounded-xl disabled:opacity-50 disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50 disabled:cursor-not-allowed transition-all"
+                                className={`w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+                                    darkMode ? 'disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50' : 'disabled:bg-gray-200 disabled:text-gray-500'
+                                }`}
                             >
                                 {!event.allow_registration ? t('noRegistration') : 
                                  isRegistrationClosed ? t('closed') :
@@ -621,25 +668,27 @@ export default function EventDetailPage() {
                 isOpen={isRegModalOpen} 
                 onClose={() => setRegModalOpen(false)} 
                 onSuccess={fetchEvent}
-                darkMode={true}
+                darkMode={darkMode}
             />
 
             {/* Cancel Registration Modal */}
             {isCancelModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border border-[var(--dark-600)] p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+                    <div className={`rounded-none sm:rounded-2xl border p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-200 ${
+                        darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-gray-200 shadow-xl'
+                    }`}>
                         <div className="flex justify-center mb-6">
                             <div className="w-20 h-20 bg-[var(--brand-red)]/20 rounded-full flex items-center justify-center">
                                 <AlertCircle className="w-10 h-10 text-[var(--brand-red)]" />
                             </div>
                         </div>
                         
-                        <h3 className="text-2xl font-bold text-[var(--brand-light)] mb-3 text-center font-heading">
+                        <h3 className={`text-2xl font-bold mb-3 text-center font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                             {t('cancelRegistrationTitle')}
                         </h3>
                         
-                        <p className="text-[var(--brand-light)]/70 mb-8 text-center leading-relaxed">
-                            {t('cancelRegistrationConfirm')} <span className="font-semibold text-[var(--brand-light)]">{event?.title}</span>?
+                        <p className={`mb-8 text-center leading-relaxed ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'}`}>
+                            {t('cancelRegistrationConfirm')} <span className={`font-semibold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{event?.title}</span>?
                             {userStatus === 'APPROVED' && ` ${t('seatWillBeReleased')}`}
                             {userStatus === 'WAITLIST' && ` ${t('removedFromWaitlist')}`}
                         </p>
@@ -648,7 +697,9 @@ export default function EventDetailPage() {
                             <button 
                                 onClick={() => setCancelModalOpen(false)}
                                 disabled={isCancelling}
-                                className="flex-1 py-4 px-6 font-semibold text-[var(--brand-light)]/70 bg-[var(--dark-700)] rounded-xl hover:bg-[var(--dark-600)] disabled:opacity-50 transition-all"
+                                className={`flex-1 py-4 px-6 font-semibold rounded-xl disabled:opacity-50 transition-all ${
+                                    darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'
+                                }`}
                             >
                                 {t('keepRegistration')}
                             </button>

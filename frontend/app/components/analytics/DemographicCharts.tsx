@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Users, GraduationCap } from 'lucide-react';
 
 interface Props {
@@ -8,16 +9,17 @@ interface Props {
   gradeData: { grade: number; count: number }[];
 }
 
-const GENDER_COLORS = {
-  MALE: { color: 'var(--brand-blue)', label: 'Boys', icon: '♂' },
-  FEMALE: { color: '#EC4899', label: 'Girls', icon: '♀' },
-  OTHER: { color: 'var(--brand-green)', label: 'Other', icon: '○' },
-};
-
 export default function DemographicCharts({ genderData, gradeData }: Props) {
+  const t = useTranslations('analyticsAdmin.demographics');
   const [isVisible, setIsVisible] = useState(false);
   const [hoveredGender, setHoveredGender] = useState<string | null>(null);
   const [hoveredGrade, setHoveredGrade] = useState<number | null>(null);
+  
+  const GENDER_COLORS = {
+    MALE: { color: 'var(--brand-blue)', label: t('boys'), icon: '♂' },
+    FEMALE: { color: '#EC4899', label: t('girls'), icon: '♀' },
+    OTHER: { color: 'var(--brand-green)', label: t('other'), icon: '○' },
+  };
   
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 200);
@@ -57,13 +59,13 @@ export default function DemographicCharts({ genderData, gradeData }: Props) {
           <div className="w-8 h-8 rounded-lg bg-[#EC4899]/20 flex items-center justify-center">
             <Users className="w-4 h-4 text-[#EC4899]" />
           </div>
-          <h3 className="font-semibold text-[var(--brand-light)]">Gender Balance</h3>
+          <h3 className="font-semibold text-[var(--brand-light)]">{t('genderBalance')}</h3>
         </div>
         
         {totalGender === 0 ? (
           <div className="flex flex-col items-center justify-center h-[200px] text-[var(--brand-light)]/40">
             <Users className="w-12 h-12 mb-2 opacity-50" />
-            <p className="text-sm">No gender data available</p>
+            <p className="text-sm">{t('noGenderData')}</p>
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -110,7 +112,7 @@ export default function DemographicCharts({ genderData, gradeData }: Props) {
                 <span className="text-xs text-[var(--brand-light)]/50">
                   {hoveredGender 
                     ? '%'
-                    : 'total'}
+                    : t('total')}
                 </span>
               </div>
             </div>
@@ -150,13 +152,13 @@ export default function DemographicCharts({ genderData, gradeData }: Props) {
           <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
             <GraduationCap className="w-4 h-4 text-[var(--brand-purple)]" />
           </div>
-          <h3 className="font-semibold text-[var(--brand-light)]">Members by Grade</h3>
+          <h3 className="font-semibold text-[var(--brand-light)]">{t('membersByGrade')}</h3>
         </div>
         
         {gradeData.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-[200px] text-[var(--brand-light)]/40">
             <GraduationCap className="w-12 h-12 mb-2 opacity-50" />
-            <p className="text-sm">No grade data available</p>
+            <p className="text-sm">{t('noGradeData')}</p>
           </div>
         ) : (
           <div className="flex items-end gap-2 h-[180px]">
@@ -198,7 +200,7 @@ export default function DemographicCharts({ genderData, gradeData }: Props) {
                   <span className={`text-xs mt-1 transition-all ${
                     isHovered ? 'text-[var(--brand-light)]' : 'text-[var(--brand-light)]/50'
                   }`}>
-                    {d.grade}th
+                    {t('gradeLabel', { grade: d.grade })}
                   </span>
                 </div>
               );
@@ -209,10 +211,10 @@ export default function DemographicCharts({ genderData, gradeData }: Props) {
         {/* Summary */}
         {gradeData.length > 0 && (
           <div className="mt-4 pt-4 border-t border-[var(--dark-600)] flex items-center justify-between text-xs text-[var(--brand-light)]/40">
-            <span>Total: {gradeData.reduce((a, b) => a + b.count, 0)} members</span>
+            <span>{t('totalMembers', { count: gradeData.reduce((a, b) => a + b.count, 0) })}</span>
             <span>
-              Peak: <span className="text-[var(--brand-purple)] font-medium">
-                {gradeData.reduce((max, d) => d.count > max.count ? d : max, gradeData[0])?.grade}th grade
+              {t('peakGrade', { grade: '' })} <span className="text-[var(--brand-purple)] font-medium">
+                {gradeData.reduce((max, d) => d.count > max.count ? d : max, gradeData[0])?.grade}
               </span>
             </span>
           </div>

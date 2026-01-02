@@ -96,7 +96,7 @@ export default function ChildCard({
             </div>
           )}
         </div>
-        <span className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider ${statusStyles[status] || (darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60' : 'bg-gray-100')}`}>
+        <span className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider ${statusStyles[status] || (darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60' : 'bg-[#EBEBFE]')}`}>
           {getStatusLabel(status)}
         </span>
       </div>
@@ -125,7 +125,7 @@ export default function ChildCard({
         <p className={`text-xs truncate px-2 py-1 rounded-lg ${
           darkMode 
             ? 'text-[var(--brand-light)]/60 bg-[var(--dark-600)]' 
-            : 'text-gray-600 bg-gray-50'
+            : 'text-gray-600 bg-[#F8F7FE]'
         }`}>{youth_email}</p>
       </div>
 
@@ -158,7 +158,7 @@ export default function ChildCard({
               className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1 ${
                 darkMode 
                   ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/80 hover:bg-[var(--brand-red)]/20 hover:text-[var(--brand-red)]' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600'
+                  : 'bg-[#EBEBFE] text-gray-700 hover:bg-red-50 hover:text-red-600'
               }`}
             >
               <X className="w-4 h-4" />
@@ -193,7 +193,7 @@ export default function ChildCard({
                     : 'bg-[#4D4DA4]/10 text-[#4D4DA4]'
                   : darkMode 
                     ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:bg-[var(--brand-primary)]/20 hover:text-[var(--brand-primary)]' 
-                    : 'bg-gray-100 text-gray-500 hover:bg-[#4D4DA4]/10 hover:text-[#4D4DA4]'
+                    : 'bg-[#EBEBFE] text-gray-500 hover:bg-[#4D4DA4]/10 hover:text-[#4D4DA4]'
               }`}
               title={is_primary_guardian ? t('removePrimary') : t('setPrimary')}
             >
@@ -206,7 +206,7 @@ export default function ChildCard({
             className={`w-11 flex items-center justify-center rounded-xl transition-colors ${
               darkMode 
                 ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:bg-[var(--brand-red)]/20 hover:text-[var(--brand-red)]' 
-                : 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
+                : 'bg-[#EBEBFE] text-gray-500 hover:bg-red-50 hover:text-red-500'
             }`}
             title={t('removeChild')}
           >

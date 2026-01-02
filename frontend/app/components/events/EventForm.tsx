@@ -1484,8 +1484,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                            <Image className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                            <Image className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.media.title')}</h2>
@@ -1667,8 +1667,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.basicInfo.title')}</h2>
@@ -1759,8 +1759,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <Clock className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                            <Clock className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.when.title')}</h2>
@@ -1807,8 +1807,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                                <Repeat className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                                <Repeat className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.recurring.title')}</h2>
@@ -1866,7 +1866,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                     <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                                 <Globe className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
@@ -2128,8 +2128,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-pink)] flex items-center justify-center">
-                            <MapPin className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                            <MapPin className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.location.title')}</h2>
@@ -2199,8 +2199,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <Users className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                            <Users className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
@@ -2464,8 +2464,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.documents.title')}</h2>
@@ -2568,7 +2568,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                             <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
@@ -2674,8 +2674,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                 <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                     <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-pink)] flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                                <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
                                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.customFields.title')}</h2>
@@ -2821,8 +2821,8 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     className="w-full px-6 py-5 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-pink)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <Globe className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                            <Globe className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div className="text-left">
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.seo.title')}</h2>

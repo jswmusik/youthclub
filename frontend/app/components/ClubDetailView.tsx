@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { GoogleMap, Marker, LoadScript } from '@react-google-maps/api';
 import { 
   ArrowLeft, Edit, MapPin, Mail, Phone, Clock, FileText, 
-  Users, LogIn, Building2, Tag, ExternalLink, Shield, ChevronRight
+  Users, LogIn, Building2, Tag, ExternalLink, Shield, ChevronRight, ChevronDown
 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
@@ -34,6 +34,8 @@ export default function ClubDetailView({
   const searchParams = useSearchParams();
   const [club, setClub] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [termsExpanded, setTermsExpanded] = useState(false);
+  const [policiesExpanded, setPoliciesExpanded] = useState(false);
 
   // Translation-based constants
   const WEEKDAYS = [
@@ -237,7 +239,10 @@ export default function ClubDetailView({
             <div className="p-6">
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                 {club.description ? (
-                  <p className="text-sm leading-relaxed text-[var(--brand-light)]/80 whitespace-pre-wrap">{club.description}</p>
+                  <div 
+                    className="text-sm leading-relaxed text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90"
+                    dangerouslySetInnerHTML={{ __html: club.description }}
+                  />
                 ) : (
                   <p className="text-sm italic text-[var(--brand-light)]/30">{t('noDescription')}</p>
                 )}
@@ -337,37 +342,63 @@ export default function ClubDetailView({
             </div>
           </div>
 
-          {/* Legal Documents */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 sm:gap-6">
-            {/* Terms & Conditions */}
-            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[var(--brand-peach)]" />
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('termsConditions')}</h3>
+          {/* Legal Documents - Accordion Style */}
+          <div className="space-y-0 sm:space-y-4">
+            {/* Terms & Conditions Accordion */}
+            {club.terms_and_conditions && (
+              <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <button
+                  onClick={() => setTermsExpanded(!termsExpanded)}
+                  className="w-full px-6 py-4 flex items-center justify-between bg-[var(--dark-700)]/50 hover:bg-[var(--dark-700)] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-[var(--brand-peach)]" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('termsConditions')}</h3>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform duration-300 ${termsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${termsExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className="p-6 border-t border-[var(--dark-600)]">
+                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] max-h-80 overflow-y-auto">
+                      <div 
+                        className="text-sm text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-[var(--brand-light)]"
+                        dangerouslySetInnerHTML={{ __html: club.terms_and_conditions }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="h-32 overflow-y-auto text-xs text-[var(--brand-light)]/70 bg-[var(--dark-700)]/50 p-4 rounded-xl border border-[var(--dark-500)]">
-                  {club.terms_and_conditions || <span className="italic text-[var(--brand-light)]/40">{t('noneProvided')}</span>}
-                </div>
-              </div>
-            </div>
+            )}
 
-            {/* Club Policies */}
-            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
-              <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[var(--brand-blue)]" />
-                  <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('clubPolicies')}</h3>
+            {/* Club Policies Accordion */}
+            {club.club_policies && (
+              <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+                <button
+                  onClick={() => setPoliciesExpanded(!policiesExpanded)}
+                  className="w-full px-6 py-4 flex items-center justify-between bg-[var(--dark-700)]/50 hover:bg-[var(--dark-700)] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-[var(--brand-blue)]" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('clubPolicies')}</h3>
+                  </div>
+                  <ChevronDown className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform duration-300 ${policiesExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${policiesExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className="p-6 border-t border-[var(--dark-600)]">
+                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] max-h-80 overflow-y-auto">
+                      <div 
+                        className="text-sm text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-[var(--brand-light)]"
+                        dangerouslySetInnerHTML={{ __html: club.club_policies }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="h-32 overflow-y-auto text-xs text-[var(--brand-light)]/70 bg-[var(--dark-700)]/50 p-4 rounded-xl border border-[var(--dark-500)]">
-                  {club.club_policies || <span className="italic text-[var(--brand-light)]/40">{t('noneProvided')}</span>}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

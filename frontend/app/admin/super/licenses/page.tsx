@@ -93,7 +93,7 @@ export default function LicenseManagementPage() {
   const [selectedRequest, setSelectedRequest] = useState<LicenseRequest | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [processingRequest, setProcessingRequest] = useState(false);
-  const { showToast } = useToast();
+  const { success: showToastSuccess, error: showToastError } = useToast();
 
   // History filters
   const [historySearch, setHistorySearch] = useState('');
@@ -122,7 +122,7 @@ export default function LicenseManagementPage() {
 
     } catch (error) {
       console.error("Failed to fetch licensing data", error);
-      showToast(t('toast.failedToLoadLicensingData'), 'error');
+      showToastError(t('toast.failedToLoadLicensingData'));
     } finally {
       setLoading(false);
     }
@@ -137,13 +137,13 @@ export default function LicenseManagementPage() {
         has_analytics: editingLicense.has_analytics,
         extra_features: editingLicense.extra_features
       });
-      showToast(t('toast.licenseUpdatedSuccessfully'), 'success');
+      showToastSuccess(t('toast.licenseUpdatedSuccessfully'));
       setEditingLicense(null);
       setDialogOpen(false);
       fetchData();
     } catch (error) {
       console.error(error);
-      showToast(t('toast.failedToUpdateLicense'), 'error');
+      showToastError(t('toast.failedToUpdateLicense'));
     }
   };
 
@@ -170,13 +170,13 @@ export default function LicenseManagementPage() {
       await api.post(`/licensing/requests/${selectedRequest.id}/approve/`, {
         notes: adminNotes
       });
-      showToast(t('toast.requestApprovedSuccessfully'), 'success');
+      showToastSuccess(t('toast.requestApprovedSuccessfully'));
       setRequestDialogOpen(false);
       setSelectedRequest(null);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      showToast(error?.response?.data?.error || t('toast.failedToApproveRequest'), 'error');
+      showToastError(error?.response?.data?.error || t('toast.failedToApproveRequest'));
     } finally {
       setProcessingRequest(false);
     }
@@ -189,13 +189,13 @@ export default function LicenseManagementPage() {
       await api.post(`/licensing/requests/${selectedRequest.id}/reject/`, {
         notes: adminNotes
       });
-      showToast(t('toast.requestRejected'), 'success');
+      showToastSuccess(t('toast.requestRejected'));
       setRequestDialogOpen(false);
       setSelectedRequest(null);
       fetchData();
     } catch (error: any) {
       console.error(error);
-      showToast(error?.response?.data?.error || t('toast.failedToRejectRequest'), 'error');
+      showToastError(error?.response?.data?.error || t('toast.failedToRejectRequest'));
     } finally {
       setProcessingRequest(false);
     }
@@ -440,17 +440,24 @@ export default function LicenseManagementPage() {
       </div>
 
       {/* Tabs for Licenses, Requests, and History */}
-      <Tabs defaultValue="licenses" className="space-y-4">
+      <Tabs defaultValue="licenses" className="space-y-4 licenses-tabs">
+        <style>{`
+          .licenses-tabs [data-slot="tabs-trigger"][data-state="active"] {
+            background-color: var(--brand-primary) !important;
+            color: #111 !important;
+            font-weight: 600 !important;
+          }
+        `}</style>
         <TabsList className="bg-[var(--dark-700)] border border-[var(--dark-600)]">
           <TabsTrigger 
             value="licenses" 
-            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
+            className="text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
           >
             {t('tabs.licenses')}
           </TabsTrigger>
           <TabsTrigger 
             value="requests" 
-            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors relative"
+            className="text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors relative"
           >
             {t('tabs.pending')}
             {pendingRequests > 0 && (
@@ -461,7 +468,7 @@ export default function LicenseManagementPage() {
           </TabsTrigger>
           <TabsTrigger 
             value="history" 
-            className="data-[state=active]:bg-[var(--brand-primary)] data-[state=active]:text-black text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
+            className="text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] transition-colors"
           >
             {t('tabs.history')}
           </TabsTrigger>
@@ -552,10 +559,15 @@ export default function LicenseManagementPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={license.is_active ? 'default' : 'destructive'} 
-                                   className={license.is_active ? 'bg-[var(--brand-primary)]' : ''}>
-                              {license.is_active ? t('licensesTab.active') : t('licensesTab.inactive')}
-                            </Badge>
+                            {license.is_active ? (
+                              <span className="inline-flex items-center justify-center rounded-full border border-transparent px-2 py-0.5 text-xs font-semibold bg-[var(--brand-primary)] text-[#111]">
+                                {t('licensesTab.active')}
+                              </span>
+                            ) : (
+                              <Badge variant="destructive">
+                                {t('licensesTab.inactive')}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button 
@@ -911,9 +923,12 @@ export default function LicenseManagementPage() {
             >
               {t('editDialog.cancel')}
             </Button>
-            <Button onClick={handleSave} className="bg-[var(--brand-primary)]">
-              <Save className="w-4 h-4 mr-2" /> {t('editDialog.saveChanges')}
-            </Button>
+            <button 
+              onClick={handleSave} 
+              className="inline-flex items-center justify-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[#111] font-semibold rounded-md px-4 py-2 transition-colors"
+            >
+              <Save className="w-4 h-4" /> {t('editDialog.saveChanges')}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

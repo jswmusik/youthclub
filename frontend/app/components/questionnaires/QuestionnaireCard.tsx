@@ -257,7 +257,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
   if (isExpanded) {
     if (loading) {
       return (
-        <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
+        <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/15'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
           {/* Decorative gradient border with stars */}
           <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-between px-2">
@@ -308,7 +308,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
     const progress = ((currentStepIndex) / visibleQuestions.length) * 100;
 
     return (
-      <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
+      <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/15'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md'} border-y sm:border overflow-hidden relative`}>
         {/* Decorative gradient border with stars */}
         <div className="h-1 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-between px-2">
@@ -320,7 +320,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
           </div>
         </div>
         {/* Header */}
-        <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
+        <div className={`p-6 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className={`text-lg font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{data.title}</h3>
@@ -342,7 +342,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               <span>{t('question')} {currentStepIndex + 1} {t('of')} {visibleQuestions.length}</span>
               <span>{Math.round(progress)}{t('completedPercent')}</span>
             </div>
-            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-100'} rounded-full overflow-hidden`}>
+            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-[#EBEBFE]'} rounded-full overflow-hidden`}>
               <div className={`h-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-blue-600'} transition-all duration-300`} style={{ width: `${progress}%` }}></div>
             </div>
           </div>
@@ -367,11 +367,11 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
           </div>
 
           {/* Navigation */}
-          <div className={`flex gap-3 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
+          <div className={`flex gap-3 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
             <button
               onClick={handleBack}
               disabled={currentStepIndex === 0}
-              className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--brand-light)]/80 bg-[var(--dark-500)] hover:bg-[var(--dark-400)]' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
+              className={`flex-1 py-2 px-4 rounded-lg font-semibold ${darkMode ? 'text-[var(--brand-light)]/80 bg-[var(--dark-500)] hover:bg-[var(--dark-400)]' : 'text-gray-600 bg-[#EBEBFE] hover:bg-[#E5E4F0]'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
               {t('back')}
             </button>
@@ -397,7 +397,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
   const totalCount = questionnaire.total_questions || 0;
   
   return (
-    <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-gray-200'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md hover:shadow-lg'} border-y sm:border overflow-hidden transition-shadow relative`}>
+    <div className={`${darkMode ? 'bg-[var(--dark-600)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/15'} rounded-none sm:rounded-xl ${darkMode ? '' : 'shadow-md hover:shadow-lg'} border-y sm:border overflow-hidden transition-shadow relative`}>
       {/* Decorative gradient border with stars */}
       <div className="h-3 bg-gradient-to-r from-[var(--brand-purple)] via-[var(--brand-primary)] to-[var(--brand-third)] relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-between px-2">
@@ -443,7 +443,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
               <span className="font-medium">{t('progress')}</span>
               <span className="font-bold">{progress}%</span>
             </div>
-            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+            <div className={`h-2 ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-[#E5E4F0]'} rounded-full overflow-hidden`}>
               <div 
                 className={`h-full ${darkMode ? 'bg-[var(--brand-peach)]' : 'bg-orange-500'} transition-all duration-300 rounded-full`}
                 style={{ width: `${progress}%` }}
@@ -456,7 +456,7 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
         )}
 
         {/* Footer */}
-        <div className={`flex items-center justify-between mt-4 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`}>
+        <div className={`flex items-center justify-between mt-4 pt-4 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
           <div className="flex flex-col">
             {isStarted && (
               <span className={`text-xs ${darkMode ? 'text-[var(--brand-peach)]' : 'text-orange-600'} font-medium mb-1`}>{t('inProgress')}</span>
@@ -549,7 +549,7 @@ function QuestionInput({ question, value, onChange, darkMode = false }: { questi
                       : 'border-[var(--dark-400)] hover:border-[var(--brand-primary)]/50 hover:bg-[var(--dark-500)]')
                   : (isSelected
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50')
+                      : 'border-[#4D4DA4]/15 hover:border-blue-200 hover:bg-gray-50')
               }`}
             >
               <span className={`font-medium text-lg ${darkMode ? (isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]') : ''}`}>{opt.text}</span>

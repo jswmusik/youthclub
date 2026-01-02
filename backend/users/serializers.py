@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, GuardianYouthLink, IdDocumentUpload
+from .trial_service import get_user_trial_info
 from django.http import QueryDict
 from django.db import transaction
 from django.utils.crypto import get_random_string
@@ -124,6 +125,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
     
     # --- LICENSING FIELD ---
     allowed_features = serializers.SerializerMethodField()
+    
+    # --- TRIAL PERIOD INFO ---
+    trial_info = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -153,6 +157,8 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'id_document_review_status',
             'id_document_reviewed_at',
             'id_document_rejection_reason',
+            # --- TRIAL PERIOD ---
+            'trial_info',
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']
 
@@ -186,6 +192,16 @@ class CustomUserSerializer(serializers.ModelSerializer):
             return list(municipality.license.get_active_features_slugs())
         
         return []
+
+    def get_trial_info(self, obj):
+        """
+        Returns trial period information for youth members.
+        This is used by the frontend to determine if the user can access the platform.
+        """
+        # Only include trial info for youth members
+        if obj.role == 'YOUTH_MEMBER':
+            return get_user_trial_info(obj)
+        return None
 
     def get_followed_clubs_ids(self, obj):
         return list(obj.followed_clubs.values_list('id', flat=True))
@@ -381,6 +397,14 @@ class UserManagementSerializer(serializers.ModelSerializer):
     
     # For Guardians: List of Youth IDs (New)
     youth_members = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
+    
+    # Interests (ManyToMany) - accepts list of IDs
+    interests = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Interest.objects.all(),
+        required=False,
+        write_only=True
+    )
 
     class Meta:
         model = User
@@ -411,6 +435,20 @@ class UserManagementSerializer(serializers.ModelSerializer):
         """
         role = attrs.get('role') or (self.instance.role if self.instance else None)
         
+        # Password validation for creation
+        if not self.instance:
+            password = attrs.get('password')
+            if not password or (isinstance(password, str) and password.strip() == ''):
+                raise serializers.ValidationError({'password': 'Password is required when creating a new user.'})
+            
+            # Password complexity checks (same as YouthRegistrationSerializer)
+            if len(password) < 8:
+                raise serializers.ValidationError({'password': 'Password must be at least 8 characters long.'})
+            if not re.search(r'\d', password):
+                raise serializers.ValidationError({'password': 'Password must contain at least one number.'})
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                raise serializers.ValidationError({'password': 'Password must contain at least one special character.'})
+        
         # For guardians, remove fields that don't apply
         if role == 'GUARDIAN':
             # Remove youth-specific fields
@@ -423,9 +461,9 @@ class UserManagementSerializer(serializers.ModelSerializer):
             if 'assigned_municipality' in attrs:
                 attrs['assigned_municipality'] = None
         
-        # Clean up empty strings - convert to None for optional fields
-        # Note: nickname and mood_status are excluded because the model has blank=True but not null=True
-        for field in ['preferred_gender', 'phone_number', 'profession', 'background_image']:
+        # Clean up empty strings - convert to None for optional fields that have null=True
+        # Fields with blank=True but NOT null=True must remain as empty strings: nickname, mood_status, preferred_gender, profession
+        for field in ['phone_number', 'background_image']:
             if field in attrs and attrs[field] == '':
                 attrs[field] = None
         
@@ -462,16 +500,53 @@ class UserManagementSerializer(serializers.ModelSerializer):
         return youth_ids
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
+        if not password or (isinstance(password, str) and password.strip() == ''):
+            raise serializers.ValidationError({'password': 'Password is required when creating a new user.'})
         email = validated_data.pop('email')
-        interests = validated_data.pop('interests', [])
-        guardian_ids = validated_data.pop('guardians', [])
-        youth_ids = validated_data.pop('youth_members', [])
+        interests = validated_data.pop('interests', None)
+        guardian_ids = validated_data.pop('guardians', None)
+        youth_ids = validated_data.pop('youth_members', None)
+        
+        # --- Handle Data Extraction from FormData (QueryDict) ---
+        if hasattr(self, 'initial_data'):
+            request_data = self.initial_data
+            if isinstance(request_data, QueryDict):
+                # Handle Interests - if not parsed by DRF, extract from FormData
+                if interests is None:
+                    raw = request_data.getlist('interests')
+                    if raw:
+                        # Convert to Interest objects if they're IDs
+                        interest_ids = [int(i) for i in raw if i.strip()]
+                        interests = Interest.objects.filter(id__in=interest_ids) if interest_ids else []
+                    else:
+                        interests = []
+                
+                # Handle Guardians
+                if guardian_ids is None:
+                    raw = request_data.getlist('guardians')
+                    if raw: guardian_ids = [int(i) for i in raw if i.strip()]
+                    else: guardian_ids = []
+
+                # Handle Youth Members
+                if youth_ids is None:
+                    raw = request_data.getlist('youth_members')
+                    if raw: youth_ids = [int(i) for i in raw if i.strip()]
+                    else: youth_ids = []
+        
+        # Ensure lists are initialized
+        if interests is None:
+            interests = []
+        if guardian_ids is None:
+            guardian_ids = []
+        if youth_ids is None:
+            youth_ids = []
 
         youth_ids = self._filter_youth_ids_by_scope(youth_ids)
         
         user = User.objects.create_user(email, password=password, **validated_data)
         
+        # Set interests - PrimaryKeyRelatedField returns Interest objects, FormData handling returns queryset
         if interests:
             user.interests.set(interests)
             
@@ -787,7 +862,8 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             
             if not guardian_user:
                 # CREATE SHADOW GUARDIAN
-                # We create an inactive user with a random unusable password
+                # We create an active user with a random unusable password
+                # Guardian must be active so they can use password reset to set their password
                 random_password = get_random_string(50)  # Generate a random password
                 guardian_user = User.objects.create_user(
                     email=g_email,
@@ -797,7 +873,7 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
                     phone_number=g_phone,
                     legal_gender=g_gender,  # Save Gender
                     role=User.Role.GUARDIAN,
-                    is_active=False, # Inactive until they claim account
+                    is_active=True,  # Active so they can use password reset
                     verification_status=User.VerificationStatus.UNVERIFIED
                 )
                 # Save Guardian Custom Fields (Only for new shadow users)

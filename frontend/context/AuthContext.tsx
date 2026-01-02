@@ -5,6 +5,24 @@ import Cookies from 'js-cookie';
 import api from '../lib/api';
 import { useRouter } from 'next/navigation';
 
+// Trial period info for unverified youth members
+interface TrialInfo {
+  has_access: boolean;
+  is_verified: boolean;
+  is_in_trial: boolean;
+  trial_days_remaining: number | null;
+  trial_expired: boolean;
+  should_start_trial: boolean;
+  club_info: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string | null;
+    municipality_name: string | null;
+  } | null;
+}
+
 interface User {
   id: number;
   email: string;
@@ -23,6 +41,7 @@ interface User {
   assigned_club?: number | { id: number } | null;
   preferred_club?: any;
   followed_clubs_ids?: number[];
+  trial_info?: TrialInfo | null;
   my_memberships?: Array<{
     id: number;
     group_id: number;
@@ -63,6 +82,10 @@ interface LoginResult {
   success: boolean;
   requires2FA?: boolean;
   message?: string;
+  // Trial/verification blocking
+  blocked?: boolean;
+  blockReason?: 'not_verified' | 'trial_expired' | 'no_club';
+  trialInfo?: TrialInfo;
 }
 
 interface TwoFactorStatus {
@@ -232,6 +255,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Get User Details
     const userRes = await api.get('/auth/users/me/');
     const userData = userRes.data;
+    
+    // Check trial/verification status for youth members
+    if (userData.role === 'YOUTH_MEMBER' && userData.trial_info) {
+      const { has_access, trial_expired, club_info } = userData.trial_info;
+      
+      if (!has_access) {
+        // Clear tokens - don't allow login
+        Cookies.remove('access_token');
+        Cookies.remove('refresh_token');
+        Cookies.remove('remember_me');
+        
+        // Determine block reason
+        let blockReason: 'not_verified' | 'trial_expired' | 'no_club' = 'not_verified';
+        if (trial_expired) {
+          blockReason = 'trial_expired';
+        } else if (!club_info) {
+          blockReason = 'no_club';
+        }
+        
+        return {
+          success: false,
+          blocked: true,
+          blockReason,
+          trialInfo: userData.trial_info,
+        };
+      }
+    }
+    
     setUser(userData);
     setTwoFactorState(null);
     refreshMessageCount();
@@ -446,3 +497,6 @@ export const useAuth = () => {
   if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
+
+// Export types for use in other components
+export type { TrialInfo, LoginResult };

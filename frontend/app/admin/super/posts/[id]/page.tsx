@@ -203,8 +203,8 @@ export default function PostDetailPage() {
         return (
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
-                        <FileText className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-[var(--brand-primary)] animate-pulse">
+                        <FileText className="w-6 h-6 text-[var(--dark-900)]" />
                     </div>
                     <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
@@ -238,7 +238,7 @@ export default function PostDetailPage() {
                     <div className="flex items-center gap-4">
                         <BackButton 
                             onClick={() => router.push(buildBackUrl())}
-                            translationKey="backToList"
+                            translationKey="navigation.backToList"
                         />
                         <div>
                             <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -246,7 +246,7 @@ export default function PostDetailPage() {
                         </div>
                     </div>
                     <Link href={`/admin/super/posts/edit/${post.id}?${searchParams.toString()}`}>
-                        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-[var(--dark-900)] font-semibold hover:opacity-90 transition-all text-sm">
+                        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm">
                             <Edit className="h-4 w-4" />
                             <span className="hidden sm:inline">{t('editPost')}</span>
                         </button>
@@ -311,7 +311,7 @@ export default function PostDetailPage() {
                         <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-[var(--dark-600)]">
                             {post.author && (
                                 <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs font-bold">
+                                    <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] text-xs font-bold">
                                         {getAuthorInitials(post.author)}
                                     </div>
                                     <span className="text-sm font-medium text-[var(--brand-light)]">
@@ -481,7 +481,7 @@ export default function PostDetailPage() {
                                             >
                                                 <div className="flex items-start justify-between gap-3 mb-3">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs font-bold">
+                                                        <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] text-xs font-bold">
                                                             {getAuthorInitials(comment.author)}
                                                         </div>
                                                         <div>

@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { useAuth } from '../../../context/AuthContext';
-import { Avatar } from '../posts/PostCard';
 import { fetchUnreadNotificationCount } from '../../../lib/api';
 import { messengerApi } from '../../../lib/messenger-api';
 import { useLicense } from '@/hooks/useLicense';
@@ -26,19 +26,28 @@ import {
 
 interface GuardianNavBarProps {
     onMenuToggle?: () => void;
-    darkMode?: boolean;
+    darkMode?: boolean; // Deprecated - theme is now detected automatically
 }
 
-export default function GuardianNavBar({ onMenuToggle, darkMode = false }: GuardianNavBarProps) {
+export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp = false }: GuardianNavBarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const { hasFeature } = useLicense();
     const t = useTranslations('nav');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [messageUnreadCount, setMessageUnreadCount] = useState(0);
     const menuRef = useRef<HTMLDivElement>(null);
+    
+    // Avoid hydration mismatch for theme
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
 
     const handleLogout = () => {
         logout();
@@ -90,7 +99,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                 className={`fixed left-0 right-0 z-50 ${
                     darkMode 
                         ? 'bg-[var(--dark-800)]' 
-                        : 'bg-white border-b border-gray-200'
+                        : 'bg-white border-b border-[#4D4DA4]/15'
                 }`}
                 style={{ top: 'var(--system-alert-height, 0px)' }}
             >
@@ -104,7 +113,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                 className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 ${
                                     darkMode 
                                         ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' 
-                                        : 'text-gray-600 hover:bg-gray-100'
+                                        : 'text-gray-600 hover:bg-[#EBEBFE]'
                                 }`}
                                 title={t('goBack') || 'Go back'}
                             >
@@ -118,7 +127,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                     className={`md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 ${
                                         darkMode 
                                             ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' 
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                            : 'text-gray-600 hover:bg-[#EBEBFE]'
                                     }`}
                                     title={t('menu') || 'Menu'}
                                 >
@@ -132,9 +141,9 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                 className="flex-shrink-0 h-8 sm:h-10 flex items-center hover:opacity-80 transition-opacity active:scale-95"
                             >
                                 <img 
-                                    src="/ua-icon-2026.svg" 
+                                    src="/ua-logo-2026.svg" 
                                     alt="Ungdomsappen Logo" 
-                                    className="h-full w-auto object-contain"
+                                    className={`h-full w-auto object-contain ${darkMode ? 'brightness-0 invert' : ''}`}
                                 />
                             </button>
                         </div>
@@ -204,7 +213,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                 className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 ${
                                     darkMode
                                         ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]'
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
+                                        : 'text-gray-600 hover:bg-[#EBEBFE] hover:text-[#4D4DA4]'
                                 }`}
                                 title={t('messages') || 'Messages'}
                             >
@@ -227,7 +236,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                 className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all active:scale-95 ${
                                     darkMode
                                         ? 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]'
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
+                                        : 'text-gray-600 hover:bg-[#EBEBFE] hover:text-[#4D4DA4]'
                                 }`}
                                 title={t('notifications') || 'Notifications'}
                             >
@@ -253,17 +262,23 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                 }`}
                                 title={`${user?.first_name} ${user?.last_name}`}
                             >
-                                {user ? (
-                                    <Avatar
-                                        src={user.avatar || null}
+                                {user?.avatar ? (
+                                    <img
+                                        src={user.avatar}
                                         alt={`${user.first_name} ${user.last_name}`}
-                                        firstName={user.first_name || ''}
-                                        lastName={user.last_name || ''}
-                                        size="md"
+                                        className="w-full h-full object-cover"
                                     />
+                                ) : user ? (
+                                    <div className={`w-full h-full flex items-center justify-center text-sm font-semibold ${
+                                        darkMode 
+                                            ? 'bg-[var(--brand-secondary)]/20 text-[var(--brand-purple)]' 
+                                            : 'bg-[#EBEBFE] text-[#4D4DA4]'
+                                    }`}>
+                                        {(user.first_name?.[0] || '').toUpperCase()}{(user.last_name?.[0] || '').toUpperCase()}
+                                    </div>
                                 ) : (
                                     <div className={`w-full h-full flex items-center justify-center ${
-                                        darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'
+                                        darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'
                                     }`}>
                                         <span className={`text-xs font-semibold ${
                                             darkMode ? 'text-[var(--brand-light)]' : 'text-gray-500'
@@ -282,8 +297,8 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                                 ? 'bg-[var(--dark-600)] text-[var(--brand-primary)]' 
                                                 : 'text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-primary)]'
                                             : showMenu 
-                                                ? 'bg-gray-100 text-[#4D4DA4]' 
-                                                : 'text-gray-600 hover:bg-gray-100 hover:text-[#4D4DA4]'
+                                                ? 'bg-[#EBEBFE] text-[#4D4DA4]' 
+                                                : 'text-gray-600 hover:bg-[#EBEBFE] hover:text-[#4D4DA4]'
                                     }`}
                                     title={t('moreOptions') || 'More options'}
                                 >
@@ -300,7 +315,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                         <div className={`fixed md:absolute right-3 md:right-0 top-14 md:top-full md:mt-2 w-[calc(100vw-24px)] md:w-52 max-w-[280px] rounded-xl py-2 z-50 overflow-hidden ${
                                             darkMode
                                                 ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] shadow-2xl'
-                                                : 'bg-white shadow-2xl border border-gray-200'
+                                                : 'bg-white shadow-2xl border border-[#4D4DA4]/15'
                                         }`}>
                                             <button
                                                 onClick={() => {
@@ -310,7 +325,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                                 className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
                                                     darkMode
                                                         ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)]'
-                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                        : 'text-gray-700 hover:bg-[#EBEBFE]'
                                                 }`}
                                             >
                                                 <Settings className="w-5 h-5" />
@@ -324,13 +339,13 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
                                                 className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
                                                     darkMode
                                                         ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)]'
-                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                        : 'text-gray-700 hover:bg-[#EBEBFE]'
                                                 }`}
                                             >
                                                 <HelpCircle className="w-5 h-5" />
                                                 <span className="font-medium">{t('help') || 'Help'}</span>
                                             </button>
-                                            <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`} />
+                                            <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`} />
                                             <button
                                                 onClick={() => {
                                                     handleLogout();
@@ -358,7 +373,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode = false }: Guard
             <div className={`fixed bottom-0 left-0 right-0 z-50 md:hidden safe-area-bottom ${
                 darkMode
                     ? 'bg-[var(--dark-800)] border-t border-[var(--dark-600)]'
-                    : 'bg-white border-t border-gray-200'
+                    : 'bg-white border-t border-[#4D4DA4]/15'
             }`}>
                 <div className="flex items-center justify-around px-2 py-2">
                     {/* Home */}

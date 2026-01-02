@@ -84,6 +84,7 @@ class MunicipalitySerializer(serializers.ModelSerializer):
             'social_media',
             'allow_self_registration',
             'require_guardian_at_registration',
+            'trial_period_days',  # Trial period for unverified youth members
             'data_retention_months',  # Can be set by municipality admin
             'effective_retention_months',  # Computed: shows actual value used
             'data_retention_info',  # Full info including global defaults
@@ -266,6 +267,18 @@ class ClubSerializer(serializers.ModelSerializer):
     # Add calculated properties so frontend doesn't have to do the math
     effective_require_guardian = serializers.BooleanField(source='should_require_guardian', read_only=True)
     effective_registration_allowed = serializers.BooleanField(source='is_registration_allowed', read_only=True)
+    effective_trial_period_days = serializers.IntegerField(read_only=True)
+    
+    # Municipality details for showing defaults
+    municipality_details = serializers.SerializerMethodField()
+    
+    # Override trial_period_days_override to accept empty string as null
+    trial_period_days_override = serializers.IntegerField(
+        required=False, 
+        allow_null=True,
+        min_value=0,
+        max_value=90
+    )
 
     class Meta:
         model = Club
@@ -280,16 +293,64 @@ class ClubSerializer(serializers.ModelSerializer):
             # New fields:
             'allow_self_registration_override', 
             'require_guardian_override',
+            'trial_period_days_override',
             # Computed fields:
             'effective_require_guardian',
             'effective_registration_allowed',
+            'effective_trial_period_days',
+            'municipality_details',
             'created_at'
         ]
+    
+    def to_internal_value(self, data):
+        """Handle empty string as null for trial_period_days_override"""
+        # Convert empty string to None for trial_period_days_override
+        if 'trial_period_days_override' in data:
+            value = data.get('trial_period_days_override')
+            if value == '' or value is None:
+                # Create a mutable copy if needed
+                if hasattr(data, '_mutable'):
+                    data._mutable = True
+                data['trial_period_days_override'] = None
+                if hasattr(data, '_mutable'):
+                    data._mutable = False
+        return super().to_internal_value(data)
+    
+    def get_municipality_details(self, obj):
+        """Returns municipality details for showing defaults in the UI"""
+        if obj.municipality:
+            return {
+                'id': obj.municipality.id,
+                'name': obj.municipality.name,
+                'trial_period_days': obj.municipality.trial_period_days,
+            }
+        return None
 
 class InterestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interest
         fields = ['id', 'name', 'icon', 'avatar']
+
+
+class NullableBooleanField(serializers.Field):
+    """Custom field that accepts empty string as null, and 'true'/'false' strings as booleans."""
+    
+    def to_internal_value(self, data):
+        if data == '' or data is None or data == 'undefined' or data == 'null':
+            return None
+        if isinstance(data, bool):
+            return data
+        if isinstance(data, str):
+            if data.lower() in ('true', '1', 'yes'):
+                return True
+            if data.lower() in ('false', '0', 'no'):
+                return False
+        raise serializers.ValidationError('Must be a valid boolean or empty for default.')
+    
+    def to_representation(self, value):
+        if value is None:
+            return None
+        return value
 
 
 class ClubManagementSerializer(serializers.ModelSerializer):
@@ -298,6 +359,18 @@ class ClubManagementSerializer(serializers.ModelSerializer):
     """
     # We accept a JSON string for hours because we are using FormData (for images)
     regular_hours_data = serializers.CharField(write_only=True, required=False)
+    
+    # Override boolean fields to accept null/empty string (for "use municipality default")
+    allow_self_registration_override = NullableBooleanField(required=False)
+    require_guardian_override = NullableBooleanField(required=False)
+    
+    # Override trial_period_days_override to accept empty string as null
+    trial_period_days_override = serializers.IntegerField(
+        required=False, 
+        allow_null=True,
+        min_value=0,
+        max_value=90
+    )
 
     class Meta:
         model = Club
@@ -309,17 +382,24 @@ class ClubManagementSerializer(serializers.ModelSerializer):
             'club_categories',  # Removed allowed_age_groups as it's now handled per hour
             'allow_self_registration_override',
             'require_guardian_override',
+            'trial_period_days_override',  # Added trial period override
             'regular_hours_data'
         ]
 
     def to_internal_value(self, data):
-        # Convert empty strings to None for override fields (FormData sends empty strings)
-        if 'allow_self_registration_override' in data and data['allow_self_registration_override'] == '':
-            data = data.copy()
-            data['allow_self_registration_override'] = None
-        if 'require_guardian_override' in data and data['require_guardian_override'] == '':
-            data = data.copy()
-            data['require_guardian_override'] = None
+        # Handle trial_period_days_override empty string as null
+        if 'trial_period_days_override' in data:
+            value = data.get('trial_period_days_override')
+            if value == '' or value is None:
+                # Make data mutable if needed
+                if hasattr(data, '_mutable'):
+                    data._mutable = True
+                else:
+                    data = data.copy()
+                data['trial_period_days_override'] = None
+                if hasattr(data, '_mutable'):
+                    data._mutable = False
+            
         return super().to_internal_value(data)
     
     def validate(self, data):

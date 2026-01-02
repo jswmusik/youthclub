@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api, { visits } from '@/lib/api';
 import { Club } from '@/types/organization';
 import ClubHeader from '@/app/components/club/ClubHeader';
@@ -27,7 +28,15 @@ export default function ClubDetailsPage() {
   const { user } = useAuth();
   const t = useTranslations('club.errors');
   const tNav = useTranslations('nav');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const id = params?.id;
+
+  // Theme detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = !mounted || theme === 'dark';
 
   const [club, setClub] = useState<Club | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,8 +164,8 @@ export default function ClubDetailsPage() {
   }, [club, isCheckedIn]);
 
   if (loading) return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
-      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+      <NavBar showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
       <div className="pt-14 sm:pt-16 flex justify-center py-12">
         <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
       </div>
@@ -164,18 +173,17 @@ export default function ClubDetailsPage() {
   );
 
   if (error || !club) return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
-      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+      <NavBar showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
       <div className="pt-14 sm:pt-16 text-center py-12 text-[var(--brand-red)]">{error || t('clubNotFound')}</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="flex-1 pb-24 md:pb-12">
       {/* Fixed NavBar with hamburger menu */}
       <NavBar 
-        darkMode={true} 
         showBackButton={true} 
         onMenuToggle={() => setIsSidebarOpen(true)} 
       />
@@ -190,21 +198,21 @@ export default function ClubDetailsPage() {
       
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
       >
-        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+        <div className={`flex items-center justify-between h-14 sm:h-16 px-4 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
           <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tNav('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ${darkMode ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' : 'text-gray-500 hover:bg-gray-100'}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-          <YouthSidebar activePath={pathname} darkMode />
+          <YouthSidebar activePath={pathname} />
         </div>
       </aside>
       
@@ -212,7 +220,7 @@ export default function ClubDetailsPage() {
       <div className="pt-14 sm:pt-16">
         {/* Club Header */}
         <div className="max-w-6xl mx-auto md:pt-6 px-0 md:px-6">
-          <ClubHeader club={club} darkMode={true} />
+          <ClubHeader club={club} darkMode={darkMode} />
         </div>
 
         {/* Tabs Navigation - becomes sticky on scroll */}
@@ -221,7 +229,7 @@ export default function ClubDetailsPage() {
             activeTab={activeTab} 
             onChange={handleTabChange} 
             excludeTabs={['visits']} 
-            darkMode={true}
+            darkMode={darkMode}
             isCheckedIn={isCheckedIn}
             isSticky={isTabsSticky}
           />
@@ -233,27 +241,27 @@ export default function ClubDetailsPage() {
         {/* Tab Content */}
         <div className="max-w-6xl mx-auto px-0 sm:px-4 md:px-6 py-6">
           {activeTab === 'overview' && club && (
-            <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={true} />
+            <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={darkMode} />
           )}
           
           {activeTab === 'groups' && club && (
-            <ClubGroups clubId={club.id} darkMode={true} />
+            <ClubGroups clubId={club.id} darkMode={darkMode} />
           )}
 
           {activeTab === 'hours' && club && (
-            <ClubHours club={club} darkMode={true} />
+            <ClubHours club={club} darkMode={darkMode} />
           )}
 
           {activeTab === 'events' && club && (
-            <ClubEvents clubId={club.id} darkMode={true} />
+            <ClubEvents clubId={club.id} darkMode={darkMode} />
           )}
           
           {activeTab === 'policies' && club && (
-            <ClubPolicies club={club} darkMode={true} />
+            <ClubPolicies club={club} darkMode={darkMode} />
           )}
 
           {activeTab === 'contact' && club && (
-            <ClubContact club={club} darkMode={true} />
+            <ClubContact club={club} darkMode={darkMode} />
           )}
         </div>
       </div>

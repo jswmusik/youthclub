@@ -10,11 +10,43 @@ import {
   Facebook, Instagram, FileText, Crown, Package
 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import { useToast } from '../../hooks/useToast';
 import { queueToastForNavigation } from './ToastProvider';
 import { useAuth } from '../../context/AuthContext';
+
+// Dynamically import rich text editors to avoid SSR issues
+const LegalRichTextEditor = dynamic(
+  () => import('./LegalRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
+
+const DarkRichTextEditor = dynamic(
+  () => import('./DarkRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 interface MunicipalityFormProps {
   initialData?: any;
@@ -423,15 +455,11 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
                 <label htmlFor="description" className={labelClasses}>
                   {t('create.basicInformation.description')}
                 </label>
-                <textarea 
-                  id="description"
-                  rows={4} 
-                  placeholder={t('create.basicInformation.descriptionPlaceholder')}
+                <DarkRichTextEditor
                   value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  onFocus={() => setFocusedField('description')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('description')} resize-none`}
+                  onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
+                  placeholder={t('create.basicInformation.descriptionPlaceholder')}
+                  minHeight="150px"
                 />
               </div>
 
@@ -718,19 +746,14 @@ export default function MunicipalityForm({ initialData, redirectPath }: Municipa
 
               {/* Terms & Conditions */}
               <div>
-                <label htmlFor="terms_and_conditions" className={labelClasses}>
-                  <FileText className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-light)]/50" />
-                  {t('create.settings.termsConditions')}
-                </label>
-                <textarea 
-                  id="terms_and_conditions"
-                  rows={6} 
-                  placeholder={t('create.settings.termsConditionsPlaceholder')}
+                <LegalRichTextEditor
                   value={formData.terms_and_conditions}
-                  onChange={e => setFormData({ ...formData, terms_and_conditions: e.target.value })}
-                  onFocus={() => setFocusedField('terms_and_conditions')}
-                  onBlur={() => setFocusedField(null)}
-                  className={`${inputClasses('terms_and_conditions')} resize-none`}
+                  onChange={(content) => setFormData(prev => ({ ...prev, terms_and_conditions: content }))}
+                  placeholder={t('create.settings.termsConditionsPlaceholder')}
+                  usage="general"
+                  label={t('create.settings.termsConditions')}
+                  insertTemplateLabel={t('create.settings.insertTemplate')}
+                  minHeight="200px"
                 />
               </div>
             </div>

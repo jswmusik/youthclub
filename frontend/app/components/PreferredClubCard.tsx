@@ -123,7 +123,7 @@ export default function PreferredClubCard({ club, darkMode }: PreferredClubCardP
         <div className={`rounded-xl p-6 mb-6 ${
             darkMode
                 ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]'
-                : 'bg-white shadow-lg border border-gray-200'
+                : 'bg-white border border-[#4D4DA4]/15 shadow-sm'
         }`}>
             <div className="flex items-center gap-4 mb-4">
                 <button

@@ -204,8 +204,8 @@ export default function KnowledgeCategoriesPage() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                <FolderOpen className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
@@ -239,8 +239,8 @@ export default function KnowledgeCategoriesPage() {
                 {/* Total Categories */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <FolderOpen className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                      <FolderOpen className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                   </div>
@@ -250,8 +250,8 @@ export default function KnowledgeCategoriesPage() {
                 {/* With Courses */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-peach)] flex items-center justify-center">
-                      <BookOpen className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                      <BookOpen className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.withCourses')}</span>
                   </div>
@@ -356,8 +356,8 @@ export default function KnowledgeCategoriesPage() {
                 >
                   <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                        <FolderOpen className="w-6 h-6 text-white" />
+                      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                        <FolderOpen className="w-6 h-6 text-[var(--dark-900)]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-base font-semibold text-[var(--brand-light)] truncate">{cat.name}</p>
@@ -386,8 +386,8 @@ export default function KnowledgeCategoriesPage() {
                     <tr key={cat.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <FolderOpen className="h-5 w-5 text-white" />
+                          <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <FolderOpen className="h-5 w-5 text-[var(--dark-900)]" />
                           </div>
                           <span className="text-sm font-semibold text-[var(--brand-light)]">{cat.name}</span>
                         </div>

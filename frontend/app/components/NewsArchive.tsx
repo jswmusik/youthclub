@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, X, Calendar, User, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import { Search, X, Calendar, User, ArrowRight, ChevronLeft, ChevronRight, Newspaper } from 'lucide-react';
+import { format } from 'date-fns';
+import { enUS, sv, da, nb, fi, type Locale } from 'date-fns/locale';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+
+// Map locale codes to date-fns locales
+const localeMap: Record<string, Locale> = {
+  en: enUS,
+  sv: sv,
+  da: da,
+  nb: nb,
+  fi: fi,
+};
 
 interface Tag { id: number; name: string; }
 interface Article {
@@ -27,6 +39,10 @@ interface NewsArchiveProps {
 }
 
 export default function NewsArchive({ basePath, publishedOnly = false }: NewsArchiveProps) {
+  const t = useTranslations('newsArchive');
+  const locale = useLocale();
+  const dateLocale = localeMap[locale] || enUS;
+  
   // Data State
   const [articles, setArticles] = useState<Article[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -90,9 +106,13 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric',
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      return format(date, 'd MMM yyyy', { locale: dateLocale });
+    } catch {
+      return '-';
+    }
   };
 
   const totalPages = Math.ceil(totalCount / 10);
@@ -107,12 +127,12 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
             
             {/* Search Input */}
             <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Search</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">{t('filters.search')}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
                 <Input 
                   type="text" 
-                  placeholder="Title, excerpt, or author..." 
+                  placeholder={t('filters.searchPlaceholder')}
                   className="pl-9 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-0"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -122,7 +142,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
 
             {/* Tag Dropdown */}
             <div className="w-full sm:w-48">
-              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Tag</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">{t('filters.tag')}</Label>
               <select 
                 className="flex h-10 w-full rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 py-2 text-sm text-[var(--brand-light)] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[var(--brand-primary)] appearance-none cursor-pointer"
                 style={{
@@ -134,7 +154,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
                 value={selectedTag}
                 onChange={(e) => { setSelectedTag(e.target.value); setPage(1); }}
               >
-                <option value="">All Tags</option>
+                <option value="">{t('filters.allTags')}</option>
                 {tags.map(tag => (
                   <option key={tag.id} value={tag.id}>{tag.name}</option>
                 ))}
@@ -143,7 +163,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
 
             {/* Sort Dropdown */}
             <div className="w-full sm:w-48">
-              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">Sort By</Label>
+              <Label className="text-xs font-bold uppercase mb-2 text-[var(--brand-light)]/70">{t('filters.sortBy')}</Label>
               <select 
                 className="flex h-10 w-full rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] px-3 py-2 text-sm text-[var(--brand-light)] focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[var(--brand-primary)] appearance-none cursor-pointer"
                 style={{
@@ -155,9 +175,9 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
                 value={sortOrder}
                 onChange={(e) => { setSortOrder(e.target.value); setPage(1); }}
               >
-                <option value="-published_at">Newest First</option>
-                <option value="published_at">Oldest First</option>
-                <option value="title">Title (A-Z)</option>
+                <option value="-published_at">{t('filters.newestFirst')}</option>
+                <option value="published_at">{t('filters.oldestFirst')}</option>
+                <option value="title">{t('filters.titleAZ')}</option>
               </select>
             </div>
 
@@ -170,7 +190,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               className="text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 gap-2"
             >
               <X className="h-4 w-4" />
-              Clear
+              {t('filters.clear')}
             </Button>
           </form>
         </div>
@@ -179,12 +199,13 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
       {/* --- ARTICLES LIST --- */}
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-[var(--brand-light)]/60 animate-pulse">Searching archives...</p>
+          <p className="text-[var(--brand-light)]/60 animate-pulse">{t('searching')}</p>
         </div>
       ) : articles.length === 0 ? (
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
           <div className="p-12 text-center">
-            <p className="text-[var(--brand-light)]/60">No articles found matching your filters.</p>
+            <Newspaper className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
+            <p className="text-[var(--brand-light)]/60">{t('noArticlesFound')}</p>
           </div>
         </div>
       ) : (
@@ -202,8 +223,8 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
                 ) : (
                   <div className="flex items-center justify-center h-full text-[var(--brand-light)]/30">
                     <div className="text-center">
-                      <div className="text-4xl mb-2">📰</div>
-                      <div className="text-sm">No Image</div>
+                      <Newspaper className="w-10 h-10 mx-auto mb-2" />
+                      <div className="text-sm">{t('noImage')}</div>
                     </div>
                   </div>
                 )}
@@ -238,11 +259,11 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 border-t border-[var(--dark-600)] mt-auto gap-3">
                   <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
                     <User className="h-3 w-3" />
-                    <span>By {article.author_name}</span>
+                    <span>{t('byAuthor', { author: article.author_name })}</span>
                   </div>
                   <Link href={`${basePath}/${article.id}`}>
                     <Button variant="ghost" size="sm" className="text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-semibold gap-1 h-auto p-0 hover:bg-transparent">
-                      Read Full Article
+                      {t('readFullArticle')}
                       <ArrowRight className="h-3 w-3" />
                     </Button>
                   </Link>
@@ -257,7 +278,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
       {totalCount > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[var(--dark-600)]">
           <p className="text-sm text-[var(--brand-light)]/60">
-            Showing <span className="font-bold text-[var(--brand-light)]">{articles.length}</span> of <span className="font-bold text-[var(--brand-light)]">{totalCount}</span> articles
+            {t('pagination.showing', { count: articles.length, total: totalCount })}
           </p>
           
           <div className="flex items-center gap-2">
@@ -269,9 +290,9 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               className="text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              {t('pagination.previous')}
             </Button>
-            <div className="text-sm text-[var(--brand-light)]/50">Page {page} of {totalPages}</div>
+            <div className="text-sm text-[var(--brand-light)]/50">{t('pagination.pageOf', { page, totalPages })}</div>
             <Button
               variant="outline"
               size="sm"
@@ -279,7 +300,7 @@ export default function NewsArchive({ basePath, publishedOnly = false }: NewsArc
               onClick={() => setPage(p => p + 1)}
               className="text-[var(--brand-light)]/60 hover:text-[var(--brand-light)] hover:bg-[var(--dark-700)] border-[var(--dark-500)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
+              {t('pagination.next')}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>

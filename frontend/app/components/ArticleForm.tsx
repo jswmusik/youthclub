@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Upload, X, FileText, Image, Tag, Users, Eye, 
-  CheckCircle2, Lightbulb, Save, Globe, Star, Sparkles
+  CheckCircle2, Lightbulb, Save, Globe, Star, Sparkles,
+  ShieldCheck, Building, Building2, User, UserCheck
 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
@@ -28,12 +29,34 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLInputElement>(null);
 
+  const getRoleIcon = (roleId: string) => {
+    switch (roleId) {
+      case 'SUPER_ADMIN': return ShieldCheck;
+      case 'MUNICIPALITY_ADMIN': return Building;
+      case 'CLUB_ADMIN': return Building2;
+      case 'YOUTH_MEMBER': return User;
+      case 'GUARDIAN': return UserCheck;
+      default: return User;
+    }
+  };
+
+  const getRoleColor = (roleId: string) => {
+    switch (roleId) {
+      case 'SUPER_ADMIN': return 'bg-[var(--brand-red)]';
+      case 'MUNICIPALITY_ADMIN': return 'bg-[var(--brand-primary)]';
+      case 'CLUB_ADMIN': return 'bg-[var(--brand-third)]';
+      case 'YOUTH_MEMBER': return 'bg-[var(--brand-blue)]';
+      case 'GUARDIAN': return 'bg-[var(--brand-peach)]';
+      default: return 'bg-[var(--brand-primary)]';
+    }
+  };
+
   const ROLES = [
-    { id: 'SUPER_ADMIN', label: t('targetAudience.roles.SUPER_ADMIN'), icon: '👑' },
-    { id: 'MUNICIPALITY_ADMIN', label: t('targetAudience.roles.MUNICIPALITY_ADMIN'), icon: '🏛️' },
-    { id: 'CLUB_ADMIN', label: t('targetAudience.roles.CLUB_ADMIN'), icon: '🏢' },
-    { id: 'YOUTH_MEMBER', label: t('targetAudience.roles.YOUTH_MEMBER'), icon: '🧑' },
-    { id: 'GUARDIAN', label: t('targetAudience.roles.GUARDIAN'), icon: '👨‍👩‍👧' },
+    { id: 'SUPER_ADMIN', label: t('targetAudience.roles.SUPER_ADMIN') },
+    { id: 'MUNICIPALITY_ADMIN', label: t('targetAudience.roles.MUNICIPALITY_ADMIN') },
+    { id: 'CLUB_ADMIN', label: t('targetAudience.roles.CLUB_ADMIN') },
+    { id: 'YOUTH_MEMBER', label: t('targetAudience.roles.YOUTH_MEMBER') },
+    { id: 'GUARDIAN', label: t('targetAudience.roles.GUARDIAN') },
   ];
 
   const [loading, setLoading] = useState(false);
@@ -266,8 +289,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('articleContent.title')}</h2>
@@ -330,8 +353,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('heroImage.title')}</h2>
@@ -388,8 +411,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-third)] flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('publicationSettings.title')}</h2>
@@ -452,8 +475,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tags.title')}</h2>
@@ -491,8 +514,8 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Users className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
@@ -507,7 +530,9 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                 onClick={() => toggleRole('ALL')}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">🌍</span>
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                    <Globe className="w-5 h-5 text-[var(--dark-900)]" />
+                  </div>
                   <div>
                     <h3 className="font-medium text-[var(--brand-light)]">{t('targetAudience.everyone')}</h3>
                     <p className="text-xs text-[var(--brand-light)]/50">{t('targetAudience.visibleToAllUserTypes')}</p>
@@ -522,19 +547,25 @@ export default function ArticleForm({ initialData, redirectPath }: ArticleFormPr
                 <div className="space-y-2 pt-2">
                   <p className="text-xs text-[var(--brand-light)]/40 mb-3">{t('targetAudience.orSelectSpecific')}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {ROLES.map(role => (
-                      <div 
-                        key={role.id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.target_roles.includes(role.id) ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'}`}
-                        onClick={() => toggleRole(role.id)}
-                      >
-                        <span className="text-lg">{role.icon}</span>
-                        <span className="flex-1 text-sm text-[var(--brand-light)]">{role.label}</span>
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${formData.target_roles.includes(role.id) ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
-                          {formData.target_roles.includes(role.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                    {ROLES.map(role => {
+                      const IconComponent = getRoleIcon(role.id);
+                      const iconColor = getRoleColor(role.id);
+                      return (
+                        <div 
+                          key={role.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.target_roles.includes(role.id) ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'}`}
+                          onClick={() => toggleRole(role.id)}
+                        >
+                          <div className={`w-8 h-8 rounded-lg ${iconColor} flex items-center justify-center flex-shrink-0`}>
+                            <IconComponent className="w-4 h-4 text-[var(--dark-900)]" />
+                          </div>
+                          <span className="flex-1 text-sm text-[var(--brand-light)]">{role.label}</span>
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${formData.target_roles.includes(role.id) ? 'bg-[var(--brand-primary)] border-[var(--brand-primary)]' : 'border-[var(--dark-400)]'}`}>
+                            {formData.target_roles.includes(role.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

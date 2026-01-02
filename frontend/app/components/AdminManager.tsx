@@ -281,25 +281,47 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     fetchDropdowns();
   }, []);
 
-  // Debounced Search/Filter Update - only reset page when user actually changes filters
+  // Sync filter state from URL params on mount or external navigation (back/forward)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    const urlRole = searchParams.get('role') || '';
+    const urlMunicipality = searchParams.get('assigned_municipality') || '';
+    const urlClub = searchParams.get('assigned_club') || '';
+    
+    // Only update if URL params differ from current state (external navigation)
+    if (urlSearch !== searchInput || urlRole !== roleFilter || urlMunicipality !== municipalityFilter || urlClub !== clubFilter) {
+      setSearchInput(urlSearch);
+      setRoleFilter(urlRole);
+      setMunicipalityFilter(urlMunicipality);
+      setClubFilter(urlClub);
+      // Update refs to match URL
+      initialSearchRef.current = urlSearch;
+      initialRoleRef.current = urlRole;
+      initialMunicipalityRef.current = urlMunicipality;
+      initialClubRef.current = urlClub;
+      hasUserChangedFilters.current = false;
+    }
+  }, [searchParams]);
+
+  // Debounced Search/Filter Update - only update URL when user actually changes filters
   useEffect(() => {
     const searchChanged = searchInput !== initialSearchRef.current;
     const roleChanged = roleFilter !== initialRoleRef.current;
     const municipalityChanged = municipalityFilter !== initialMunicipalityRef.current;
     const clubChanged = clubFilter !== initialClubRef.current;
     
-    if (!searchChanged && !roleChanged && !municipalityChanged && !clubChanged && !hasUserChangedFilters.current) {
+    if (!searchChanged && !roleChanged && !municipalityChanged && !clubChanged) {
       return;
     }
     
     hasUserChangedFilters.current = true;
 
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (searchInput) params.set('search', searchInput); else params.delete('search');
-      if (roleFilter) params.set('role', roleFilter); else params.delete('role');
-      if (municipalityFilter) params.set('assigned_municipality', municipalityFilter); else params.delete('assigned_municipality');
-      if (clubFilter) params.set('assigned_club', clubFilter); else params.delete('assigned_club');
+      const params = new URLSearchParams();
+      if (searchInput) params.set('search', searchInput);
+      if (roleFilter) params.set('role', roleFilter);
+      if (municipalityFilter) params.set('assigned_municipality', municipalityFilter);
+      if (clubFilter) params.set('assigned_club', clubFilter);
       params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
       
@@ -310,7 +332,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       initialClubRef.current = clubFilter;
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchInput, roleFilter, municipalityFilter, clubFilter, searchParams, pathname, router]);
+  }, [searchInput, roleFilter, municipalityFilter, clubFilter, pathname, router]);
 
   useEffect(() => {
     fetchAdmins();
@@ -579,7 +601,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               {/* Total Admins */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
                     <Users className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.total')}</span>
@@ -591,7 +613,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               {scope === 'SUPER' && (
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-red)] to-[var(--brand-peach)] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
                       <ShieldCheck className="h-5 w-5 text-white" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.super')}</span>
@@ -604,7 +626,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               {scope !== 'CLUB' && (
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                       <Building className="h-5 w-5 text-white" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.municipality')}</span>
@@ -616,7 +638,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               {/* Club Admins */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-third)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-third)] flex items-center justify-center">
                     <Building2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.club')}</span>

@@ -2,14 +2,46 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
-import { Building2, Code, FileText, Mail, Phone, Globe, Facebook, Instagram, Settings, Camera, Image as ImageIcon, CheckCircle, Trash2, Clock, AlertTriangle } from 'lucide-react';
+import { Building2, Code, FileText, Mail, Phone, Globe, Facebook, Instagram, Settings, Camera, Image as ImageIcon, CheckCircle, Trash2, Clock, AlertTriangle, UserCheck, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+// Dynamically import rich text editors to avoid SSR issues
+const LegalRichTextEditor = dynamic(
+  () => import('@/app/components/LegalRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
+
+const DarkRichTextEditor = dynamic(
+  () => import('@/app/components/DarkRichTextEditor'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-48 bg-[var(--dark-700)] rounded-xl flex items-center justify-center border-2 border-[var(--dark-500)]">
+        <div className="flex items-center gap-2 text-[var(--brand-light)]/40">
+          <div className="w-4 h-4 border-2 border-[var(--brand-light)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
+          <span>Laddar editor...</span>
+        </div>
+      </div>
+    )
+  }
+);
 
 export default function MyMunicipalityPage() {
   const t = useTranslations('municipalitySettings');
@@ -40,6 +72,7 @@ export default function MyMunicipalityPage() {
     facebook: '',
     instagram: '',
     data_retention_months: null as number | null,
+    trial_period_days: 0,
   });
   
   // Data retention info from API
@@ -96,6 +129,7 @@ export default function MyMunicipalityPage() {
         facebook: social.facebook || '',
         instagram: social.instagram || '',
         data_retention_months: item.data_retention_months,
+        trial_period_days: item.trial_period_days ?? 0,
       });
       
       // Set data retention info
@@ -157,6 +191,9 @@ export default function MyMunicipalityPage() {
         data.append('data_retention_months', formData.data_retention_months.toString());
       }
       
+      // Trial period days
+      data.append('trial_period_days', formData.trial_period_days.toString());
+      
       // Note: We do NOT send 'country' here, as it shouldn't change.
 
       if (avatarFile) data.append('avatar', avatarFile);
@@ -170,9 +207,12 @@ export default function MyMunicipalityPage() {
       fetchMunicipality();
       setAvatarFile(null);
       setHeroFile(null);
+      
+      success(t('toast.saveSuccess'));
 
     } catch (err) {
       console.error(err);
+      error(t('toast.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -364,12 +404,11 @@ export default function MyMunicipalityPage() {
                 <FileText className="h-4 w-4 text-[var(--brand-primary)]" />
                 {t('basicDetails.description')}
               </Label>
-              <textarea
-                id="description"
-                rows={3}
-                className="flex w-full rounded-none sm:rounded-md border border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand-primary)] focus-visible:border-[var(--brand-primary)]"
+              <DarkRichTextEditor
                 value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
+                onChange={(content) => setFormData(prev => ({...prev, description: content}))}
+                placeholder={t('basicDetails.descriptionPlaceholder')}
+                minHeight="150px"
               />
             </div>
           </div>
@@ -489,17 +528,92 @@ export default function MyMunicipalityPage() {
               </label>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="terms_and_conditions" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[var(--brand-primary)]" />
-                {t('settings.termsAndConditions')}
-              </Label>
-              <textarea
-                id="terms_and_conditions"
-                rows={4}
-                className="flex w-full rounded-none sm:rounded-md border border-[var(--dark-500)] bg-[var(--dark-700)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand-primary)] focus-visible:border-[var(--brand-primary)]"
+              <LegalRichTextEditor
                 value={formData.terms_and_conditions}
-                onChange={e => setFormData({...formData, terms_and_conditions: e.target.value})}
+                onChange={(content) => setFormData(prev => ({...prev, terms_and_conditions: content}))}
+                placeholder={t('settings.termsPlaceholder')}
+                usage="general"
+                label={t('settings.termsAndConditions')}
+                insertTemplateLabel={t('settings.insertTemplate')}
+                minHeight="200px"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Trial Period Section */}
+        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                <UserCheck className="h-5 w-5 text-[var(--brand-primary)]" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--brand-light)]">{t('trialPeriod.title')}</h2>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.description')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="px-4 sm:px-6 py-6 space-y-6">
+            {/* Info Banner */}
+            <div className="flex items-start gap-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+              <Info className="h-5 w-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm text-[var(--brand-light)]">
+                  {t('trialPeriod.infoText')}
+                </p>
+                <p className="text-xs text-[var(--brand-light)]/50">
+                  {t('trialPeriod.infoSubtext')}
+                </p>
+              </div>
+            </div>
+
+            {/* Trial Days Input */}
+            <div className="space-y-3">
+              <Label htmlFor="trial_period_days" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <Clock className="h-4 w-4 text-[var(--brand-primary)]" />
+                {t('trialPeriod.daysLabel')}
+              </Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="trial_period_days"
+                  type="number"
+                  min={0}
+                  max={90}
+                  className="w-32 bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  value={formData.trial_period_days}
+                  onChange={e => setFormData({...formData, trial_period_days: parseInt(e.target.value) || 0})}
+                />
+                <span className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.days')}</span>
+              </div>
+              <p className="text-xs text-[var(--brand-light)]/40">
+                {formData.trial_period_days === 0 
+                  ? t('trialPeriod.disabledHint')
+                  : t('trialPeriod.enabledHint', { days: formData.trial_period_days })}
+              </p>
+            </div>
+
+            {/* Current Status */}
+            <div className={`flex items-center gap-3 p-4 rounded-xl border ${
+              formData.trial_period_days > 0 
+                ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                : 'bg-[var(--dark-700)] border-[var(--dark-500)]'
+            }`}>
+              {formData.trial_period_days > 0 ? (
+                <>
+                  <CheckCircle className="h-5 w-5 text-[var(--brand-primary)]" />
+                  <span className="text-sm text-[var(--brand-light)]">
+                    {t('trialPeriod.statusEnabled', { days: formData.trial_period_days })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-5 w-5 text-[var(--brand-yellow)]" />
+                  <span className="text-sm text-[var(--brand-light)]">
+                    {t('trialPeriod.statusDisabled')}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

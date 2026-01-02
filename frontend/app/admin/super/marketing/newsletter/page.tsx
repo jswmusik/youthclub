@@ -351,8 +351,8 @@ export default function NewsletterPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Mail className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Mail className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
@@ -377,8 +377,8 @@ export default function NewsletterPage() {
             className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
               </div>
               <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h3>
             </div>
@@ -392,8 +392,8 @@ export default function NewsletterPage() {
               {/* Total Subscribers */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Users className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                 </div>
@@ -403,8 +403,8 @@ export default function NewsletterPage() {
               {/* New Last 7 Days */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <UserPlus className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.new7d')}</span>
                 </div>
@@ -414,8 +414,8 @@ export default function NewsletterPage() {
               {/* New Last 30 Days */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.new30d')}</span>
                 </div>
@@ -425,7 +425,7 @@ export default function NewsletterPage() {
               {/* New Last 365 Days */}
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.new365d')}</span>
@@ -649,7 +649,7 @@ export default function NewsletterPage() {
                         {subscriber.is_active && (
                           <button 
                             onClick={() => openUnsubscribeModal(subscriber)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-yellow)] hover:bg-[var(--brand-yellow)]/10 transition-all"
+                            className="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-yellow)] hover:bg-[var(--brand-yellow)]/20 transition-all"
                             title={t('actions.unsubscribe')}
                           >
                             <UserMinus className="w-4 h-4" />
@@ -657,7 +657,7 @@ export default function NewsletterPage() {
                         )}
                         <button 
                           onClick={() => openDeleteModal(subscriber)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
+                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)]/60 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/20 transition-all"
                           title={t('actions.deletePermanently')}
                         >
                           <Trash2 className="w-4 h-4" />

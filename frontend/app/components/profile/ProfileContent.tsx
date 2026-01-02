@@ -145,7 +145,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
         <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+            : 'bg-white shadow-sm border border-[#4D4DA4]/15'
         }`}>
           <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading font-bold ${
             darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
@@ -158,7 +158,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
             <div className={`flex items-center p-3 rounded-xl border ${
               darkMode 
                 ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
             }`}>
               <Building2 className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
               <span>{t('memberOf')} <strong className={darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}>{user.preferred_club?.name || t('noClub')}</strong></span>
@@ -168,7 +168,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
               <div className={`flex items-center p-3 rounded-xl border ${
                 darkMode 
                   ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                  : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
                 <GraduationCap className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
                 <span>{t('grade')} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{user.grade}</strong></span>
@@ -179,7 +179,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
               <div className={`flex items-center p-3 rounded-xl border ${
                 darkMode 
                   ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                  : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                  : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
                 <Calendar className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
                 <span><strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{getAge(user.date_of_birth)}</strong> {t('yearsOld')}</span>
@@ -189,7 +189,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
             <div className={`flex items-center p-3 rounded-xl border ${
               darkMode 
                 ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                : 'text-gray-700 bg-white border-gray-200 shadow-sm'
+                : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
             }`}>
               <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
               <span>{t('joined')} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
@@ -201,7 +201,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
         <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+            : 'bg-white shadow-sm border border-[#4D4DA4]/15'
         }`}>
            <div className="flex justify-between items-center mb-5">
               <h3 className={`text-xl font-bold flex items-center gap-3 font-heading font-bold ${
@@ -219,7 +219,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
                 <p className={`text-sm italic p-3 rounded-xl w-full border ${
                   darkMode 
                     ? 'text-[var(--brand-light)]/50 bg-[var(--dark-700)] border-[var(--dark-500)]' 
-                    : 'text-gray-600 bg-white border-gray-200'
+                    : 'text-gray-600 bg-white border-[#4D4DA4]/15'
                 }`}>{t('noInterestsAdded')}</p>
               )}
               {/* Render interest chips - interests should now come as objects with name property */}
@@ -245,7 +245,7 @@ function OverviewTab({ user, getAge, onSwitchTab, darkMode = false }: { user: an
         <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+            : 'bg-white shadow-sm border border-[#4D4DA4]/15'
         }`}>
           <div className="flex justify-between items-center mb-5">
             <h3 className={`text-xl font-bold flex items-center gap-3 font-heading font-bold ${
@@ -579,14 +579,14 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
         {/* Sidebar skeleton */}
         <div className="lg:col-span-1">
           <div className={`rounded-none sm:rounded-xl p-5 border-y sm:border animate-pulse ${
-            darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+            darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
           }`}>
-            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
-            <div className={`h-10 rounded mb-6 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
-            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
+            <div className={`h-10 rounded mb-6 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
+            <div className={`h-6 w-32 rounded mb-4 ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                <div key={i} className={`h-10 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
               ))}
             </div>
           </div>
@@ -595,16 +595,16 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
         <div className="lg:col-span-3 space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className={`rounded-none sm:rounded-xl border-y sm:border p-5 animate-pulse ${
-              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-gray-200'
+              darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
             }`}>
               <div className="flex items-start gap-4">
-                <div className={`h-12 w-12 rounded-lg ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                <div className={`h-12 w-12 rounded-lg ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
                 <div className="flex-1 space-y-2">
-                  <div className={`h-5 w-48 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
-                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
-                  <div className={`h-4 w-24 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                  <div className={`h-5 w-48 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
+                  <div className={`h-4 w-32 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
+                  <div className={`h-4 w-24 rounded ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
                 </div>
-                <div className={`h-6 w-16 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-gray-100'}`}></div>
+                <div className={`h-6 w-16 rounded-full ${darkMode ? 'bg-[var(--dark-600)]' : 'bg-[#EBEBFE]'}`}></div>
               </div>
             </div>
           ))}
@@ -632,7 +632,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
         <div className={`rounded-none sm:rounded-2xl p-6 border-y sm:border sticky top-[120px] z-30 space-y-6 ${
           darkMode 
             ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-            : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-sm border-[#4D4DA4]/10'
+            : 'bg-white shadow-sm border border-[#4D4DA4]/15'
         }`}>
           {/* Date Search */}
           <div>
@@ -685,14 +685,14 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
                     selectedDate
                       ? darkMode 
                         ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/30 cursor-not-allowed'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-[#EBEBFE] text-gray-400 cursor-not-allowed'
                       : timeFilter === option.value
                       ? darkMode
                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                         : 'bg-gradient-to-r from-[#4D4DA4] to-[#6D6DD4] text-white shadow-md shadow-[#4D4DA4]/30'
                       : darkMode
                         ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] border border-[var(--dark-500)]'
-                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-gray-200 shadow-sm'
+                        : 'bg-white text-gray-700 hover:bg-[#EBEBFE] hover:text-[#4D4DA4] border border-[#4D4DA4]/15 shadow-sm'
                   }`}
                 >
                   {option.label}
@@ -716,7 +716,7 @@ function InventoryTab({ darkMode = false }: { darkMode?: boolean }) {
           <div className={`rounded-none sm:rounded-2xl border-y sm:border p-6 sm:p-8 text-center ${
             darkMode 
               ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-              : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
+              : 'bg-white shadow-sm border border-[#4D4DA4]/15'
           }`}>
             <Package className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 ${
               darkMode ? 'text-[var(--brand-light)]/30' : 'text-[#4D4DA4]/40'

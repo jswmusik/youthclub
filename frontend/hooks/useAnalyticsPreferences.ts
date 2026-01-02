@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { analyticsApi, AnalyticsPreferences } from '@/lib/analytics-api';
 
 // Default preferences (all visible)
@@ -224,7 +225,88 @@ export function useAnalyticsPreferences(): UseAnalyticsPreferencesReturn {
   };
 }
 
-// Section metadata for the settings panel
+// Section metadata for the settings panel - as a hook to support translations
+export function useAnalyticsSections(): {
+  key: keyof AnalyticsPreferences;
+  label: string;
+  description: string;
+  icon: string;
+  municipalityOnly?: boolean;
+}[] {
+  const t = useTranslations('analyticsAdmin.sections');
+  
+  return [
+    {
+      key: 'metrics',
+      label: t('keyMetrics'),
+      description: t('keyMetricsDesc'),
+      icon: '📊',
+    },
+    {
+      key: 'heatmap',
+      label: t('peakTrafficHours'),
+      description: t('peakTrafficHoursDesc'),
+      icon: '🔥',
+    },
+    {
+      key: 'inventory',
+      label: t('topBorrowedItems'),
+      description: t('topBorrowedItemsDesc'),
+      icon: '📦',
+    },
+    {
+      key: 'demographics',
+      label: t('demographics'),
+      description: t('demographicsDesc'),
+      icon: '👥',
+    },
+    {
+      key: 'interests',
+      label: t('topInterests'),
+      description: t('topInterestsDesc'),
+      icon: '⭐',
+    },
+    {
+      key: 'insights',
+      label: t('insights'),
+      description: t('insightsDesc'),
+      icon: '💡',
+    },
+    {
+      key: 'questionnaires',
+      label: t('questionnaireAnalytics'),
+      description: t('questionnaireAnalyticsDesc'),
+      icon: '📋',
+    },
+    {
+      key: 'bookings',
+      label: t('bookingAnalytics'),
+      description: t('bookingAnalyticsDesc'),
+      icon: '📅',
+    },
+    {
+      key: 'groupComparison',
+      label: t('groupComparison'),
+      description: t('groupComparisonDesc'),
+      icon: '👨‍👩‍👧‍👦',
+    },
+    {
+      key: 'clubComparison',
+      label: t('clubComparison'),
+      description: t('clubComparisonDesc'),
+      icon: '🏆',
+      municipalityOnly: true,
+    },
+    {
+      key: 'events',
+      label: t('eventAnalytics'),
+      description: t('eventAnalyticsDesc'),
+      icon: '🎉',
+    },
+  ];
+}
+
+// Keep the old export for backwards compatibility (non-translated version)
 export const ANALYTICS_SECTIONS: {
   key: keyof AnalyticsPreferences;
   label: string;

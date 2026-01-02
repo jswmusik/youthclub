@@ -173,7 +173,7 @@ export default function ChildDetailModal({ link, isOpen, onClose, darkMode = fal
         <div className={`p-6 border-t flex justify-end gap-2 ${
           darkMode 
             ? 'border-[var(--dark-500)] bg-[var(--dark-700)]' 
-            : 'border-gray-100 bg-gradient-to-br from-gray-50 to-white'
+            : 'border-[#4D4DA4]/10 bg-gradient-to-br from-gray-50 to-white'
         }`}>
           <button 
             onClick={onClose} 
@@ -195,7 +195,7 @@ const InfoRow = ({ icon, label, value, darkMode = false }: { icon: React.ReactNo
   <div className={`flex items-center justify-between p-4 rounded-xl ${
     darkMode 
       ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]' 
-      : 'bg-gradient-to-r from-gray-50 to-white border border-gray-100'
+      : 'bg-gradient-to-r from-gray-50 to-white border border-[#4D4DA4]/10'
   }`}>
     <div className="flex items-center gap-3">
       {icon}

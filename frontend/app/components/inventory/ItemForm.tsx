@@ -183,12 +183,25 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
 
   const calculateCompletion = useCallback(() => {
     const isSuperOrMuniAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN';
-    const requiredFields = isSuperOrMuniAdmin && !clubId 
-      ? [formData.title, formData.club] 
-      : [formData.title];
-    const filled = requiredFields.filter(f => f && f.toString().trim()).length;
-    return Math.round((filled / requiredFields.length) * 100);
-  }, [formData, user, clubId]);
+    
+    // Check all required fields based on validateForm
+    const checks = [
+      formData.title && formData.title.toString().trim() !== '',
+      formData.category && formData.category.toString().trim() !== '',
+      formData.description && formData.description.toString().trim() !== '',
+      (imageFile || imagePreview) !== null,
+      formData.status && formData.status.toString().trim() !== '',
+    ];
+    
+    // Add club check if needed
+    if (isSuperOrMuniAdmin && !clubId) {
+      checks.push(formData.club && formData.club.toString().trim() !== '');
+    }
+    
+    const filled = checks.filter(Boolean).length;
+    const total = checks.length;
+    return Math.round((filled / total) * 100);
+  }, [formData, imageFile, imagePreview, user, clubId]);
 
   const completionPercent = calculateCompletion();
 
@@ -388,8 +401,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Package className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInformation.title')}</h2>
@@ -560,8 +573,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('itemImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
@@ -625,7 +638,7 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                   <Settings className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
@@ -713,8 +726,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <TagIcon className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <TagIcon className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tags.title')}</h2>
@@ -778,8 +791,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 flex items-center justify-center border border-[var(--brand-primary)]/30">
-                  <Lightbulb className="w-5 h-5 text-[var(--brand-primary)]" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('quickTips.title')}</h2>

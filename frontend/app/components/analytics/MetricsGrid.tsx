@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { TrafficMetrics, InventoryMetrics } from '@/lib/analytics-api';
 import { Users, Clock, ArrowRightLeft, Package, UserCheck, UsersRound } from 'lucide-react';
 
@@ -114,15 +115,17 @@ function MetricCard({
 }
 
 export default function MetricsGrid({ totalMembers, traffic, inventory, network }: Props) {
+  const t = useTranslations('analyticsAdmin.metrics');
+  
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
       
       {/* 1. Total Members */}
       <MetricCard
         icon={<UsersRound className="w-5 h-5 text-white" />}
-        label="Members"
+        label={t('members')}
         value={totalMembers}
-        subtitle="Based on current filters"
+        subtitle={t('basedOnFilters')}
         gradientFrom="from-[var(--brand-primary)]"
         gradientTo="to-[var(--brand-purple)]"
         accentColor="var(--brand-primary)"
@@ -132,9 +135,9 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
       {/* 2. Total Traffic */}
       <MetricCard
         icon={<Users className="w-5 h-5 text-white" />}
-        label="Visits"
+        label={t('visits')}
         value={traffic.total_visits}
-        subtitle={`${traffic.unique_visitors} unique youths`}
+        subtitle={t('uniqueYouths', { count: traffic.unique_visitors })}
         gradientFrom="from-[var(--brand-blue)]"
         gradientTo="to-[#38BDF8]"
         accentColor="var(--brand-blue)"
@@ -144,10 +147,10 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
       {/* 3. Average Stay Duration */}
       <MetricCard
         icon={<Clock className="w-5 h-5 text-[var(--dark-900)]" />}
-        label="Avg Stay"
+        label={t('avgStay')}
         value={traffic.avg_duration_minutes}
         suffix="m"
-        subtitle="Median time per visit"
+        subtitle={t('medianTime')}
         gradientFrom="from-[var(--brand-green)]"
         gradientTo="to-[var(--brand-third)]"
         accentColor="var(--brand-green)"
@@ -157,10 +160,10 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
       {/* 4. Retention Rate */}
       <MetricCard
         icon={<UserCheck className="w-5 h-5 text-white" />}
-        label="Retention"
+        label={t('retention')}
         value={traffic.retention_rate}
         suffix="%"
-        subtitle="Returned from prev. period"
+        subtitle={t('returnedFromPrev')}
         gradientFrom="from-[var(--brand-purple)]"
         gradientTo="to-[#A78BFA]"
         accentColor="var(--brand-purple)"
@@ -170,11 +173,11 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
       {/* 5. Inventory or Nomad Metric */}
       <MetricCard
         icon={network ? <ArrowRightLeft className="w-5 h-5 text-white" /> : <Package className="w-5 h-5 text-white" />}
-        label={network ? 'Nomads' : 'Loans'}
+        label={network ? t('nomads') : t('loans')}
         value={network ? network.nomad_percentage : inventory.total_loans}
         suffix={network ? '%' : ''}
-        subtitle={network ? 'Visit >1 club' : 'Items borrowed'}
-        subtitleHighlight={!network && inventory.dust_collectors && inventory.dust_collectors > 0 ? `${inventory.dust_collectors} unused` : undefined}
+        subtitle={network ? t('visitMultipleClubs') : t('itemsBorrowed')}
+        subtitleHighlight={!network && inventory.dust_collectors && inventory.dust_collectors > 0 ? t('unused', { count: inventory.dust_collectors }) : undefined}
         gradientFrom="from-[#F97316]"
         gradientTo="to-[#FB923C]"
         accentColor="#F97316"

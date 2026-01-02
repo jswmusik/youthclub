@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { Activity } from 'lucide-react';
 
 interface HeatmapProps {
   data: { weekday: number; hour: number; count: number }[];
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 // Color scale for heatmap cells
@@ -31,9 +31,20 @@ interface TooltipData {
 }
 
 export default function HeatmapChart({ data }: HeatmapProps) {
+  const t = useTranslations('analyticsAdmin.heatmap');
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  const DAYS = [
+    t('days.sun'),
+    t('days.mon'),
+    t('days.tue'),
+    t('days.wed'),
+    t('days.thu'),
+    t('days.fri'),
+    t('days.sat')
+  ];
   
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
@@ -76,7 +87,7 @@ export default function HeatmapChart({ data }: HeatmapProps) {
         <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
           <Activity className="w-4 h-4 text-[var(--brand-blue)]" />
         </div>
-        <h3 className="font-semibold text-[var(--brand-light)]">Peak Traffic Hours</h3>
+        <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
       </div>
       
       {/* Heatmap Grid */}
@@ -135,7 +146,7 @@ export default function HeatmapChart({ data }: HeatmapProps) {
       {/* Legend */}
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--dark-600)]">
         <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/50">
-          <span>Less</span>
+          <span>{t('less')}</span>
           <div className="flex gap-0.5">
             <div className="w-4 h-4 rounded-sm bg-[var(--dark-600)]" />
             <div className="w-4 h-4 rounded-sm bg-[var(--brand-primary)]/20" />
@@ -144,10 +155,10 @@ export default function HeatmapChart({ data }: HeatmapProps) {
             <div className="w-4 h-4 rounded-sm bg-[var(--brand-primary)]/80" />
             <div className="w-4 h-4 rounded-sm bg-[var(--brand-primary)]" />
           </div>
-          <span>More</span>
+          <span>{t('more')}</span>
         </div>
         <span className="text-xs text-[var(--brand-light)]/40">
-          Max: {maxCount} visits
+          {t('maxVisits', { count: maxCount })}
         </span>
       </div>
       
@@ -162,10 +173,10 @@ export default function HeatmapChart({ data }: HeatmapProps) {
           }}
         >
           <p className="text-sm font-medium text-[var(--brand-light)]">
-            {tooltip.day} at {tooltip.hour}:00
+            {tooltip.day} {t('tooltipAt')} {tooltip.hour}:00
           </p>
           <p className="text-sm text-[var(--brand-primary)] font-bold">
-            {tooltip.count} {tooltip.count === 1 ? 'visit' : 'visits'}
+            {tooltip.count} {tooltip.count === 1 ? t('visitSingular') : t('visitPlural')}
           </p>
         </div>
       )}

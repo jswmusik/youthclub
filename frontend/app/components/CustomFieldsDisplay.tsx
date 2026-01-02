@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Info } from 'lucide-react';
 import api from '../../lib/api';
 
@@ -27,6 +28,7 @@ export default function CustomFieldsDisplay({
   targetRole,
   context = 'USER_PROFILE',
 }: CustomFieldsDisplayProps) {
+  const t = useTranslations('customFieldsDisplay');
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -81,7 +83,7 @@ export default function CustomFieldsDisplay({
     if (value === null || value === undefined || value === '') return '-';
     
     if (field.field_type === 'BOOLEAN') {
-      return value ? 'Yes' : 'No';
+      return value ? t('yes') : t('no');
     }
     
     if (field.field_type === 'MULTI_SELECT') {
@@ -106,7 +108,7 @@ export default function CustomFieldsDisplay({
     return (
       <div className="text-center py-6 text-[var(--brand-light)]/40">
         <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm italic">No additional information available</p>
+        <p className="text-sm italic">{t('noAdditionalInfo')}</p>
       </div>
     );
   }

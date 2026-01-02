@@ -21,7 +21,7 @@ export function ThemeToggle({ className = "", showLabel = false }: ThemeTogglePr
   if (!mounted) {
     return (
       <button
-        className={`p-2 rounded-lg bg-[var(--dark-700)] border border-[var(--dark-500)] ${className}`}
+        className={`p-2 rounded-lg bg-gray-100 dark:bg-[var(--dark-700)] border border-gray-200 dark:border-[var(--dark-500)] ${className}`}
         disabled
       >
         <div className="w-5 h-5" />
@@ -36,9 +36,10 @@ export function ThemeToggle({ className = "", showLabel = false }: ThemeTogglePr
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={`
         flex items-center gap-2 p-2 rounded-lg 
-        bg-[var(--dark-700)] hover:bg-[var(--dark-600)] 
-        border border-[var(--dark-500)] hover:border-[var(--dark-400)]
-        text-[var(--brand-light)] 
+        ${isDark 
+          ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] border border-[var(--dark-500)] hover:border-[var(--dark-400)] text-[var(--brand-light)]'
+          : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 text-gray-700'
+        }
         transition-all duration-200
         ${className}
       `}
@@ -47,7 +48,7 @@ export function ThemeToggle({ className = "", showLabel = false }: ThemeTogglePr
       {isDark ? (
         <Sun className="w-5 h-5 text-[var(--brand-peach)]" />
       ) : (
-        <Moon className="w-5 h-5 text-[var(--brand-purple)]" />
+        <Moon className="w-5 h-5 text-[#4D4DA4]" />
       )}
       {showLabel && (
         <span className="text-sm font-medium">

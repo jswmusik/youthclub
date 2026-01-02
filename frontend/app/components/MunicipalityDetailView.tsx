@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, Edit, Globe, Phone, Mail, Facebook, Instagram, 
   Building2, ExternalLink, MapPin, Users, Shield, Calendar, 
-  Clock, CheckCircle, XCircle, Link as LinkIcon
+  Clock, CheckCircle, XCircle, Link as LinkIcon, ChevronDown, FileText
 } from 'lucide-react';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
@@ -23,6 +23,8 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
   const [municipality, setMunicipality] = useState<any>(null);
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [termsExpanded, setTermsExpanded] = useState(false);
+  const [policiesExpanded, setPoliciesExpanded] = useState(false);
 
   // Build URL preserving search params (for pagination persistence)
   const buildUrlWithParams = (path: string) => {
@@ -200,13 +202,72 @@ export default function MunicipalityDetailView({ municipalityId, basePath }: Mun
             <div className="p-6">
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
                 {municipality.description ? (
-                  <p className="text-sm leading-relaxed text-[var(--brand-light)]/80 whitespace-pre-wrap">{municipality.description}</p>
+                  <div 
+                    className="text-sm leading-relaxed text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90"
+                    dangerouslySetInnerHTML={{ __html: municipality.description }}
+                  />
                 ) : (
                   <p className="text-sm italic text-[var(--brand-light)]/30">{t('detail.noDescription')}</p>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Terms & Conditions Accordion */}
+          {municipality.terms_and_conditions && (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <button
+                onClick={() => setTermsExpanded(!termsExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between bg-[var(--dark-700)]/50 hover:bg-[var(--dark-700)] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-peach)]/20 flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-[var(--brand-peach)]" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('detail.termsAndConditions')}</h2>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform duration-300 ${termsExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${termsExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="p-6 border-t border-[var(--dark-600)]">
+                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] max-h-80 overflow-y-auto">
+                    <div 
+                      className="text-sm leading-relaxed text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-[var(--brand-light)]"
+                      dangerouslySetInnerHTML={{ __html: municipality.terms_and_conditions }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Club Policies Accordion */}
+          {municipality.club_policies && (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <button
+                onClick={() => setPoliciesExpanded(!policiesExpanded)}
+                className="w-full px-6 py-4 flex items-center justify-between bg-[var(--dark-700)]/50 hover:bg-[var(--dark-700)] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
+                    <Shield className="w-4 h-4 text-[var(--brand-blue)]" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('detail.clubPolicies')}</h2>
+                </div>
+                <ChevronDown className={`w-5 h-5 text-[var(--brand-light)]/50 transition-transform duration-300 ${policiesExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${policiesExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className="p-6 border-t border-[var(--dark-600)]">
+                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] max-h-80 overflow-y-auto">
+                    <div 
+                      className="text-sm leading-relaxed text-[var(--brand-light)]/80 prose prose-invert prose-sm max-w-none prose-p:my-2 prose-strong:text-[var(--brand-light)] prose-em:text-[var(--brand-light)]/90 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-[var(--brand-light)]"
+                      dangerouslySetInnerHTML={{ __html: municipality.club_policies }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Clubs List Card */}
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">

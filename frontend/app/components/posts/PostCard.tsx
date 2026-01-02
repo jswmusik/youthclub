@@ -526,9 +526,9 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
         : null;
 
     return (
-        <div className={`${darkMode ? 'bg-[var(--dark-900)]' : (isGroupAnnouncement ? 'bg-white' : 'bg-white')} rounded-none sm:rounded-2xl ${darkMode ? 'mb-6' : 'shadow-lg mb-6'} border-t sm:border ${darkMode ? 'border-[var(--dark-500)]' : (isGroupAnnouncement ? 'border-[#4D4DA4]/40' : 'border-gray-200')} overflow-hidden`}>
+        <div className={`${darkMode ? 'bg-[var(--dark-900)]' : 'bg-white'} rounded-none sm:rounded-2xl ${darkMode ? 'mb-6' : 'shadow-sm mb-6'} border-t sm:border ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'} overflow-hidden`}>
             {/* Header */}
-            <div className={`p-4 flex items-center gap-3 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'}`}>
+            <div className={`p-4 flex items-center gap-3 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
                 {showUAPlaceholder ? (
                     <div className="h-10 w-auto flex items-center justify-center flex-shrink-0">
                         <img 
@@ -550,7 +550,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         <img 
                             src={displayAvatar || '/default-avatar.png'} 
                             alt={displayName} 
-                            className={`w-10 h-10 rounded-full object-cover border ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'} ${isClubPost ? 'hover:border-[var(--brand-primary)]' : ''}`}
+                            className={`w-10 h-10 rounded-full object-cover border ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/20'} ${isClubPost ? 'hover:border-[var(--brand-primary)]' : ''}`}
                         />
                     </button>
                 ) : post.author ? (
@@ -562,8 +562,8 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         size="lg"
                     />
                 ) : (
-                    <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-gray-300'} flex items-center justify-center border ${darkMode ? 'border-[var(--dark-400)]' : 'border-gray-200'}`}>
-                        <span className={`${darkMode ? 'text-[var(--brand-light)]' : 'text-white'} font-bold text-sm`}>?</span>
+                    <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-[var(--dark-500)]' : 'bg-[#4D4DA4]/20'} flex items-center justify-center border ${darkMode ? 'border-[var(--dark-400)]' : 'border-[#4D4DA4]/20'}`}>
+                        <span className={`${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-bold text-sm`}>?</span>
                     </div>
                 )}
                 <div className="flex-1">
@@ -806,7 +806,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
             )}
 
             {/* Action Bar */}
-            <div className={`px-4 py-3 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-200'} flex items-center gap-6 relative`}>
+            <div className={`px-4 py-3 border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'} flex items-center gap-6 relative`}>
                 {/* Reaction Button with Picker */}
                 <div 
                     className="relative" 
@@ -841,7 +841,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         <>
                             {/* Mobile: Fixed bottom sheet style */}
                             <div 
-                                className={`sm:hidden fixed bottom-20 left-4 right-4 ${darkMode ? 'bg-[var(--dark-500)] border-[var(--dark-400)]' : 'bg-white border-gray-200'} rounded-2xl shadow-2xl border p-4 flex justify-around z-[100]`}
+                                className={`sm:hidden fixed bottom-20 left-4 right-4 ${darkMode ? 'bg-[var(--dark-500)] border-[var(--dark-400)]' : 'bg-white border-[#4D4DA4]/15'} rounded-2xl shadow-2xl border p-4 flex justify-around z-[100]`}
                             >
                                 {(Object.keys(REACTION_COLORS) as ReactionType[]).map((reactionType) => {
                                     const pickerColors: Record<ReactionType, string> = {
@@ -878,7 +878,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                             
                             {/* Desktop: Original positioned picker */}
                             <div 
-                                className={`hidden sm:flex absolute bottom-full left-0 ${darkMode ? 'bg-[var(--dark-500)] border-[var(--dark-400)]' : 'bg-white border-gray-200'} rounded-full shadow-xl border p-2 gap-1 z-50`}
+                                className={`hidden sm:flex absolute bottom-full left-0 ${darkMode ? 'bg-[var(--dark-500)] border-[var(--dark-400)]' : 'bg-white border-[#4D4DA4]/15'} rounded-full shadow-xl border p-2 gap-1 z-50`}
                                 onMouseEnter={openPicker}
                                 onMouseLeave={scheduleClose}
                                 style={{ 
@@ -957,7 +957,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
 
             {/* Comments Section */}
             {showComments && post.allow_comments && (
-                <div className={`px-4 py-3 border-t ${darkMode ? 'border-[var(--dark-500)] bg-[var(--dark-600)]' : 'border-gray-200 bg-gray-50'}`}>
+                <div className={`px-4 py-3 border-t ${darkMode ? 'border-[var(--dark-500)] bg-[var(--dark-600)]' : 'border-[#4D4DA4]/10 bg-[#F8F7FE]'}`}>
                     {/* Moderation Notice */}
                     {post.require_moderation && (
                         <div className={`mb-3 p-2 ${darkMode ? 'bg-[var(--brand-secondary)]/20 border-[var(--brand-secondary)]/30' : 'bg-[#4D4DA4]/20 border-[#4D4DA4]/30'} border rounded-lg flex items-start gap-2`}>

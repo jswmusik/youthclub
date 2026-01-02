@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PageViewSet, MenuItemViewSet, FeatureShowcaseViewSet, 
     CookieConsentViewSet, PricingPageContentViewSet, PricingFAQViewSet,
-    ContactPageContentViewSet, ContactSubmissionViewSet
+    ContactPageContentViewSet, ContactSubmissionViewSet, BoilerplateViewSet
 )
 
 router = DefaultRouter()
@@ -15,6 +15,7 @@ router.register(r'pricing-content', PricingPageContentViewSet, basename='pricing
 router.register(r'pricing-faqs', PricingFAQViewSet)
 router.register(r'contact-content', ContactPageContentViewSet, basename='contact-content')
 router.register(r'contact-submissions', ContactSubmissionViewSet)
+router.register(r'boilerplates', BoilerplateViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Calendar,
-  Heart, Building, Lock, UserCheck
+  Heart, Building, Lock, UserCheck, Check, Eye, EyeOff
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -37,6 +37,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
   const bgRef = useRef<HTMLInputElement>(null);
+  const interestInputRef = useRef<HTMLInputElement>(null);
+  const [interestDropdownPosition, setInterestDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
   const { success, error, info, warning } = useToast();
@@ -61,6 +63,9 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const [bgFile, setBgFile] = useState<File | null>(null);
   const [bgPreview, setBgPreview] = useState<string | null>(initialData?.background_image ? getMediaUrl(initialData.background_image) : null);
   const [mood, setMood] = useState(initialData?.mood_status || '');
+  
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
 
   // Create the schema with translations
   const youthSchema = createYouthSchema(t, !!initialData);
@@ -95,6 +100,18 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
   // Watch form values
   const formData = watch();
+  const passwordValue = watch('password') || '';
+  
+  // Password validation helper
+  const getPasswordValidation = () => {
+    const pw = passwordValue;
+    return {
+      length: pw.length >= 8,
+      number: /\d/.test(pw),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(pw),
+    };
+  };
+  const pwValid = getPasswordValidation();
 
   // Custom Fields State
   const [customFieldValues, setCustomFieldValues] = useState<Record<number, any>>({});
@@ -131,10 +148,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
         api.get('/users/list_guardians/')
       ]);
       setClubs(Array.isArray(clubRes.data) ? clubRes.data : clubRes.data.results || []);
-      setInterestsList(Array.isArray(intRes.data) ? intRes.data : intRes.data.results || []);
+      const interests = Array.isArray(intRes.data) ? intRes.data : intRes.data.results || [];
+      setInterestsList(interests);
       setGuardiansList(guardRes.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching dropdowns:', err);
     }
   };
 
@@ -228,9 +246,11 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
   const getSelectedInterests = () => formData.interests.map((id: number) => interestsList.find(i => i.id === id)).filter(Boolean) as Option[];
   
-  const filteredInterests = interestsList.filter(i => 
-    i.name.toLowerCase().includes(interestSearchTerm.toLowerCase()) && !formData.interests.includes(i.id)
-  );
+  const filteredInterests = useMemo(() => {
+    return interestsList.filter(i => 
+      i.name.toLowerCase().includes(interestSearchTerm.toLowerCase()) && !formData.interests.includes(i.id)
+    );
+  }, [interestsList, interestSearchTerm, formData.interests]);
 
   // Guardian Logic
   const toggleGuardian = (id: number) => {
@@ -436,8 +456,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <User className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('profileVisuals.title')}</h2>
@@ -569,7 +589,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -667,20 +687,52 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     <Lock className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-peach)]" />
                     {initialData ? t('identity.newPassword') : t('identity.password')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
                   </label>
-                  <input 
-                    id="password"
-                    type="password"
-                    placeholder={t('identity.placeholders.password')}
-                    {...register('password')}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={(e) => {
-                      setFocusedField(null);
-                      register('password').onBlur(e);
-                    }}
-                    className={inputClasses('password')}
-                  />
+                  <div className="relative">
+                    <input 
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={t('identity.placeholders.password')}
+                      {...register('password')}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={(e) => {
+                        setFocusedField(null);
+                        register('password').onBlur(e);
+                      }}
+                      className={inputClasses('password')}
+                    />
+                    {passwordValue && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    )}
+                  </div>
                   {errors.password && (
                     <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.password.message}</p>
+                  )}
+                  
+                  {/* Password Requirements - only show when creating (not editing) */}
+                  {!initialData && passwordValue && (
+                    <div className="mt-3 bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)]">
+                      <p className="font-bold text-[var(--brand-light)] text-sm mb-2">{t('identity.passwordRequirements') || 'Password Requirements'}:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                        <div className={`flex items-center gap-2 ${pwValid.length ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.length ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('identity.req8chars') || 'At least 8 characters'}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 ${pwValid.number ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.number ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('identity.req1number') || 'At least one number'}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 ${pwValid.special ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.special ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('identity.req1special') || 'At least one special character'}</span>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <div>
@@ -712,7 +764,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                   <Shield className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
@@ -754,8 +806,8 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('demographics.title')}</h2>
@@ -793,11 +845,15 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                     id="grade"
                     type="number"
                     placeholder={t('demographics.gradePlaceholder')}
-                    {...register('grade')}
+                    {...register('grade', {
+                      setValueAs: (v) => v === '' ? '' : String(v)
+                    })}
                     onFocus={() => setFocusedField('grade')}
                     onBlur={(e) => {
                       setFocusedField(null);
-                      register('grade').onBlur(e);
+                      register('grade', {
+                        setValueAs: (v) => v === '' ? '' : String(v)
+                      }).onBlur(e);
                     }}
                     className={inputClasses('grade')}
                   />
@@ -853,10 +909,10 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           </div>
 
           {/* Club, Guardians & Interests Card */}
-          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
                   <Users className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -1059,7 +1115,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-third)] flex items-center justify-center">
                   <Lightbulb className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>

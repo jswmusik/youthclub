@@ -239,7 +239,7 @@ export default function MessageBubble({ message, onReactionUpdate, darkMode = fa
                                 className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover ${
                                     darkMode 
                                         ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
-                                        : 'bg-gray-200 border border-gray-200'
+                                        : 'bg-gray-200 border border-[#4D4DA4]/15'
                                 }`}
                             />
                         ) : (
@@ -275,7 +275,7 @@ export default function MessageBubble({ message, onReactionUpdate, darkMode = fa
                                     : 'bg-[#4D4DA4] text-white rounded-tr-none'
                                 : darkMode 
                                     ? 'bg-[var(--dark-700)] text-[var(--brand-light)] border border-[var(--dark-500)] rounded-tl-none' 
-                                    : 'bg-white text-[#121213] border border-gray-100 rounded-tl-none shadow-sm'}
+                                    : 'bg-white text-[#121213] border border-[#4D4DA4]/10 rounded-tl-none shadow-sm'}
                         `}>
                             {message.attachment && (
                                 <div className="mb-1.5 sm:mb-2 -mx-1 sm:-mx-0">
@@ -343,7 +343,7 @@ export default function MessageBubble({ message, onReactionUpdate, darkMode = fa
                                 className={`rounded-full shadow-lg p-1.5 md:p-2 flex items-center gap-0.5 md:gap-1 ${
                                     darkMode 
                                         ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]' 
-                                        : 'bg-white border border-gray-200'
+                                        : 'bg-white border border-[#4D4DA4]/15'
                                 }`}
                                 style={pickerStyle}
                                 onClick={(e) => e.stopPropagation()}
@@ -358,7 +358,7 @@ export default function MessageBubble({ message, onReactionUpdate, darkMode = fa
                                             className={`w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full transition-all flex-shrink-0 ${
                                                 darkMode 
                                                     ? userReaction === reactionType ? 'bg-[var(--brand-primary)]/20 scale-110' : 'hover:bg-[var(--dark-600)]'
-                                                    : userReaction === reactionType ? 'bg-[#EBEBFE] scale-110' : 'hover:bg-gray-100'
+                                                    : userReaction === reactionType ? 'bg-[#EBEBFE] scale-110' : 'hover:bg-[#EBEBFE]'
                                             } ${isAnimating ? 'animate-bounce' : ''} ${colorClass}`}
                                             title={reactionType}
                                         >

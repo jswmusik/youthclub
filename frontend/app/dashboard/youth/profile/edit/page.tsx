@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import NavBar from '@/app/components/NavBar';
@@ -16,8 +17,16 @@ export default function EditProfilePage() {
   const pathname = usePathname();
   const t = useTranslations('profile');
   const tSidebar = useTranslations('sidebar');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Theme detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const darkMode = !mounted || theme === 'dark';
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -29,14 +38,14 @@ export default function EditProfilePage() {
   }, [user, authLoading, router]);
 
   if (!profileData) return (
-    <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--brand-primary)]"></div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
-      <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+      <NavBar showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
       
       {/* Mobile Sidebar Overlay */}
       <div 
@@ -48,21 +57,21 @@ export default function EditProfilePage() {
       
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
       >
-        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+        <div className={`flex items-center justify-between h-14 sm:h-16 px-4 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
           <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+            className={`w-9 h-9 flex items-center justify-center rounded-xl ${darkMode ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' : 'text-gray-500 hover:bg-gray-100'}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-          <YouthSidebar activePath={pathname} darkMode />
+          <YouthSidebar activePath={pathname} />
         </div>
       </aside>
       
@@ -74,8 +83,8 @@ export default function EditProfilePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--brand-light)] mb-2 sm:mb-3 font-heading">{t('editProfile')}</h1>
-          <p className="text-[var(--brand-light)]/60 text-sm sm:text-base max-w-xl mx-auto">
+          <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('editProfile')}</h1>
+          <p className={`text-sm sm:text-base max-w-xl mx-auto ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
             {t('editProfileDescription')}
           </p>
         </div>

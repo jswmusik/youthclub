@@ -19,13 +19,6 @@ logger = logging.getLogger(__name__)
 # AI PROVIDER CONFIGURATION
 # =============================================================================
 
-# Get API keys from environment variables
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
-
-# Default provider (can be 'anthropic' or 'openai')
-DEFAULT_AI_PROVIDER = os.environ.get('AI_PROVIDER', 'anthropic')
-
 # Model configurations
 AI_CONFIG = {
     'anthropic': {
@@ -37,6 +30,21 @@ AI_CONFIG = {
         'max_tokens': 4096,
     }
 }
+
+
+def get_anthropic_api_key():
+    """Get Anthropic API key at runtime (after .env is loaded)."""
+    return os.environ.get('ANTHROPIC_API_KEY', '')
+
+
+def get_openai_api_key():
+    """Get OpenAI API key at runtime (after .env is loaded)."""
+    return os.environ.get('OPENAI_API_KEY', '')
+
+
+def get_default_ai_provider():
+    """Get default AI provider at runtime."""
+    return os.environ.get('AI_PROVIDER', 'anthropic')
 
 
 # =============================================================================
@@ -65,12 +73,13 @@ class AnthropicProvider(AIProvider):
     """Anthropic Claude API provider."""
     
     def __init__(self):
-        self.api_key = ANTHROPIC_API_KEY
+        self.api_key = get_anthropic_api_key()
         self.model = AI_CONFIG['anthropic']['model']
         self.max_tokens = AI_CONFIG['anthropic']['max_tokens']
     
     def is_available(self) -> bool:
-        return bool(self.api_key)
+        # Re-check at runtime in case env was loaded after init
+        return bool(get_anthropic_api_key())
     
     def generate_report(self, system_prompt: str, user_prompt: str) -> str:
         if not self.is_available():
@@ -108,12 +117,13 @@ class OpenAIProvider(AIProvider):
     """OpenAI GPT API provider."""
     
     def __init__(self):
-        self.api_key = OPENAI_API_KEY
+        self.api_key = get_openai_api_key()
         self.model = AI_CONFIG['openai']['model']
         self.max_tokens = AI_CONFIG['openai']['max_tokens']
     
     def is_available(self) -> bool:
-        return bool(self.api_key)
+        # Re-check at runtime in case env was loaded after init
+        return bool(get_openai_api_key())
     
     def generate_report(self, system_prompt: str, user_prompt: str) -> str:
         if not self.is_available():
@@ -156,7 +166,7 @@ def get_ai_provider(provider_name: Optional[str] = None) -> AIProvider:
     Returns:
         AIProvider instance
     """
-    provider_name = provider_name or DEFAULT_AI_PROVIDER
+    provider_name = provider_name or get_default_ai_provider()
     
     if provider_name == 'anthropic':
         return AnthropicProvider()

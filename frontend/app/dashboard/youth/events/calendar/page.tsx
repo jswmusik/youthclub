@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 
 import MemberEventCalendar from '@/app/components/events/youth/MemberEventCalendar';
@@ -17,9 +18,17 @@ export default function YouthCalendarPage() {
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const { theme } = useTheme();
     const t = useTranslations('events');
     const tSidebar = useTranslations('sidebar');
+    const [mounted, setMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    // Theme detection
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const darkMode = !mounted || theme === 'dark';
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -150,11 +159,10 @@ export default function YouthCalendarPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
+        <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
             <NavBar 
                 onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 showBackButton={true}
-                darkMode={true}
             />
             
             {/* Mobile Sidebar Overlay */}
@@ -167,21 +175,21 @@ export default function YouthCalendarPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-                    <h1 className="text-xl font-bold text-[var(--brand-light)]">{tSidebar('menu')}</h1>
+                <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-gray-200'}`}>
+                    <h1 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                    <YouthSidebar activePath={pathname} darkMode={true} />
+                    <YouthSidebar activePath={pathname} />
                 </div>
             </aside>
             
@@ -190,7 +198,7 @@ export default function YouthCalendarPage() {
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
                     <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                        <YouthSidebar activePath={pathname} darkMode={true} />
+                        <YouthSidebar activePath={pathname} />
                     </aside>
                     
                     {/* Content wrapper with left margin for sidebar */}
@@ -203,11 +211,11 @@ export default function YouthCalendarPage() {
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
                                             <CalendarDays className="w-7 h-7 text-[var(--brand-primary)]" />
-                                            <h1 className="text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                                            <h1 className={`text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                 {t('eventCalendar')}
                                             </h1>
                                         </div>
-                                        <p className="text-[var(--brand-light)]/60 text-sm pl-10">
+                                        <p className={`text-sm pl-10 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                                             {hasActiveFilters 
                                                 ? `${filteredEvents.length} ${filteredEvents.length !== 1 ? t('eventsFoundPlural') : t('eventsFound')} ${t('found')}`
                                                 : t('findEventsByDate')}
@@ -222,14 +230,20 @@ export default function YouthCalendarPage() {
                                 </div>
 
                                 {/* Filters Section */}
-                                <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-3 sm:p-4">
+                                <div className={`rounded-none sm:rounded-2xl border-y sm:border p-3 sm:p-4 ${
+                                    darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white shadow-sm border-[#4D4DA4]/15'
+                                }`}>
                                     {/* Search Bar */}
                                     <div className="relative mb-3">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 w-5 h-5" />
+                                        <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`} />
                                         <input 
                                             type="text" 
                                             placeholder={t('searchEventsPlaceholder')}
-                                            className="w-full bg-[var(--dark-700)] border border-[var(--dark-600)] rounded-xl py-3 pl-12 pr-4 text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all"
+                                            className={`w-full rounded-xl py-3 pl-12 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] transition-all ${
+                                                darkMode 
+                                                    ? 'bg-[var(--dark-700)] border border-[var(--dark-600)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40' 
+                                                    : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400'
+                                            }`}
                                             value={search}
                                             onChange={e => setSearch(e.target.value)}
                                         />

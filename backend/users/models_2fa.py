@@ -68,6 +68,14 @@ class UserTwoFactorSettings(models.Model):
         help_text=_("Account 2FA is locked until this time due to too many failed attempts")
     )
     
+    # Admin bypass - allows skipping 2FA until this date (set by superadmin)
+    bypass_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("Bypass Until"),
+        help_text=_("Admin-set bypass to skip 2FA until this date")
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

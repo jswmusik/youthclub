@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { Package, TrendingUp } from 'lucide-react';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function InventoryChart({ data }: Props) {
+  const t = useTranslations('analyticsAdmin.inventory');
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
@@ -34,12 +36,12 @@ export default function InventoryChart({ data }: Props) {
           <div className="w-8 h-8 rounded-lg bg-[#F97316]/20 flex items-center justify-center">
             <Package className="w-4 h-4 text-[#F97316]" />
           </div>
-          <h3 className="font-semibold text-[var(--brand-light)]">Top Borrowed Items</h3>
+          <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
         </div>
         {chartData.length > 0 && (
           <div className="flex items-center gap-1 text-xs text-[var(--brand-green)]">
             <TrendingUp className="w-3 h-3" />
-            <span>{chartData.reduce((a, b) => a + b.count, 0)} total</span>
+            <span>{t('total', { count: chartData.reduce((a, b) => a + b.count, 0) })}</span>
           </div>
         )}
       </div>
@@ -48,7 +50,7 @@ export default function InventoryChart({ data }: Props) {
       {chartData.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[200px] text-[var(--brand-light)]/40">
           <Package className="w-12 h-12 mb-2 opacity-50" />
-          <p className="text-sm">No borrowed items in this period</p>
+          <p className="text-sm">{t('noBorrowedItems')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -93,10 +95,10 @@ export default function InventoryChart({ data }: Props) {
       {chartData.length > 0 && (
         <div className="mt-4 pt-4 border-t border-[var(--dark-600)] flex items-center justify-between">
           <span className="text-xs text-[var(--brand-light)]/40">
-            Showing top {chartData.length} items
+            {t('showingTop', { count: chartData.length })}
           </span>
           <span className="text-xs text-[var(--brand-light)]/40">
-            Most borrowed: <span className="text-[var(--brand-primary)] font-medium">{chartData[0]?.item__title}</span>
+            {t('mostBorrowed', { item: '' })} <span className="text-[var(--brand-primary)] font-medium">{chartData[0]?.item__title}</span>
           </span>
         </div>
       )}

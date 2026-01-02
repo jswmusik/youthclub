@@ -21,11 +21,11 @@ export default function NewsCard({ article, darkMode = false, basePath = '/dashb
             className={`flex flex-col sm:rounded-xl overflow-hidden h-full transition-all group ${
                 darkMode 
                     ? 'bg-[var(--dark-800)] border-y sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 
-                    : 'bg-white shadow-sm hover:shadow-md border border-gray-100'
+                    : 'bg-white shadow-sm hover:shadow-md border border-[#4D4DA4]/10'
             }`}
         >
             {/* Image */}
-            <div className={`h-48 w-full relative ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-gray-200'}`}>
+            <div className={`h-48 w-full relative ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'}`}>
                 {heroImageUrl ? (
                     <img 
                         src={heroImageUrl} 
@@ -36,7 +36,7 @@ export default function NewsCard({ article, darkMode = false, basePath = '/dashb
                     <div className={`w-full h-full flex items-center justify-center ${
                         darkMode 
                             ? 'bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)]' 
-                            : 'bg-indigo-50 text-indigo-200'
+                            : 'bg-gradient-to-br from-[#4D4DA4]/20 to-[#FF5485]/20'
                     }`}>
                         <svg className={`w-12 h-12 ${darkMode ? 'text-white/30' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
@@ -62,7 +62,7 @@ export default function NewsCard({ article, darkMode = false, basePath = '/dashb
                             className={`text-xs font-medium px-2 py-0.5 rounded ${
                                 darkMode 
                                     ? 'text-[var(--brand-primary)] bg-[var(--brand-primary)]/10' 
-                                    : 'text-blue-600 bg-blue-50'
+                                    : 'text-[#4D4DA4] bg-[#4D4DA4]/10'
                             }`}
                         >
                             {tag.name}
@@ -85,11 +85,11 @@ export default function NewsCard({ article, darkMode = false, basePath = '/dashb
                 <div className={`pt-4 border-t flex items-center justify-between text-xs ${
                     darkMode 
                         ? 'border-[var(--dark-600)] text-[var(--brand-light)]/40' 
-                        : 'border-gray-50 text-gray-400'
+                        : 'border-[#4D4DA4]/10 text-gray-400'
                 }`}>
                     <span>{article.author_name}</span>
                     <span className={`font-medium flex items-center gap-1 group-hover:translate-x-1 transition-transform ${
-                        darkMode ? 'text-[var(--brand-primary)]' : 'text-blue-500'
+                        darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
                     }`}>
                         {t('readMore')}
                     </span>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { Calendar, FileText, Tag, Star, Newspaper } from 'lucide-react';
+import { Calendar, FileText, Tag, Star, Newspaper, ArrowLeft } from 'lucide-react';
 import api from '../../lib/api';
 import { sanitizeHtml } from '../../lib/sanitize';
 import { getMediaUrl } from '../../app/utils';

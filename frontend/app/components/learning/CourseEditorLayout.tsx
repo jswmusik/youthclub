@@ -173,7 +173,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                 <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-1.5 mb-6 relative">
                     {/* Sliding Background Indicator */}
                     <div
-                        className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] shadow-lg transition-all duration-300 ease-in-out z-0"
+                        className="absolute top-1.5 bottom-1.5 rounded-xl bg-[var(--brand-primary)] shadow-lg transition-all duration-300 ease-in-out z-0"
                         style={{
                             left: `${indicatorStyle.left}px`,
                             width: `${indicatorStyle.width}px`,
@@ -192,12 +192,12 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                                     className={`
                                         flex-1 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-medium text-sm transition-colors duration-200
                                         ${isActive 
-                                            ? 'text-white' 
+                                            ? 'text-[var(--dark-900)]' 
                                             : 'text-[var(--brand-light)]/50 hover:text-[var(--brand-light)]/80 hover:bg-[var(--dark-700)]'
                                         }
                                     `}
                                 >
-                                    <Icon className="w-4 h-4" />
+                                    <Icon className={`w-4 h-4 ${isActive ? 'text-[var(--dark-900)]' : ''}`} />
                                     <span className="hidden sm:inline">{tab.label}</span>
                                 </button>
                             );
@@ -206,7 +206,7 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                 </div>
 
                 {/* Tab Content */}
-                <div className="relative overflow-hidden">
+                <div className="relative">
                     {/* Settings Tab */}
                     <div 
                         className={`

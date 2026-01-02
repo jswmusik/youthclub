@@ -14,7 +14,7 @@ export default function ClubPolicies({ club, darkMode = false }: ClubPoliciesPro
       <div className={`rounded-xl p-6 border ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white shadow-sm border-gray-100'
+          : 'bg-white shadow-sm border-[#4D4DA4]/10'
       }`}>
         <h3 className={`text-lg font-bold mb-4 flex items-center font-heading ${
           darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
@@ -34,7 +34,7 @@ export default function ClubPolicies({ club, darkMode = false }: ClubPoliciesPro
       <div className={`rounded-xl p-6 border ${
         darkMode 
           ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' 
-          : 'bg-white shadow-sm border-gray-100'
+          : 'bg-white shadow-sm border-[#4D4DA4]/10'
       }`}>
         <h3 className={`text-lg font-bold mb-4 flex items-center font-heading ${
           darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'

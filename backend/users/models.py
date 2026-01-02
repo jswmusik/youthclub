@@ -198,6 +198,13 @@ class User(AbstractUser):
         blank=True,
         help_text="When the final deletion warning was sent"
     )
+    
+    # --- TRIAL PERIOD TRACKING ---
+    trial_started_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="When the user's trial period started (set on first login for unverified youth)"
+    )
 
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'

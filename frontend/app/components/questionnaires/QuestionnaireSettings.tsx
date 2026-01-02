@@ -251,8 +251,8 @@ export default function QuestionnaireSettings({
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <ClipboardList className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <ClipboardList className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
@@ -381,8 +381,8 @@ export default function QuestionnaireSettings({
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+              <Users className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('targetAudience.title')}</h2>
@@ -493,10 +493,10 @@ export default function QuestionnaireSettings({
       </div>
 
       {/* Rewards Card */}
-      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
         <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-third)] flex items-center justify-center">
               <Gift className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <div>

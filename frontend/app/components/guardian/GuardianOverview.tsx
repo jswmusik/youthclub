@@ -21,7 +21,7 @@ export default function GuardianOverview({ user, childrenData, darkMode = false 
         
         {/* About Me Card */}
         <div className={`p-6 rounded-2xl border ${
-          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-gray-100 shadow-sm'
+          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/10 shadow-sm'
         }`}>
           <div className="flex justify-between items-start mb-4">
             <h3 className={`font-bold text-lg ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>
@@ -62,7 +62,7 @@ export default function GuardianOverview({ user, childrenData, darkMode = false 
 
         {/* Latest Activity Feed (Placeholder for Phase 4 logic) */}
         <div className={`p-6 rounded-2xl border ${
-          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-gray-100 shadow-sm'
+          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/10 shadow-sm'
         }`}>
           <h3 className={`font-bold text-lg mb-4 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>
             {t('latestActivity') || "Latest Activity"}
@@ -103,7 +103,7 @@ export default function GuardianOverview({ user, childrenData, darkMode = false 
       {/* RIGHT COLUMN (1/3) - Children Card */}
       <div className="space-y-6">
         <div className={`p-6 rounded-2xl border ${
-          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-gray-100 shadow-sm'
+          darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/10 shadow-sm'
         }`}>
           <h3 className={`font-bold text-lg mb-4 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>
             {t('myChildren') || "My Children"}
@@ -115,7 +115,7 @@ export default function GuardianOverview({ user, childrenData, darkMode = false 
                 <div 
                   key={child.id} 
                   className={`flex items-center gap-3 p-3 rounded-xl transition-colors cursor-pointer ${
-                    darkMode ? 'hover:bg-[var(--dark-700)]' : 'hover:bg-gray-50'
+                    darkMode ? 'hover:bg-[var(--dark-700)]' : 'hover:bg-[#F8F7FE]'
                   }`}
                 >
                   <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
@@ -152,7 +152,7 @@ export default function GuardianOverview({ user, childrenData, darkMode = false 
           <button className={`w-full mt-4 py-2.5 rounded-xl border text-sm font-medium transition ${
             darkMode 
               ? 'border-[var(--dark-600)] hover:bg-[var(--dark-700)] text-[var(--brand-light)]' 
-              : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+              : 'border-[#4D4DA4]/15 hover:bg-[#F8F7FE] text-gray-600'
           }`}>
             + {t('linkChild') || "Link Child"}
           </button>

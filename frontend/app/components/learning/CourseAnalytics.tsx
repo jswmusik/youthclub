@@ -100,7 +100,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             title: t('stats.startedCourse.title'),
             value: analytics.total_students,
             icon: Users,
-            gradient: 'from-[var(--brand-primary)] to-[var(--brand-purple)]',
+            bgColor: 'bg-[var(--brand-primary)]',
             borderColor: 'border-l-[var(--brand-primary)]',
             description: t('stats.startedCourse.description')
         },
@@ -108,7 +108,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             title: t('stats.completed.title'),
             value: analytics.completions,
             icon: CheckCircle2,
-            gradient: 'from-[var(--brand-green)] to-[var(--brand-third)]',
+            bgColor: 'bg-[var(--brand-green)]',
             borderColor: 'border-l-[var(--brand-green)]',
             description: t('stats.completed.description')
         },
@@ -116,7 +116,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             title: t('stats.viewedOnly.title'),
             value: analytics.viewed,
             icon: Eye,
-            gradient: 'from-[var(--brand-red)] to-[var(--brand-peach)]',
+            bgColor: 'bg-[var(--brand-red)]',
             borderColor: 'border-l-[var(--brand-red)]',
             description: t('stats.viewedOnly.description')
         },
@@ -124,7 +124,7 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             title: t('stats.completionRate.title'),
             value: `${analytics.completion_rate}%`,
             icon: TrendingUp,
-            gradient: 'from-[var(--brand-blue)] to-[var(--brand-primary)]',
+            bgColor: 'bg-[var(--brand-blue)]',
             borderColor: 'border-l-[var(--brand-blue)]',
             description: t('stats.completionRate.description')
         }
@@ -136,8 +136,8 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <BarChart3 className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <BarChart3 className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('title')}</h2>
@@ -159,8 +159,8 @@ export default function CourseAnalytics({ courseSlug }: Props) {
                                         <span className="text-sm font-medium text-[var(--brand-light)]/60">
                                             {stat.title}
                                         </span>
-                                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
-                                            <Icon className="w-4 h-4 text-white" />
+                                        <div className={`w-8 h-8 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                                            <Icon className="w-4 h-4 text-[var(--dark-900)]" />
                                         </div>
                                     </div>
                                     <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] mb-1">
@@ -180,8 +180,8 @@ export default function CourseAnalytics({ courseSlug }: Props) {
             <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
                 <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                            <Star className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                            <Star className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('rating.title')}</h2>

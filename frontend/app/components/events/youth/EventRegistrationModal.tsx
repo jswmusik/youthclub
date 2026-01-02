@@ -290,7 +290,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'} mb-4`}>{result.message}</p>
                     
                     {/* Event Title - Compact */}
-                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3 mb-4 text-left`}>
+                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'} border rounded-xl p-3 mb-4 text-left`}>
                         <h4 className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading line-clamp-1`}>{event.title}</h4>
                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
                             <Calendar className="w-3 h-3" />
@@ -324,12 +324,12 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                 <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('youreConfirmed')}</h3>
-                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
+                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-[#EBEBFE] hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
                     <div className="space-y-3 mb-5">
                         {/* Event Title & Date - Compact */}
-                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'} border rounded-xl p-3`}>
                             <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                                 <Calendar className="w-3.5 h-3.5" />
@@ -362,7 +362,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     <div className="flex gap-3">
                         <button 
                             onClick={onClose} 
-                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
+                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
                             {t('close')}
                         </button>
@@ -418,12 +418,12 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                 <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('registrationStatus')}</h3>
-                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
+                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-[#EBEBFE] hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                     </div>
 
                     <div className="space-y-3 mb-5">
                         {/* Event Title & Date - Compact */}
-                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'} border rounded-xl p-3`}>
                             <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                                 <Calendar className="w-3.5 h-3.5" />
@@ -459,7 +459,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     <div className="flex gap-3">
                         <button 
                             onClick={onClose} 
-                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
+                            className={`flex-1 py-2.5 text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
                             {t('close')}
                         </button>
@@ -492,14 +492,14 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                                 {t('registrationDetails')}
                             </h3>
                         </div>
-                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}>
+                        <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-[#EBEBFE] hover:bg-gray-200'} rounded-lg transition-colors`}>
                             <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="space-y-4 mb-5">
                         {/* Event Info - Compact */}
-                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                        <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'} border rounded-xl p-3`}>
                             <h4 className={`text-sm font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading line-clamp-1`}>{event.title}</h4>
                             <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2 mt-1`}>
                                 <Calendar className="w-3 h-3" />
@@ -535,7 +535,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                     <div className="flex gap-3">
                         <button 
                             onClick={() => { setStep('CONFIRM'); setError(''); }} 
-                            className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}
+                            className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'} rounded-xl transition-colors`}
                         >
                             {t('back')}
                         </button>
@@ -563,12 +563,12 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
             <div className={`${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/20'} rounded-t-3xl sm:rounded-2xl shadow-2xl border p-5 w-full max-w-md animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200`}>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className={`text-xl font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} font-heading`}>{t('confirmRegistration')}</h3>
-                    <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-gray-100 hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
+                    <button onClick={onClose} className={`p-1.5 ${darkMode ? 'bg-[var(--dark-700)] hover:bg-[var(--dark-600)] text-[var(--brand-light)]' : 'bg-[#EBEBFE] hover:bg-gray-200'} rounded-lg transition-colors`}><X className="w-4 h-4" /></button>
                 </div>
 
                 <div className="space-y-3 mb-5">
                     {/* Event Title & Date - Compact */}
-                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-gray-50 border-gray-100'} border rounded-xl p-3`}>
+                    <div className={`${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-600)]' : 'bg-[#F8F7FE] border-[#4D4DA4]/10'} border rounded-xl p-3`}>
                         <h4 className={`text-base font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'} mb-1 font-heading line-clamp-2`}>{event.title}</h4>
                         <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'} flex items-center gap-2`}>
                             <Calendar className="w-3.5 h-3.5" />
@@ -627,7 +627,7 @@ export default function EventRegistrationModal({ event, isOpen, onClose, onSucce
                 </div>
 
                 <div className="flex gap-3">
-                    <button onClick={onClose} className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-gray-100 hover:bg-gray-200'} rounded-xl transition-colors`}>
+                    <button onClick={onClose} className={`flex-1 py-2.5 px-4 font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]/70 bg-[var(--dark-700)] hover:bg-[var(--dark-600)]' : 'text-gray-700 bg-[#EBEBFE] hover:bg-gray-200'} rounded-xl transition-colors`}>
                         {t('cancel')}
                     </button>
                     <button 

@@ -412,7 +412,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
-              <ClipboardList className="w-6 h-6 text-white" />
+              <ClipboardList className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -420,7 +420,7 @@ export default function QuestionnaireManager({ basePath, scope }: QuestionnaireM
             </div>
           </div>
           <Link href={buildUrlWithParams(`${basePath}/create`)}>
-            <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
+            <button className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
               {t('createNew')}
             </button>

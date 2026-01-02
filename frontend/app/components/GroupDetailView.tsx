@@ -53,9 +53,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
 
   const getTranslatedStatus = (status: string) => {
     switch (status) {
-      case 'APPROVED': return t('members.tableHeaders.status');
-      case 'PENDING': return t('members.tableHeaders.status');
-      case 'REJECTED': return t('members.tableHeaders.status');
+      case 'APPROVED': return t('members.status.APPROVED');
+      case 'PENDING': return t('members.status.PENDING');
+      case 'REJECTED': return t('members.status.REJECTED');
       default: return status;
     }
   };
@@ -249,12 +249,12 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
           <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-12 sm:-mt-14">
             <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="relative z-20 w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl overflow-hidden flex-shrink-0">
+              <div className="relative z-20 w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-[var(--dark-800)] shadow-xl overflow-hidden flex-shrink-0">
                 {group.avatar ? (
-                  <img src={getMediaUrl(group.avatar)} alt={group.name} className="w-full h-full object-cover" />
+                  <img src={getMediaUrl(group.avatar)} alt={group.name} className="w-full h-full object-cover rounded-full" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                    <Layers className="w-10 h-10 sm:w-14 sm:h-14 text-white" />
+                  <div className="w-full h-full bg-[var(--brand-primary)] flex items-center justify-center">
+                    <Layers className="w-10 h-10 sm:w-14 sm:h-14 text-[var(--dark-900)]" />
                   </div>
                 )}
               </div>
@@ -299,8 +299,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
               className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <BarChart3 className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-[var(--dark-900)]" />
                 </div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analytics.title')}</h2>
               </div>
@@ -313,8 +313,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   {/* Total Members */}
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-primary)]/30 hover:border-[var(--brand-primary)]/50 transition-all">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)]/20 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-[var(--brand-primary)]" />
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
+                        <Users className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.total')}</span>
                     </div>
@@ -325,8 +325,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   {/* New This Week */}
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-blue)]/30 hover:border-[var(--brand-blue)]/50 transition-all">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)]/20 flex items-center justify-center">
-                        <UserPlus className="h-5 w-5 text-[var(--brand-blue)]" />
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-blue)] flex items-center justify-center">
+                        <UserPlus className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.new')}</span>
                     </div>
@@ -337,8 +337,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   {/* Gender Distribution */}
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-pink)]/30 hover:border-[var(--brand-pink)]/50 transition-all col-span-2">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-[var(--brand-pink)]" />
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)] flex items-center justify-center">
+                        <Users className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.genderDistribution')}</span>
                     </div>
@@ -358,8 +358,8 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   {/* Grade Distribution */}
                   <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-green)]/30 hover:border-[var(--brand-green)]/50 transition-all col-span-2 lg:col-span-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-green)]/20 flex items-center justify-center">
-                        <BarChart3 className="h-5 w-5 text-[var(--brand-green)]" />
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-green)] flex items-center justify-center">
+                        <BarChart3 className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.gradeDistribution')}</span>
                     </div>
@@ -461,10 +461,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
                                     {m.user_avatar ? (
-                                      <img src={getMediaUrl(m.user_avatar)} alt="" className="w-full h-full object-cover" />
+                                      <img src={getMediaUrl(m.user_avatar)} alt="" className="w-full h-full object-cover rounded-xl" />
                                     ) : (
-                                      <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold">
+                                      <div className="w-full h-full bg-[var(--brand-primary)] flex items-center justify-center">
+                                        <span className="text-[var(--dark-900)] text-xs font-bold">
                                           {getInitials(m.user_first_name, m.user_last_name)}
                                         </span>
                                       </div>
@@ -485,7 +485,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                               </td>
                               <td className="px-6 py-4">
                                 <span className={`inline-flex px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusBadgeClasses(m.status)}`}>
-                                  {m.status}
+                                  {getTranslatedStatus(m.status)}
                                 </span>
                               </td>
                               <td className="px-6 py-4">
@@ -533,10 +533,10 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                           <div className="flex items-start gap-3">
                             <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                               {m.user_avatar ? (
-                                <img src={getMediaUrl(m.user_avatar)} alt="" className="w-full h-full object-cover" />
+                                <img src={getMediaUrl(m.user_avatar)} alt="" className="w-full h-full object-cover rounded-xl" />
                               ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center">
-                                  <span className="text-white text-sm font-bold">
+                                <div className="w-full h-full bg-[var(--brand-primary)] flex items-center justify-center">
+                                  <span className="text-[var(--dark-900)] text-sm font-bold">
                                     {getInitials(m.user_first_name, m.user_last_name)}
                                   </span>
                                 </div>
@@ -552,7 +552,7 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                                   </div>
                                 </div>
                                 <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold border ${getStatusBadgeClasses(m.status)}`}>
-                                  {m.status}
+                                  {getTranslatedStatus(m.status)}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between mt-3">

@@ -233,8 +233,8 @@ export default function ScheduleEditor({ resourceId }: Props) {
     return (
       <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] p-8">
         <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-            <Calendar className="h-5 w-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+            <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
           </div>
           <span className="text-[var(--brand-light)]/50">{t('loading')}</span>
         </div>
@@ -257,12 +257,12 @@ export default function ScheduleEditor({ resourceId }: Props) {
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                 editingId 
                   ? 'bg-[var(--brand-yellow)]/20' 
-                  : 'bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]'
+                  : 'bg-[var(--brand-primary)]'
               }`}>
                 {editingId ? (
                   <Pencil className="h-5 w-5 text-[var(--brand-yellow)]" />
                 ) : (
-                  <Plus className="h-5 w-5 text-white" />
+                  <Plus className="h-5 w-5 text-[var(--dark-900)]" />
                 )}
               </div>
               <div>
@@ -367,8 +367,8 @@ export default function ScheduleEditor({ resourceId }: Props) {
         <div className="bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-600)] overflow-hidden">
           <div className="px-5 py-4 border-b border-[var(--dark-600)]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Clock className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                <Clock className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-[var(--brand-light)]">{t('weeklySchedule.title')}</h3>

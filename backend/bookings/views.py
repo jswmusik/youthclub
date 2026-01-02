@@ -42,7 +42,20 @@ class BookingResourceViewSet(viewsets.ModelViewSet):
         if club_id:
             queryset = queryset.filter(club_id=club_id)
 
-        # 2. Role-based restrictions
+        # 2. Filter by resource_type if passed in URL params
+        resource_type = self.request.query_params.get('resource_type')
+        if resource_type:
+            queryset = queryset.filter(resource_type=resource_type)
+
+        # 3. Filter by search query if passed in URL params
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search)
+            )
+
+        # 4. Role-based restrictions
         if user.role in ['YOUTH_MEMBER', 'GUARDIAN']:
             # Youth Logic: Active + Scope check
             queryset = queryset.filter(is_active=True)

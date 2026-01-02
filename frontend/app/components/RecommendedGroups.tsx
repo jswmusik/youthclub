@@ -85,7 +85,7 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
         <div className={`rounded-2xl p-6 mb-6 relative ${
             darkMode
                 ? 'bg-[var(--dark-700)] border border-[var(--dark-500)]'
-                : 'bg-white shadow-lg border border-gray-200'
+                : 'bg-white border border-[#4D4DA4]/15 shadow-sm'
         }`}>
             
             {/* Header */}
@@ -156,7 +156,7 @@ export default function RecommendedGroups({ darkMode }: RecommendedGroupsProps =
                         className={`rounded-xl transition-all cursor-pointer overflow-hidden group flex flex-col h-full ${
                             darkMode
                                 ? 'bg-[var(--dark-600)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/40'
-                                : 'bg-white border border-gray-200 hover:border-[#4D4DA4]/40'
+                                : 'bg-white border border-[#4D4DA4]/10 hover:border-[#4D4DA4]/30 shadow-sm'
                         }`}
                     >
                         {/* Header Image Area */}

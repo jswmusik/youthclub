@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, CheckCircle2, Lightbulb, Save,
-  Gift, Target, Users, Calendar, Zap, Image, Link2, Sparkles
+  Gift, Target, Users, Calendar, Zap, Image, Link2, Sparkles,
+  Cake, Hand, ShieldCheck, Flame
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -36,10 +37,10 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   ];
 
   const TRIGGERS = [
-    { value: 'BIRTHDAY', label: t('sections.automaticTriggers.onBirthday'), icon: '🎂', desc: t('sections.automaticTriggers.onBirthdayDesc') },
-    { value: 'WELCOME', label: t('sections.automaticTriggers.onSignup'), icon: '👋', desc: t('sections.automaticTriggers.onSignupDesc') },
-    { value: 'VERIFIED', label: t('sections.automaticTriggers.onVerification'), icon: '✅', desc: t('sections.automaticTriggers.onVerificationDesc') },
-    { value: 'MOST_ACTIVE', label: t('sections.automaticTriggers.mostActive'), icon: '🔥', desc: t('sections.automaticTriggers.mostActiveDesc') },
+    { value: 'BIRTHDAY', label: t('sections.automaticTriggers.onBirthday'), icon: Cake, desc: t('sections.automaticTriggers.onBirthdayDesc') },
+    { value: 'WELCOME', label: t('sections.automaticTriggers.onSignup'), icon: Hand, desc: t('sections.automaticTriggers.onSignupDesc') },
+    { value: 'VERIFIED', label: t('sections.automaticTriggers.onVerification'), icon: ShieldCheck, desc: t('sections.automaticTriggers.onVerificationDesc') },
+    { value: 'MOST_ACTIVE', label: t('sections.automaticTriggers.mostActive'), icon: Flame, desc: t('sections.automaticTriggers.mostActiveDesc') },
   ];
   
   const [loading, setLoading] = useState(false);
@@ -502,8 +503,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Gift className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Gift className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardDetails.title')}</h2>
@@ -617,8 +618,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Image className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Image className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.rewardImage.title')} <span className="text-[var(--brand-red)]">*</span></h2>
@@ -684,8 +685,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Target className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.targetAudience.title')}</h2>
@@ -820,12 +821,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                 {formData.target_interests.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] mb-3">
                     {getSelectedInterests().map(interest => (
-                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium">
+                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-[var(--dark-900)] text-sm font-medium">
                         {interest.name}
                         <button
                           type="button"
                           onClick={() => toggleInterest(interest.id)}
-                          className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                          className="hover:bg-[var(--dark-900)]/20 rounded-full p-0.5 transition-colors"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -977,7 +978,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           onClick={() => handleArrayToggle('target_grades', grade)}
                           className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
                             formData.target_grades.includes(grade) 
-                              ? 'bg-[var(--brand-primary)] text-white shadow-lg' 
+                              ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] shadow-lg' 
                               : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)]/60 hover:border-[var(--brand-primary)]/50'
                           }`}
                         >
@@ -998,7 +999,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-third)] flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
@@ -1048,8 +1049,8 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
           <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Zap className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('sections.automaticTriggers.title')}</h2>
@@ -1080,7 +1081,13 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
                       }`}
                     >
-                      <span className="text-2xl">{t.icon}</span>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isSelected 
+                          ? 'bg-[var(--brand-primary)]'
+                          : 'bg-[var(--dark-600)]'
+                      }`}>
+                        <t.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
+                      </div>
                       <div className="flex-1">
                         <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
                           {t.label}
@@ -1094,7 +1101,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
                           ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]'
                           : 'border-[var(--dark-400)]'
                       }`}>
-                        {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                        {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
                       </div>
                     </button>
                   );
@@ -1109,7 +1116,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                   formData.is_active 
-                    ? 'bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)]'
+                    ? 'bg-[var(--brand-green)]'
                     : 'bg-[var(--dark-600)]'
                 }`}>
                   <CheckCircle2 className={`w-5 h-5 ${formData.is_active ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/40'}`} />
@@ -1182,11 +1189,11 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
             >
               {loading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
                   {t('actions.saving')}
                 </>
               ) : (
