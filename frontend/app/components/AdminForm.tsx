@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, User, ShieldCheck, Building, Building2, 
-  Mail, Phone, CheckCircle2, Lightbulb, Save, Briefcase
+  Mail, Phone, CheckCircle2, Lightbulb, Save, Briefcase, Check, Eye, EyeOff
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -40,6 +40,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Dropdowns
   const [municipalities, setMunicipalities] = useState<Option[]>([]);
@@ -63,7 +64,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
   };
 
   // Create the schema with translations
-  const adminSchema = createAdminSchema(t, !!initialData);
+  const adminSchema = createAdminSchema(t, !!initialData, scope);
 
   // React Hook Form with Zod validation
   const {
@@ -83,8 +84,16 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       nickname: initialData?.nickname || '',
       phone_number: initialData?.phone_number || '',
       profession: initialData?.profession || '',
-      assigned_municipality: initialData?.assigned_municipality || '',
-      assigned_club: initialData?.assigned_club || '',
+      assigned_municipality: initialData?.assigned_municipality 
+        ? (typeof initialData.assigned_municipality === 'object' 
+            ? initialData.assigned_municipality.id?.toString() 
+            : initialData.assigned_municipality.toString())
+        : '',
+      assigned_club: initialData?.assigned_club 
+        ? (typeof initialData.assigned_club === 'object' 
+            ? initialData.assigned_club.id?.toString() 
+            : initialData.assigned_club.toString())
+        : '',
       hide_contact_info: initialData?.hide_contact_info || false,
       role: initialData?.role || getDefaultRole(),
     },
@@ -93,6 +102,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
 
   // Watch form values
   const formData = watch();
+  const passwordValue = watch('password') || '';
 
   // Track component mount for portal
   useEffect(() => {
@@ -109,6 +119,27 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
       }
     }
   }, [scope, initialData, formData.role, setValue]);
+
+  // Update form values when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      // Update assigned_club when clubs are loaded and initialData is available
+      if (initialData.assigned_club && clubs.length > 0) {
+        const clubId = typeof initialData.assigned_club === 'object' 
+          ? initialData.assigned_club.id?.toString() 
+          : initialData.assigned_club.toString();
+        setValue('assigned_club', clubId);
+      }
+      
+      // Update assigned_municipality when municipalities are loaded and initialData is available
+      if (initialData.assigned_municipality && municipalities.length > 0) {
+        const muniId = typeof initialData.assigned_municipality === 'object' 
+          ? initialData.assigned_municipality.id?.toString() 
+          : initialData.assigned_municipality.toString();
+        setValue('assigned_municipality', muniId);
+      }
+    }
+  }, [initialData, clubs, municipalities, setValue]);
 
   const fetchDropdowns = async () => {
     try {
@@ -149,26 +180,26 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
     try {
       const data = new FormData();
       
-      data.append('email', validatedData.email);
-      data.append('first_name', validatedData.first_name);
-      data.append('last_name', validatedData.last_name);
+      data.append('email', validatedData.email.trim());
+      data.append('first_name', validatedData.first_name.trim());
+      data.append('last_name', validatedData.last_name.trim());
       data.append('role', validatedData.role || getDefaultRole());
       data.append('legal_gender', validatedData.legal_gender);
       
-      if (validatedData.password) {
+      if (validatedData.password && validatedData.password.trim()) {
         data.append('password', validatedData.password);
       }
       
-      if (validatedData.phone_number) {
-        data.append('phone_number', validatedData.phone_number);
+      if (validatedData.phone_number && validatedData.phone_number.trim()) {
+        data.append('phone_number', validatedData.phone_number.trim());
       }
       
-      if (validatedData.nickname) {
-        data.append('nickname', validatedData.nickname);
+      if (validatedData.nickname && validatedData.nickname.trim()) {
+        data.append('nickname', validatedData.nickname.trim());
       }
       
-      if (validatedData.profession) {
-        data.append('profession', validatedData.profession);
+      if (validatedData.profession && validatedData.profession.trim()) {
+        data.append('profession', validatedData.profession.trim());
       }
       
       data.append('hide_contact_info', (validatedData.hide_contact_info || false).toString());
@@ -178,8 +209,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             ? currentUser.assigned_municipality.id 
             : currentUser.assigned_municipality;
          data.append('assigned_municipality', muniId.toString());
-      } else if (validatedData.assigned_municipality && validatedData.assigned_municipality !== '') {
-        data.append('assigned_municipality', validatedData.assigned_municipality.toString());
+      } else if (validatedData.assigned_municipality && validatedData.assigned_municipality.toString().trim() !== '') {
+        data.append('assigned_municipality', validatedData.assigned_municipality.toString().trim());
       }
       
       if (scope === 'CLUB' && currentUser?.assigned_club) {
@@ -188,8 +219,8 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
             : currentUser.assigned_club;
          data.append('assigned_club', clubId.toString());
          data.append('role', 'CLUB_ADMIN');
-      } else if (validatedData.assigned_club && validatedData.assigned_club !== '') {
-        data.append('assigned_club', validatedData.assigned_club.toString());
+      } else if (validatedData.assigned_club && validatedData.assigned_club.toString().trim() !== '') {
+        data.append('assigned_club', validatedData.assigned_club.toString().trim());
       }
 
       if (avatarFile) data.append('avatar', avatarFile);
@@ -214,11 +245,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
         );
       }
 
+      setLoading(false);
       router.push(buildUrlWithParams(redirectPath));
     } catch (err: any) {
-      console.error(err);
+      console.error('Form submission error:', err);
       const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || JSON.stringify(err?.response?.data) || t('toast.operationFailedMessage');
-      error(errorMessage, t('toast.operationFailed') );
+      error(errorMessage, t('toast.operationFailed'));
       setLoading(false);
     }
   };
@@ -251,10 +283,25 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
 
   const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
 
+  // Password validation helper
+  const getPasswordValidation = () => {
+    const pw = passwordValue;
+    return {
+      length: pw.length >= 8,
+      number: /\d/.test(pw),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(pw),
+    };
+  };
+  const pwValid = getPasswordValidation();
+
   // Calculate form completion percentage
   const getRequiredFields = () => {
     const base = ['first_name', 'last_name', 'email'];
     if (!initialData) base.push('password');
+    // Add assignment field for CLUB scope
+    if (scope === 'CLUB') {
+      base.push('assigned_club');
+    }
     return base;
   };
   
@@ -404,7 +451,24 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
         )}
 
         {/* Main Form */}
-        <form onSubmit={handleFormSubmit(handleSubmit)}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          handleFormSubmit(
+            (data) => {
+              console.log('Form validation passed, submitting:', data);
+              handleSubmit(data);
+            },
+            (errors) => {
+              console.error('Form validation errors:', errors);
+              if (Object.keys(errors).length > 0) {
+                const firstError = Object.values(errors)[0];
+                if (firstError && 'message' in firstError) {
+                  error((firstError as any).message || 'Please fix the errors in the form', t('toast.operationFailed'));
+                }
+              }
+            }
+          )(e);
+        }} noValidate>
           
           {/* Role Selection Card */}
           {allowedRoles.length > 1 && (
@@ -566,20 +630,52 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <label htmlFor="password" className={labelClasses}>
                     {t('basicInformation.password')} {!initialData && <span className="text-[var(--brand-primary)]">*</span>}
                   </label>
-                  <input 
-                    id="password"
-                    type="password"
-                    placeholder={initialData ? t('basicInformation.placeholders.passwordEdit') : t('basicInformation.placeholders.password')}
-                    {...register('password')}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={(e) => {
-                      setFocusedField(null);
-                      register('password').onBlur(e);
-                    }}
-                    className={inputClasses('password')}
-                  />
+                  <div className="relative">
+                    <input 
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder={initialData ? t('basicInformation.placeholders.passwordEdit') : t('basicInformation.placeholders.password')}
+                      {...register('password')}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={(e) => {
+                        setFocusedField(null);
+                        register('password').onBlur(e);
+                      }}
+                      className={inputClasses('password')}
+                    />
+                    {passwordValue && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--brand-light)]/40 hover:text-[var(--brand-light)]"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    )}
+                  </div>
                   {errors.password && (
                     <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.password.message}</p>
+                  )}
+                  
+                  {/* Password Requirements - show when creating or when editing and password is provided */}
+                  {((!initialData && passwordValue) || (initialData && passwordValue)) && (
+                    <div className="mt-3 bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)]">
+                      <p className="font-bold text-[var(--brand-light)] text-sm mb-2">{t('basicInformation.passwordRequirements') || 'Password Requirements'}:</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                        <div className={`flex items-center gap-2 ${pwValid.length ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.length ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('basicInformation.req8chars') || 'At least 8 characters'}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 ${pwValid.number ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.number ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('basicInformation.req1number') || 'At least one number'}</span>
+                        </div>
+                        <div className={`flex items-center gap-2 ${pwValid.special ? 'text-[var(--brand-green)]' : 'text-[var(--brand-light)]/50'}`}>
+                          {pwValid.special ? <Check className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border border-current" />}
+                          <span className="text-xs">{t('basicInformation.req1special') || 'At least one special character'}</span>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -596,6 +692,12 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     type="tel"
                     placeholder={t('basicInformation.placeholders.phoneNumber')}
                     {...register('phone_number')}
+                    onInput={(e) => {
+                      // Only allow digits
+                      const target = e.target as HTMLInputElement;
+                      target.value = target.value.replace(/\D/g, '');
+                      setValue('phone_number', target.value);
+                    }}
                     onFocus={() => setFocusedField('phone_number')}
                     onBlur={(e) => {
                       setFocusedField(null);
@@ -668,7 +770,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                     style={selectArrowStyle}
                   >
                     <option value="">{t('assignments.selectMunicipality')}</option>
-                    {municipalities.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    {municipalities.map(m => <option key={m.id} value={m.id.toString()}>{m.name}</option>)}
                   </select>
                   {errors.assigned_municipality && (
                     <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.assigned_municipality.message}</p>
@@ -682,7 +784,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                   <div>
                     <label htmlFor="assigned_club" className={labelClasses}>
                       <Building2 className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
-                      {t('assignments.assignClub')}
+                      {t('assignments.assignClub')} {scope === 'CLUB' && <span className="text-[var(--brand-primary)]">*</span>}
                     </label>
                     <select 
                       id="assigned_club"
@@ -696,7 +798,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
                       style={selectArrowStyle}
                     >
                       <option value="">{t('assignments.selectClub')}</option>
-                      {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {clubs.map(c => <option key={c.id} value={c.id.toString()}>{c.name}</option>)}
                     </select>
                     {errors.assigned_club && (
                       <p className="mt-1.5 text-sm text-[var(--brand-red)]">{errors.assigned_club.message}</p>
@@ -810,7 +912,7 @@ export default function AdminForm({ initialData, redirectPath, scope }: AdminFor
               </button>
               <button 
                 type="submit" 
-                disabled={loading || completionPercent < 100}
+                disabled={loading}
                 className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
               >
                 {loading ? (

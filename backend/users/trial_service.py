@@ -159,3 +159,5 @@ def reset_user_trial(user):
     user.trial_started_at = None
     user.save(update_fields=['trial_started_at'])
 
+
+

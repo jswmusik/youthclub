@@ -5,17 +5,21 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { Home, LogIn, UserPlus, Menu, X } from 'lucide-react';
 
 export default function AuthNavigation() {
   const t = useTranslations('authNav');
   const pathname = usePathname();
+  const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  const darkMode = !mounted || theme === 'dark';
 
   const isLoginPage = pathname === '/login';
   const isRegisterPage = pathname?.startsWith('/register');
@@ -34,13 +38,15 @@ export default function AuthNavigation() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <Image
-                src="/ua-icon-2026.svg"
+                src={darkMode ? "/ua-icon-2026.svg" : "/ua-logo.svg"}
                 alt="Ungdomsappen"
                 width={32}
                 height={32}
                 className="w-8 h-8"
               />
-              <span className="text-lg font-bold text-[var(--brand-light)] group-hover:text-[var(--brand-primary)] transition-colors hidden sm:block">
+              <span className={`text-lg font-bold group-hover:text-[var(--brand-primary)] transition-colors hidden sm:block ${
+                darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+              }`}>
                 Ungdomsappen
               </span>
             </Link>
@@ -59,7 +65,7 @@ export default function AuthNavigation() {
               {isLoginPage && (
                 <Link
                   href="/register/youth"
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-md"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>{t('createAccount')}</span>
@@ -70,7 +76,7 @@ export default function AuthNavigation() {
               {isRegisterPage && (
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all"
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-md"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>{t('login')}</span>
@@ -106,7 +112,7 @@ export default function AuthNavigation() {
                 <Link
                   href="/register/youth"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-semibold shadow-md"
                 >
                   <UserPlus className="w-5 h-5" />
                   <span>{t('createAccount')}</span>
@@ -118,7 +124,7 @@ export default function AuthNavigation() {
                 <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-semibold shadow-md"
                 >
                   <LogIn className="w-5 h-5" />
                   <span>{t('login')}</span>

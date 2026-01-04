@@ -382,9 +382,9 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                                 >
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                            <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                                 {reg.user_detail?.avatar ? (
-                                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
+                                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-full" />
                                                 ) : (
                                                     <span className="text-[var(--dark-900)] font-bold text-sm">
                                                         {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
@@ -486,9 +486,9 @@ export default function ParticipantManager({ eventId }: ParticipantManagerProps)
                         className="bg-[var(--dark-700)]/50 rounded-xl border border-[var(--dark-500)] p-4"
                     >
                         <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <div className="w-12 h-12 rounded-full bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {reg.user_detail?.avatar ? (
-                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
+                                    <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-full" />
                                 ) : (
                                     <span className="text-[var(--dark-900)] font-bold">
                                         {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}

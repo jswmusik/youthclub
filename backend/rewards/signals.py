@@ -1,10 +1,29 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from django.db.models import Q
 from users.models import User
+from notifications.models import Notification
 from .models import Reward, RewardUsage
 from .utils import grant_reward
+
+
+@receiver(pre_delete, sender=Reward)
+def cleanup_reward_notifications(sender, instance, **kwargs):
+    """
+    Delete all notifications related to this reward when it is deleted.
+    This prevents users from clicking on notifications that point to deleted rewards.
+    """
+    reward = instance
+    
+    # Delete notifications that reference this reward
+    # Reward notifications use action_url like "/dashboard/youth/profile?tab=wallet"
+    # and include the reward name in the body
+    # Since we can't reliably filter by reward ID (not in URL), we delete by category and body content
+    Notification.objects.filter(
+        category=Notification.Category.REWARD,
+        body__icontains=reward.name
+    ).delete()
 
 
 @receiver(pre_save, sender=User)

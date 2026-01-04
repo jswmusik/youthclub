@@ -52,8 +52,8 @@ export default function EventMetricsCard({ events }: Props) {
       {/* Header */}
       <div className="p-4 sm:p-6 border-b border-[var(--dark-600)]">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[#A78BFA] flex items-center justify-center shadow-lg shadow-[var(--brand-purple)]/20">
-            <Calendar className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center shadow-lg shadow-[var(--brand-purple)]/20">
+            <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
           </div>
           <div>
             <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>

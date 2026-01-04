@@ -229,7 +229,7 @@ export default function GuardianActivityFeed({ showTimeFilter = true, darkMode =
               : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-sm border-[#4D4DA4]/10'
           }`}>
             <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 font-heading ${
-              darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+              darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'
             }`}>
               <Clock className="w-5 h-5" />
               {t('timePeriod') || 'Time Period'}
@@ -276,16 +276,16 @@ export default function GuardianActivityFeed({ showTimeFilter = true, darkMode =
             <h3 className={`text-xl font-bold px-1 mb-6 flex items-center gap-3 font-heading ${
               darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
             }`}>
-              <Activity className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+              <Activity className={`w-6 h-6 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'}`} />
               {tProfile('latestActivity') || 'Latest Activity'}
             </h3>
             
             {timelineItems.map((item) => (
               <div key={`${item.type}-${item.data.id}`} className="mb-6">
                 {item.type === 'event' ? (
-                  <EventCard event={item.data as any} darkMode={darkMode} />
+                  <EventCard event={item.data as any} darkMode={darkMode} basePath="guardian" />
                 ) : (
-                  <PostCard post={item.data as any} darkMode={darkMode} />
+                  <PostCard post={item.data as any} darkMode={darkMode} basePath="guardian" />
                 )}
               </div>
             ))}

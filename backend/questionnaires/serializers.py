@@ -434,8 +434,16 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
         # Strategies:
         # 1. Delete all and recreate (easiest, but loses historical data if survey was live)
         # 2. Smart diffing.
-        # For MVP, if status is DRAFT, we can clear and recreate.
-        if instance.status == Questionnaire.Status.DRAFT and 'questions' in validated_data:
+        # Allow question updates if:
+        # - Status is DRAFT, OR
+        # - There are no responses yet (safe to modify)
+        response_count = instance.submissions.count() if hasattr(instance, 'submissions') else 0
+        can_update_questions = (
+            instance.status == Questionnaire.Status.DRAFT or 
+            response_count == 0
+        )
+        
+        if can_update_questions and 'questions' in validated_data:
              questions_data = validated_data.pop('questions', [])
              
              # Get request from context to access FILES
@@ -457,15 +465,10 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
                              'file_content': file_content,
                              'image_name': q.image.name
                          }
-                         print(f"[Serializer UPDATE] Stored image for question {q.id}: {q.image.name} ({len(file_content)} bytes)")
-                     except Exception as e:
-                         print(f"[Serializer UPDATE] Error reading image for question {q.id}: {e}")
+                     except Exception:
                          existing_questions[q.id] = {'file_content': None, 'image_name': None}
                  elif q.id:
                      existing_questions[q.id] = {'file_content': None, 'image_name': None}
-             
-             print(f"[Serializer UPDATE] Found {len(existing_questions)} existing questions with IDs")
-             print(f"[Serializer UPDATE] Available files: {list(files.keys())}")
              
              # Match image files to questions by index
              # Also handle existing images: if question has an ID and no new image is provided, preserve existing
@@ -476,22 +479,16 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
                  if image_key in files:
                      # New image file provided
                      q_data['image'] = files[image_key]
-                     print(f"[Serializer UPDATE] Question {question_id or 'new'} at index {index}: New image file provided ({image_key})")
                  elif question_id and question_id in existing_questions:
                      # Existing question - preserve image if no new one provided
                      existing_q_data = existing_questions[question_id]
                      if existing_q_data['file_content'] and existing_q_data['image_name']:
                          # Recreate the file from stored content
                          q_data['image'] = ContentFile(existing_q_data['file_content'], name=existing_q_data['image_name'])
-                         print(f"[Serializer UPDATE] Question {question_id} at index {index}: Preserving existing image: {existing_q_data['image_name']}")
-                     else:
-                         print(f"[Serializer UPDATE] Question {question_id} at index {index}: No existing image to preserve")
-                 else:
-                     print(f"[Serializer UPDATE] Question {question_id or 'new'} at index {index}: No image (no file, no existing)")
              
              instance.questions.all().delete() # Wipe old questions
              
-             for q_data in questions_data:
+             for idx, q_data in enumerate(questions_data):
                 options_data = q_data.pop('options', [])
                 q_data.pop('parent_question', None)
                 q_data.pop('trigger_option', None)
@@ -500,8 +497,8 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
                 q_data.pop('id', None)
                 
                 question = Question.objects.create(questionnaire=instance, **q_data)
-                print(f"[Serializer UPDATE] Created question {question.id} with image: {question.image.url if question.image else 'None'}")
                 for opt_data in options_data:
+                    opt_data.pop('id', None)  # Remove id for new options too
                     QuestionOption.objects.create(question=question, **opt_data)
 
         return instance

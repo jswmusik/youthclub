@@ -7,7 +7,7 @@ import api from '@/lib/api';
 import { 
   Check, X, AlertTriangle, Crown, Building2, BarChart3, 
   ShoppingCart, Loader2, Package, Sparkles, ArrowUpRight,
-  Calendar, Clock, History, Plus, Minus, Info
+  Calendar, Clock, History, Plus, Minus, Info, Mail, Phone, HelpCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -96,6 +96,7 @@ export default function MyMembershipPage() {
   const [clubModalOpen, setClubModalOpen] = useState(false);
   const [featureModalOpen, setFeatureModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [contactSupportModalOpen, setContactSupportModalOpen] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
   const [renewalYears, setRenewalYears] = useState(1);
   const [clubQuantity, setClubQuantity] = useState(1);
@@ -342,7 +343,11 @@ export default function MyMembershipPage() {
             <p className="text-[var(--brand-light)]/60 text-center mb-4">
               {t('contactSupportMessage')}
             </p>
-            <Button variant="outline" className="border-[var(--brand-primary)] text-[var(--brand-primary)]">
+            <Button 
+              variant="outline" 
+              className="border-[var(--brand-primary)] text-[var(--brand-primary)]"
+              onClick={() => setContactSupportModalOpen(true)}
+            >
               {t('contactSupport')}
             </Button>
           </CardContent>
@@ -486,7 +491,7 @@ export default function MyMembershipPage() {
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 active:scale-[0.98] transition-all"
+              className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] active:scale-[0.98] transition-all"
               onClick={() => {
                 setClubQuantity(1);
                 setClubModalOpen(true);
@@ -621,7 +626,7 @@ export default function MyMembershipPage() {
                       </span>
                     </div>
                     <Button 
-                      className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 hover:shadow-lg hover:shadow-[var(--brand-primary)]/20 text-white active:scale-[0.98] transition-all" 
+                      className="w-full bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 hover:shadow-lg hover:shadow-[var(--brand-primary)]/20 text-[var(--dark-900)] active:scale-[0.98] transition-all" 
                       onClick={() => openFeatureModal(feat)}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
@@ -700,6 +705,7 @@ export default function MyMembershipPage() {
           <Button 
             variant="outline" 
             className="border-[var(--brand-primary)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 hover:text-[var(--brand-primary)] active:scale-[0.98] transition-all"
+            onClick={() => setContactSupportModalOpen(true)}
           >
             {t('contactSupport')}
           </Button>
@@ -796,7 +802,7 @@ export default function MyMembershipPage() {
             <Button 
               onClick={handleRequestRenewal}
               disabled={requestingFeature === -4}
-              className="bg-[var(--brand-primary)]"
+              className="bg-[var(--brand-primary)] text-[var(--dark-900)]"
             >
               {requestingFeature === -4 ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -896,7 +902,7 @@ export default function MyMembershipPage() {
             <Button 
               onClick={handleRequestClubSlot}
               disabled={requestingFeature === -2}
-              className="bg-[var(--brand-primary)]"
+              className="bg-[var(--brand-primary)] text-[var(--dark-900)]"
             >
               {requestingFeature === -2 ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -968,7 +974,7 @@ export default function MyMembershipPage() {
             <Button 
               onClick={handleBuyFeature}
               disabled={requestingFeature === selectedFeature?.id}
-              className="bg-[var(--brand-primary)]"
+              className="bg-[var(--brand-primary)] text-[var(--dark-900)]"
             >
               {requestingFeature === selectedFeature?.id ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1061,7 +1067,7 @@ export default function MyMembershipPage() {
             <Button 
               onClick={handleRequestUpgrade}
               disabled={requestingFeature === -3 || !selectedPlanId}
-              className="bg-[var(--brand-primary)]"
+              className="bg-[var(--brand-primary)] text-[var(--dark-900)]"
             >
               {requestingFeature === -3 ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -1069,6 +1075,70 @@ export default function MyMembershipPage() {
                 <ArrowUpRight className="w-4 h-4 mr-2" />
               )}
               {t('sendRequest')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Support Modal */}
+      <Dialog open={contactSupportModalOpen} onOpenChange={setContactSupportModalOpen}>
+        <DialogContent className="bg-[var(--dark-700)] border-[var(--dark-600)] text-[var(--brand-light)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-[var(--brand-primary)]" />
+              {t('contactSupport')}
+            </DialogTitle>
+            <DialogDescription className="text-[var(--brand-light)]/60">
+              {t('contactSupportModalDescription') || 'Vi svarar vanligtvis inom 24 timmar.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--dark-600)] border border-[var(--dark-500)]">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-[var(--brand-light)] mb-1">{t('supportPhone') || 'Telefon'}</h3>
+                  <a 
+                    href="tel:+46733302684" 
+                    className="text-[var(--brand-primary)] hover:underline text-lg font-medium"
+                  >
+                    0733 30 26 84
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--dark-600)] border border-[var(--dark-500)]">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-[var(--brand-light)] mb-1">{t('supportEmail') || 'E-post'}</h3>
+                  <a 
+                    href="mailto:support@ungdomsappen.se" 
+                    className="text-[var(--brand-primary)] hover:underline text-lg font-medium"
+                  >
+                    support@ungdomsappen.se
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20">
+              <p className="text-sm text-[var(--brand-light)]/70">
+                {t('supportResponseTime') || 'Vi svarar vanligtvis inom 24 timmar.'}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={() => setContactSupportModalOpen(false)}
+              className="bg-[var(--brand-primary)] text-[var(--dark-900)]"
+            >
+              {tCommon('close') || 'Stäng'}
             </Button>
           </DialogFooter>
         </DialogContent>

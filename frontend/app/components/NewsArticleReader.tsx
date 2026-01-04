@@ -82,7 +82,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
         
         {/* Navigation Header */}
         <div className="px-4 sm:px-0 mb-6">
-          <BackButton href={backLink} translationKey="backToFeed" />
+          <BackButton href={backLink} label={t('backToFeed')} />
         </div>
 
         {/* Hero Image Section */}
@@ -139,7 +139,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               {/* Author */}
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white font-bold text-sm">
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] font-bold text-sm">
                   {getAuthorInitials(article.author_name || '')}
                 </div>
                 <div>
@@ -222,7 +222,7 @@ export default function NewsArticleReader({ articleId, backLink }: NewsArticleRe
             <p className="text-[var(--brand-light)]/60 mb-4">{t('wantToReadMore')}</p>
             <Link 
               href={backLink}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all text-sm font-medium"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all text-sm font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               {t('backToNewsFeed')}

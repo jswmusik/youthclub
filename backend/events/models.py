@@ -34,6 +34,11 @@ class Event(models.Model):
         GUARDIAN = 'GUARDIAN', 'Guardians Only'
         BOTH = 'BOTH', 'Both Youth and Guardians'
 
+    class RegistrationMode(models.TextChoices):
+        OPEN = 'OPEN', 'Open (No registration required)'
+        FIRST_COME = 'FIRST_COME', 'First Come First Served'
+        MANUAL_APPROVAL = 'MANUAL_APPROVAL', 'Manual Approval Only'
+
     # --- A. Basic Info ---
     title = models.CharField(max_length=255)
     description = models.TextField(help_text="Rich text description of the event")
@@ -97,6 +102,12 @@ class Event(models.Model):
     target_interests = models.ManyToManyField(Interest, blank=True, related_name='targeted_events')
 
     # --- E. Registration Rules ---
+    registration_mode = models.CharField(
+        max_length=20,
+        choices=RegistrationMode.choices,
+        default=RegistrationMode.FIRST_COME,
+        help_text="How spots are assigned: OPEN (no registration), FIRST_COME (automatic), MANUAL_APPROVAL (admin picks)"
+    )
     allow_registration = models.BooleanField(default=True)
     requires_verified_account = models.BooleanField(default=False)
     requires_guardian_approval = models.BooleanField(default=False)

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { 
     Edit, Eye, MessageSquare, Calendar, Globe, Building, Users, 
     CheckCircle2, XCircle, Clock, Pin, Trash2, X, ChevronLeft, ChevronRight,
@@ -20,6 +21,7 @@ export default function PostDetailPage() {
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
+    const t = useTranslations('postsManager.detail');
     const postId = params?.id as string;
     
     const buildBackUrl = () => {
@@ -73,10 +75,10 @@ export default function PostDetailPage() {
     const handleApproveComment = async (commentId: number, currentStatus: boolean) => {
         try {
             await api.patch(`/post-comments/${commentId}/`, { is_approved: !currentStatus });
-            success(currentStatus ? 'Comment hidden' : 'Comment approved');
+            success(currentStatus ? t('toast.commentHidden') : t('toast.commentApproved'));
             fetchData();
         } catch (err) {
-            error('Failed to update comment');
+            error(t('toast.failedToUpdateComment'));
         }
     };
 
@@ -92,10 +94,10 @@ export default function PostDetailPage() {
             await api.delete(`/post-comments/${commentToDelete}/`);
             setShowDeleteModal(false);
             setCommentToDelete(null);
-            success('Comment deleted');
+            success(t('toast.commentDeleted'));
             fetchData();
         } catch (err) {
-            error('Failed to delete comment');
+            error(t('toast.failedToDeleteComment'));
         } finally {
             setIsDeleting(false);
         }
@@ -139,7 +141,7 @@ export default function PostDetailPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/70 text-xs font-medium border border-[var(--dark-500)]">
                     <Globe className="h-3 w-3" />
-                    Global
+                    {t('scope.global')}
                 </span>
             );
         }
@@ -149,7 +151,7 @@ export default function PostDetailPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] text-xs font-medium border border-[var(--brand-blue)]/30">
                     <Building className="h-3 w-3" />
-                    {count > 1 ? `${count} Municipalities` : name}
+                    {count > 1 ? t('scope.municipalities', { count }) : name}
                 </span>
             );
         }
@@ -159,7 +161,7 @@ export default function PostDetailPage() {
             return (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] text-xs font-medium border border-[var(--brand-purple)]/30">
                     <Users className="h-3 w-3" />
-                    {count > 1 ? `${count} Clubs` : name}
+                    {count > 1 ? t('scope.clubs', { count }) : name}
                 </span>
             );
         }
@@ -173,9 +175,10 @@ export default function PostDetailPage() {
             'SCHEDULED': 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] border-[var(--brand-primary)]/30',
             'ARCHIVED': 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]',
         };
+        const statusLabel = t(`status.${status}` as any, { defaultValue: status });
         return (
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${styles[status] || 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border-[var(--dark-500)]'}`}>
-                {status}
+                {statusLabel}
             </span>
         );
     };
@@ -187,10 +190,11 @@ export default function PostDetailPage() {
             'VIDEO': { icon: Video, color: 'var(--brand-pink)' },
         };
         const { icon: Icon, color } = config[postType] || { icon: FileText, color: 'var(--brand-light)' };
+        const typeLabel = t(`type.${postType}` as any, { defaultValue: postType });
         return (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border" style={{ backgroundColor: `${color}20`, color, borderColor: `${color}30` }}>
                 <Icon className="h-3 w-3" />
-                {postType}
+                {typeLabel}
             </span>
         );
     };
@@ -199,10 +203,10 @@ export default function PostDetailPage() {
         return (
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] animate-pulse">
-                        <FileText className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 bg-[var(--brand-primary)] animate-pulse">
+                        <FileText className="w-6 h-6 text-[var(--dark-900)]" />
                     </div>
-                    <p className="text-[var(--brand-light)]/60">Loading post...</p>
+                    <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
             </div>
         );
@@ -213,12 +217,12 @@ export default function PostDetailPage() {
             <div className="min-h-screen bg-[var(--dark-900)] flex items-center justify-center">
                 <div className="text-center">
                     <FileText className="w-12 h-12 text-[var(--brand-light)]/20 mx-auto mb-4" />
-                    <p className="text-[var(--brand-light)]/60">Post not found</p>
+                    <p className="text-[var(--brand-light)]/60">{t('notFound')}</p>
                     <button 
                         onClick={() => router.push(buildBackUrl())}
-                        className="mt-4 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-sm font-medium hover:bg-[var(--brand-primary)]/90 transition-colors"
+                        className="mt-4 px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] text-sm font-medium hover:bg-[var(--brand-primary)]/90 transition-colors"
                     >
-                        Back to Posts
+                        {t('backToPosts')}
                     </button>
                 </div>
             </div>
@@ -234,17 +238,17 @@ export default function PostDetailPage() {
                     <div className="flex items-center gap-4">
                         <BackButton 
                             onClick={() => router.push(buildBackUrl())}
-                            translationKey="backToList"
+                            translationKey="navigation.backToList"
                         />
                         <div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Post Details</h1>
-                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">View and manage post</p>
+                            <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+                            <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">{t('description')}</p>
                         </div>
                     </div>
                     <Link href={`/admin/municipality/posts/edit/${post.id}?${searchParams.toString()}`}>
-                        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold hover:opacity-90 transition-all text-sm">
+                        <button className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm">
                             <Edit className="h-4 w-4" />
-                            <span className="hidden sm:inline">Edit Post</span>
+                            <span className="hidden sm:inline">{t('editPost')}</span>
                         </button>
                     </Link>
                 </div>
@@ -266,7 +270,7 @@ export default function PostDetailPage() {
                                 {post.is_pinned && (
                                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--brand-peach)] text-white text-xs font-bold">
                                         <Pin className="h-3 w-3" />
-                                        PINNED
+                                        {t('pinned')}
                                     </span>
                                 )}
                             </div>
@@ -277,7 +281,7 @@ export default function PostDetailPage() {
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 text-white text-xs font-medium backdrop-blur-sm">
                                 <Eye className="h-3 w-3" />
-                                View Full
+                                {t('viewFull')}
                             </span>
                         </div>
                     </div>
@@ -343,7 +347,7 @@ export default function PostDetailPage() {
                                     className="text-[var(--brand-primary)] hover:text-[var(--brand-purple)] transition-colors flex items-center gap-2"
                                 >
                                     <Video className="h-5 w-5" />
-                                    Watch Video
+                                    {t('watchVideo')}
                                 </a>
                             </div>
                         )}
@@ -352,7 +356,7 @@ export default function PostDetailPage() {
                         {post.post_type === 'IMAGE' && post.images && post.images.length > 1 && (
                             <div className="mb-6">
                                 <p className="text-sm text-[var(--brand-light)]/50 mb-3">
-                                    {post.images.length} images attached
+                                    {t('imagesAttached', { count: post.images.length })}
                                 </p>
                                 <div className="flex flex-wrap gap-2">
                                     {post.images.map((img, index) => (
@@ -399,7 +403,7 @@ export default function PostDetailPage() {
                     <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                         <div className="flex items-center gap-2">
                             <BarChart3 className="h-4 w-4 text-[var(--brand-primary)]" />
-                            <span className="text-sm font-semibold text-[var(--brand-light)]">Analytics</span>
+                            <span className="text-sm font-semibold text-[var(--brand-light)]">{t('analytics')}</span>
                         </div>
                     </div>
                     <div className="p-4 sm:p-6">
@@ -407,30 +411,30 @@ export default function PostDetailPage() {
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Eye className="h-4 w-4 text-[var(--brand-primary)]" />
-                                    <span className="text-xs text-[var(--brand-light)]/60">Views</span>
+                                    <span className="text-xs text-[var(--brand-light)]/60">{t('views')}</span>
                                 </div>
                                 <div className="text-2xl font-bold text-[var(--brand-light)]">{post.view_count || 0}</div>
                             </div>
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <MessageSquare className="h-4 w-4 text-[var(--brand-blue)]" />
-                                    <span className="text-xs text-[var(--brand-light)]/60">Comments</span>
+                                    <span className="text-xs text-[var(--brand-light)]/60">{t('comments')}</span>
                                 </div>
                                 <div className="text-2xl font-bold text-[var(--brand-light)]">{comments.length}</div>
                             </div>
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Heart className="h-4 w-4 text-[var(--brand-pink)]" />
-                                    <span className="text-xs text-[var(--brand-light)]/60">Reactions</span>
+                                    <span className="text-xs text-[var(--brand-light)]/60">{t('reactions')}</span>
                                 </div>
                                 <div className="text-2xl font-bold text-[var(--brand-light)]">{(post as any).reaction_count || 0}</div>
                             </div>
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Bell className="h-4 w-4 text-[var(--brand-peach)]" />
-                                    <span className="text-xs text-[var(--brand-light)]/60">Push Sent</span>
+                                    <span className="text-xs text-[var(--brand-light)]/60">{t('pushSent')}</span>
                                 </div>
-                                <div className="text-2xl font-bold text-[var(--brand-light)]">{post.send_push_notification ? 'Yes' : 'No'}</div>
+                                <div className="text-2xl font-bold text-[var(--brand-light)]">{post.send_push_notification ? t('yes') : t('no')}</div>
                             </div>
                         </div>
                     </div>
@@ -446,7 +450,7 @@ export default function PostDetailPage() {
                                     <div className="flex items-center gap-2">
                                         <MessageSquare className="h-4 w-4 text-[var(--brand-primary)]" />
                                         <span className="text-sm font-semibold text-[var(--brand-light)]">
-                                            Comments ({comments.length})
+                                            {t('commentsSection', { count: comments.length })}
                                         </span>
                                     </div>
                                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -454,7 +458,7 @@ export default function PostDetailPage() {
                                             ? 'bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] border border-[var(--brand-peach)]/30' 
                                             : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]'
                                     }`}>
-                                        Moderation: {post.require_moderation ? 'On' : 'Off'}
+                                        {t('moderation')}: {post.require_moderation ? t('moderationOn') : t('moderationOff')}
                                     </span>
                                 </div>
                             </div>
@@ -462,7 +466,7 @@ export default function PostDetailPage() {
                                 {comments.length === 0 ? (
                                     <div className="text-center py-8">
                                         <MessageSquare className="w-10 h-10 text-[var(--brand-light)]/20 mx-auto mb-3" />
-                                        <p className="text-[var(--brand-light)]/50 text-sm">No comments yet</p>
+                                        <p className="text-[var(--brand-light)]/50 text-sm">{t('noComments')}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -501,12 +505,12 @@ export default function PostDetailPage() {
                                                             {comment.is_approved ? (
                                                                 <span className="flex items-center gap-1">
                                                                     <XCircle className="h-3 w-3" />
-                                                                    Hide
+                                                                    {t('hide')}
                                                                 </span>
                                                             ) : (
                                                                 <span className="flex items-center gap-1">
                                                                     <CheckCircle2 className="h-3 w-3" />
-                                                                    Approve
+                                                                    {t('approve')}
                                                                 </span>
                                                             )}
                                                         </button>
@@ -521,7 +525,7 @@ export default function PostDetailPage() {
                                                 <p className="text-sm text-[var(--brand-light)]/80">{comment.content}</p>
                                                 {!comment.is_approved && (
                                                     <span className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full bg-[var(--brand-red)]/20 text-[var(--brand-red)] text-xs font-medium">
-                                                        ⚠ Pending Approval
+                                                        ⚠ {t('pendingApproval')}
                                                     </span>
                                                 )}
                                             </div>
@@ -540,21 +544,23 @@ export default function PostDetailPage() {
                             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                                 <div className="flex items-center gap-2">
                                     <Target className="h-4 w-4 text-[var(--brand-primary)]" />
-                                    <span className="text-sm font-semibold text-[var(--brand-light)]">Target Audience</span>
+                                    <span className="text-sm font-semibold text-[var(--brand-light)]">{t('targetAudience')}</span>
                                 </div>
                             </div>
                             <div className="p-4 sm:p-6 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--brand-light)]/60">Member Type</span>
-                                    <span className="text-sm font-medium text-[var(--brand-light)]">{post.target_member_type}</span>
+                                    <span className="text-sm text-[var(--brand-light)]/60">{t('memberTypeLabel')}</span>
+                                    <span className="text-sm font-medium text-[var(--brand-light)]">
+                                        {t(`memberType.${post.target_member_type}` as any, { defaultValue: post.target_member_type })}
+                                    </span>
                                 </div>
                                 {post.target_groups && post.target_groups.length > 0 ? (
                                     <div>
-                                        <p className="text-sm text-[var(--brand-light)]/60 mb-2">Targeted Groups</p>
+                                        <p className="text-sm text-[var(--brand-light)]/60 mb-2">{t('targetedGroups')}</p>
                                         <div className="flex flex-wrap gap-2">
                                             {post.target_groups.map((g: any) => (
                                                 <span key={g} className="px-2 py-1 rounded-lg bg-[var(--brand-blue)]/20 text-[var(--brand-blue)] text-xs font-medium">
-                                                    Group {g}
+                                                    {t('group')} {g}
                                                 </span>
                                             ))}
                                         </div>
@@ -562,39 +568,41 @@ export default function PostDetailPage() {
                                 ) : (
                                     <>
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-[var(--brand-light)]/60">Age Range</span>
+                                            <span className="text-sm text-[var(--brand-light)]/60">{t('ageRange')}</span>
                                             <span className="text-sm font-medium text-[var(--brand-light)]">
-                                                {post.target_min_age || 0} - {post.target_max_age || 'Any'}
+                                                {post.target_min_age || 0} - {post.target_max_age || t('any')}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-[var(--brand-light)]/60">Gender</span>
+                                            <span className="text-sm text-[var(--brand-light)]/60">{t('genderLabel')}</span>
                                             <span className="text-sm font-medium text-[var(--brand-light)]">
-                                                {post.target_genders && post.target_genders.length > 0 ? post.target_genders.join(', ') : 'All'}
+                                                {post.target_genders && post.target_genders.length > 0 
+                                                    ? post.target_genders.map((g: string) => t(`gender.${g}` as any, { defaultValue: g })).join(', ')
+                                                    : t('all')}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-[var(--brand-light)]/60">Grades</span>
+                                            <span className="text-sm text-[var(--brand-light)]/60">{t('grades')}</span>
                                             <span className="text-sm font-medium text-[var(--brand-light)]">
-                                                {post.target_grades && post.target_grades.length > 0 ? post.target_grades.join(', ') : 'All'}
+                                                {post.target_grades && post.target_grades.length > 0 ? post.target_grades.join(', ') : t('all')}
                                             </span>
                                         </div>
                                     </>
                                 )}
                                 {hasCustomFieldRules && (
                                     <div className="pt-3 border-t border-[var(--dark-600)]">
-                                        <p className="text-sm text-[var(--brand-light)]/60 mb-2">Custom Field Rules</p>
+                                        <p className="text-sm text-[var(--brand-light)]/60 mb-2">{t('customFieldRules')}</p>
                                         <div className="space-y-2">
                                             {Object.entries(post.target_custom_fields || {}).map(([fieldId, value]) => {
                                                 const id = Number(fieldId);
-                                                const fieldName = customFieldMap[id] || `Field #${fieldId}`;
+                                                const fieldName = customFieldMap[id] || `${t('field')} #${fieldId}`;
                                                 let displayValue: string;
-                                                if (typeof value === 'boolean') displayValue = value ? 'Yes' : 'No';
+                                                if (typeof value === 'boolean') displayValue = value ? t('yes') : t('no');
                                                 else displayValue = Array.isArray(value) ? value.join(', ') : String(value);
                                                 return (
                                                     <div key={fieldId} className="text-xs">
                                                         <span className="text-[var(--brand-light)]/60">{fieldName}:</span>
-                                                        <span className="ml-1 text-[var(--brand-light)]">{displayValue || 'Any'}</span>
+                                                        <span className="ml-1 text-[var(--brand-light)]">{displayValue || t('any')}</span>
                                                     </div>
                                                 );
                                             })}
@@ -609,40 +617,40 @@ export default function PostDetailPage() {
                             <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                                 <div className="flex items-center gap-2">
                                     <Settings className="h-4 w-4 text-[var(--brand-primary)]" />
-                                    <span className="text-sm font-semibold text-[var(--brand-light)]">Configuration</span>
+                                    <span className="text-sm font-semibold text-[var(--brand-light)]">{t('configuration')}</span>
                                 </div>
                             </div>
                             <div className="p-4 sm:p-6 space-y-3">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--brand-light)]/60">Comments</span>
+                                    <span className="text-sm text-[var(--brand-light)]/60">{t('commentsLabel')}</span>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
                                         post.allow_comments 
                                             ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
                                             : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
                                     }`}>
                                         {post.allow_comments ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                                        {post.allow_comments ? 'Allowed' : 'Disabled'}
+                                        {post.allow_comments ? t('allowed') : t('disabled')}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--brand-light)]/60">Moderation</span>
+                                    <span className="text-sm text-[var(--brand-light)]/60">{t('moderation')}</span>
                                     <span className="text-sm font-medium text-[var(--brand-light)]">
-                                        {post.require_moderation ? 'Required' : 'Off'}
+                                        {post.require_moderation ? t('required') : t('moderationOff')}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-[var(--brand-light)]/60">Push Notification</span>
+                                    <span className="text-sm text-[var(--brand-light)]/60">{t('pushNotification')}</span>
                                     <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
                                         post.send_push_notification 
                                             ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
                                             : 'bg-[var(--dark-600)] text-[var(--brand-light)]/60'
                                     }`}>
-                                        {post.send_push_notification ? 'Sent' : 'Not Sent'}
+                                        {post.send_push_notification ? t('sent') : t('notSent')}
                                     </span>
                                 </div>
                                 {post.visibility_end_date && (
                                     <div className="flex justify-between items-center pt-3 border-t border-[var(--dark-600)]">
-                                        <span className="text-sm text-[var(--brand-light)]/60">Expires</span>
+                                        <span className="text-sm text-[var(--brand-light)]/60">{t('expires')}</span>
                                         <span className="text-sm font-medium text-[var(--brand-peach)]">
                                             {new Date(post.visibility_end_date).toLocaleDateString()}
                                         </span>
@@ -659,10 +667,10 @@ export default function PostDetailPage() {
                     isVisible={showDeleteModal}
                     onClose={() => { if (!isDeleting) { setShowDeleteModal(false); setCommentToDelete(null); } }}
                     onConfirm={handleDeleteConfirm}
-                    title="Delete Comment"
-                    message="Are you sure you want to delete this comment? This action cannot be undone."
-                    confirmButtonText="Delete"
-                    cancelButtonText="Cancel"
+                    title={t('deleteComment')}
+                    message={t('deleteCommentMessage')}
+                    confirmButtonText={t('delete')}
+                    cancelButtonText={t('cancel')}
                     variant="danger"
                     darkMode={true}
                     isLoading={isDeleting}

@@ -199,8 +199,8 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
         className="w-full p-4 flex items-center justify-between hover:bg-[var(--dark-700)]/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[#A78BFA] flex items-center justify-center shadow-lg shadow-[var(--brand-purple)]/20">
-            <Sparkles className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center shadow-lg shadow-[var(--brand-purple)]/20">
+            <Sparkles className="w-5 h-5 text-[var(--dark-900)]" />
           </div>
           <div className="text-left">
             <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>
@@ -231,9 +231,9 @@ export default function AIReportGenerator({ filters, className = '', visibleSect
               <div>
                 <p className="text-sm font-medium text-[#F97316]">{t('notConfiguredTitle')}</p>
                 <p className="text-xs text-[#F97316]/80 mt-1">
-                  {t.rich('notConfiguredMessage', {
-                    anthropicKey: () => <code className="bg-[#F97316]/20 px-1 rounded">ANTHROPIC_API_KEY</code>,
-                    openaiKey: () => <code className="bg-[#F97316]/20 px-1 rounded">OPENAI_API_KEY</code>
+                  {t('notConfiguredMessage', {
+                    anthropicKey: 'ANTHROPIC_API_KEY',
+                    openaiKey: 'OPENAI_API_KEY'
                   })}
                 </p>
               </div>

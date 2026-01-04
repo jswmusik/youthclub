@@ -5,14 +5,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from 'next-themes';
 import { Menu, X, ExternalLink, ChevronRight, User, LogOut, LayoutDashboard } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import LanguageSelector from '../components/LanguageSelector';
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem } from '@/types/cms';
 import CookieConsentBanner from '@/app/components/cms/CookieConsentBanner';
 import NewsletterModal from '@/app/components/NewsletterModal';
 import { BackgroundGlow } from '@/components/BackgroundGlow';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
 export default function PublicLayout({
   children,
@@ -20,11 +23,20 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   const { user, logout, loading: authLoading } = useAuth();
+  const { theme } = useTheme();
+  const t = useTranslations('public.layout');
+  const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerItems, setHeaderItems] = useState<MenuItem[]>([]);
   const [footerItems, setFooterItems] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const darkMode = !mounted || theme === 'dark';
   
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -99,7 +111,7 @@ export default function PublicLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-white'}`}>
       {/* Background Glow Effect */}
       <BackgroundGlow variant="default" />
       
@@ -107,7 +119,9 @@ export default function PublicLayout({
       <header
         className={`fixed left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[var(--dark-800)]/95 backdrop-blur-lg shadow-xl border-b border-[var(--dark-600)]'
+            ? darkMode 
+              ? 'bg-[var(--dark-800)]/95 backdrop-blur-lg shadow-xl border-b border-[var(--dark-600)]'
+              : 'bg-white/95 backdrop-blur-lg shadow-xl border-b border-gray-200'
             : 'bg-transparent'
         }`}
         style={{ top: 'var(--system-alert-height, 0px)' }}
@@ -117,13 +131,17 @@ export default function PublicLayout({
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <Image 
-                src="/ua-icon-2026.svg" 
+                src={darkMode ? "/ua-icon-2026.svg" : "/ua-logo.svg"} 
                 alt="Ungdomsappen" 
                 width={40} 
                 height={40}
-                className="w-10 h-10 group-hover:scale-105 transition-transform"
+                className={`w-10 h-10 group-hover:scale-105 transition-transform ${darkMode && !isScrolled ? 'brightness-0 invert' : ''}`}
               />
-              <span className="text-xl font-bold text-[var(--brand-light)] hidden sm:block font-heading">
+              <span className={`text-xl font-bold hidden sm:block font-heading transition-colors ${
+                isScrolled 
+                  ? darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'
+                  : darkMode ? 'text-white' : 'text-gray-900'
+              }`}>
                 Ungdomsappen
               </span>
             </Link>
@@ -138,7 +156,9 @@ export default function PublicLayout({
                     href={getMenuItemHref(item)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--brand-light)]/80 hover:text-[var(--brand-primary)] transition-colors font-medium flex items-center gap-1"
+                    className={`hover:text-[var(--brand-primary)] transition-colors font-medium flex items-center gap-1 ${
+                      isScrolled ? 'text-[var(--brand-light)]/80' : 'text-white/80'
+                    }`}
                   >
                     {item.label}
                     <ExternalLink className="w-3 h-3" />
@@ -147,7 +167,9 @@ export default function PublicLayout({
                   <Link
                     key={item.id}
                     href={getMenuItemHref(item)}
-                    className="text-[var(--brand-light)]/80 hover:text-[var(--brand-primary)] transition-colors font-medium"
+                    className={`hover:text-[var(--brand-primary)] transition-colors font-medium ${
+                      isScrolled ? 'text-[var(--brand-light)]/80' : 'text-white/80'
+                    }`}
                   >
                     {item.label}
                   </Link>
@@ -157,6 +179,9 @@ export default function PublicLayout({
 
             {/* Auth Buttons - Desktop */}
             <div className="hidden md:flex items-center gap-3">
+              {/* Language Selector */}
+              <LanguageSelector darkMode={!isScrolled || darkMode} />
+              
               {/* Theme Toggle */}
               <ThemeToggle />
               
@@ -164,35 +189,45 @@ export default function PublicLayout({
                 <>
                   {user ? (
                     <div className="flex items-center gap-3">
-                      <span className="text-[var(--brand-light)]/60 text-sm">
-                        Hej, {user.first_name}
+                      <span className={`text-sm transition-colors ${
+                        isScrolled ? 'text-[var(--brand-light)]/60' : 'text-white/60'
+                      }`}>
+                        {t('greeting')}, {user.first_name}
                       </span>
                       <Link
                         href={getDashboardLink()}
-                        className="px-4 py-2.5 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all"
+                        className="px-4 py-2.5 rounded-lg bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-md"
                       >
-                        Min Dashboard
+                        {t('myDashboard')}
                       </Link>
                       <button
                         onClick={logout}
-                        className="px-4 py-2.5 rounded-lg border border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-700)] hover:border-[var(--dark-400)] transition-all"
+                        className={`px-4 py-2.5 rounded-lg border transition-all ${
+                          isScrolled 
+                            ? 'border-[var(--dark-500)] text-[var(--brand-light)]/80 hover:bg-[var(--dark-700)] hover:border-[var(--dark-400)]'
+                            : 'border-white/30 text-white/80 hover:bg-white/10 hover:border-white/50'
+                        }`}
                       >
-                        Logga ut
+                        {t('logout')}
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
                       <Link
                         href="/login"
-                        className="px-4 py-2.5 rounded-lg border border-[var(--dark-500)] text-[var(--brand-light)] hover:bg-[var(--dark-700)] hover:border-[var(--dark-400)] transition-all"
+                        className={`px-4 py-2.5 rounded-lg border transition-all ${
+                          isScrolled 
+                            ? 'border-[var(--dark-500)] text-[var(--brand-light)] hover:bg-[var(--dark-700)] hover:border-[var(--dark-400)]'
+                            : 'border-white/30 text-white hover:bg-white/10 hover:border-white/50'
+                        }`}
                       >
-                        Logga in
+                        {t('login')}
                       </Link>
                       <Link
                         href="/register/youth"
-                        className="px-5 py-2.5 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all"
+                        className="px-5 py-2.5 rounded-lg bg-[var(--brand-primary)] text-white font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-md"
                       >
-                        Skapa konto
+                        {t('createAccount')}
                       </Link>
                     </div>
                   )}
@@ -203,10 +238,12 @@ export default function PublicLayout({
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden relative w-10 h-10 flex items-center justify-center text-[var(--brand-light)] hover:text-[var(--brand-primary)] transition-colors"
-              aria-label={mobileMenuOpen ? 'Stäng meny' : 'Öppna meny'}
+              className={`md:hidden relative w-10 h-10 flex items-center justify-center hover:text-[var(--brand-primary)] transition-colors ${
+                isScrolled ? 'text-[var(--brand-light)]' : 'text-white'
+              }`}
+              aria-label={mobileMenuOpen ? t('closeMenu') : t('openMenu')}
             >
-              <span className="sr-only">{mobileMenuOpen ? 'Stäng meny' : 'Öppna meny'}</span>
+              <span className="sr-only">{mobileMenuOpen ? t('closeMenu') : t('openMenu')}</span>
               <div className="relative w-6 h-5 flex flex-col justify-between">
                 <span 
                   className={`block h-0.5 w-full bg-current transform transition-all duration-300 origin-center ${
@@ -265,7 +302,7 @@ export default function PublicLayout({
                     className="group flex items-center justify-between py-4 border-b border-[var(--dark-700)]"
                   >
                     <span className="text-2xl font-bold text-[var(--brand-light)] group-hover:text-[var(--brand-primary)] transition-colors">
-                      Hem
+                      {t('home')}
                     </span>
                     <ChevronRight className="w-6 h-6 text-[var(--brand-light)]/40 group-hover:text-[var(--brand-primary)] group-hover:translate-x-1 transition-all" />
                   </Link>
@@ -338,10 +375,10 @@ export default function PublicLayout({
                         <Link
                           href={getDashboardLink()}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-center gap-3 w-full py-4 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-lg"
+                          className="flex items-center justify-center gap-3 w-full py-4 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-bold text-lg shadow-md"
                         >
                           <LayoutDashboard className="w-5 h-5" />
-                          Min Dashboard
+                          {t('myDashboard')}
                         </Link>
                         <button
                           onClick={() => {
@@ -351,7 +388,7 @@ export default function PublicLayout({
                           className="flex items-center justify-center gap-3 w-full py-4 rounded-lg border-2 border-[var(--dark-500)] text-[var(--brand-light)] font-semibold text-lg hover:bg-[var(--dark-800)] transition-colors"
                         >
                           <LogOut className="w-5 h-5" />
-                          Logga ut
+                          {t('logout')}
                         </button>
                       </div>
                     ) : (
@@ -359,16 +396,16 @@ export default function PublicLayout({
                         <Link
                           href="/register/youth"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-center w-full py-4 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-lg"
+                          className="flex items-center justify-center w-full py-4 rounded-lg bg-[var(--brand-primary)] text-gray-900 font-bold text-lg shadow-md"
                         >
-                          Skapa konto
+                          {t('createAccount')}
                         </Link>
                         <Link
                           href="/login"
                           onClick={() => setMobileMenuOpen(false)}
                           className="flex items-center justify-center w-full py-4 rounded-lg border-2 border-[var(--dark-500)] text-[var(--brand-light)] font-semibold text-lg hover:bg-[var(--dark-800)] transition-colors"
                         >
-                          Logga in
+                          {t('login')}
                         </Link>
                       </div>
                     )}
@@ -376,13 +413,14 @@ export default function PublicLayout({
                 )}
               </motion.div>
 
-              {/* Theme Toggle for Mobile */}
+              {/* Language & Theme Toggle for Mobile */}
               <motion.div 
-                className="mt-6 flex justify-center"
+                className="mt-6 flex flex-col items-center gap-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.35 }}
               >
+                <LanguageSelector variant="inline" darkMode />
                 <ThemeToggle showLabel />
               </motion.div>
 
@@ -424,14 +462,13 @@ export default function PublicLayout({
                 </span>
               </div>
               <p className="text-[var(--brand-light)]/60 max-w-md">
-                Plattformen som samlar aktiviteter, evenemang och fritidsgårdar för unga. 
-                Hitta din gemenskap och utforska nya möjligheter.
+                {t('footer.description')}
               </p>
             </div>
 
             {/* Quick Links - Static + CMS Footer Items */}
             <div>
-              <h4 className="text-[var(--brand-light)] font-semibold mb-4">Snabblänkar</h4>
+              <h4 className="text-[var(--brand-light)] font-semibold mb-4">{t('quickLinks')}</h4>
               <ul className="space-y-2">
                 {/* Static pricing link */}
                 <li>
@@ -439,7 +476,7 @@ export default function PublicLayout({
                     href="/pricing" 
                     className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
                   >
-                    Priser
+                    {t('prices')}
                   </Link>
                 </li>
                 {/* Static contact link */}
@@ -448,7 +485,7 @@ export default function PublicLayout({
                     href="/contact" 
                     className="text-[var(--brand-light)]/60 hover:text-[var(--brand-primary)] transition-colors"
                   >
-                    Kontakt
+                    {t('contact')}
                   </Link>
                 </li>
                 {/* CMS Footer Items */}
@@ -479,10 +516,10 @@ export default function PublicLayout({
 
             {/* Contact */}
             <div>
-              <h4 className="text-[var(--brand-light)] font-semibold mb-4">Kontakt</h4>
+              <h4 className="text-[var(--brand-light)] font-semibold mb-4">{t('contact')}</h4>
               <ul className="space-y-2 text-[var(--brand-light)]/60">
-                <li>info@ungdomsappen.se</li>
-                <li>Stockholm, Sverige</li>
+                <li>{t('contactInfo.email')}</li>
+                <li>{t('contactInfo.location')}</li>
               </ul>
             </div>
           </div>
@@ -491,9 +528,9 @@ export default function PublicLayout({
           <div className="mt-12 pt-8 border-t border-[var(--dark-600)]">
             <form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
               <div>
-                <h3 className="text-[var(--brand-light)] font-bold mb-1">Håll dig uppdaterad</h3>
+                <h3 className="text-[var(--brand-light)] font-bold mb-1">{t('newsletter.title')}</h3>
                 <p className="text-[var(--brand-light)]/60 text-sm">
-                  Få de senaste nyheterna och uppdateringarna.
+                  {t('newsletter.subtitle')}
                 </p>
               </div>
               <div className="flex gap-2 max-w-md w-full md:w-auto">
@@ -501,15 +538,15 @@ export default function PublicLayout({
                   type="email"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  placeholder="Ange din e-post"
+                  placeholder={t('newsletter.placeholder')}
                   className="flex-1 md:w-64 px-4 py-2.5 bg-[var(--dark-700)] border border-[var(--dark-500)] rounded-xl text-sm text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:ring-2 focus:ring-[var(--brand-primary)]/30 focus:border-[var(--brand-primary)] outline-none transition-all"
                   required
                 />
                 <button 
                   type="submit"
-                  className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap"
+                  className="px-5 py-2.5 bg-[var(--brand-primary)] text-gray-900 font-bold text-sm rounded-xl hover:bg-[var(--brand-primary)]/90 transition-all whitespace-nowrap shadow-md"
                 >
-                  Prenumerera
+                  {t('newsletter.subscribe')}
                 </button>
               </div>
             </form>
@@ -517,7 +554,7 @@ export default function PublicLayout({
 
           <div className="mt-8 pt-8 border-t border-[var(--dark-600)] flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-[var(--brand-light)]/40 text-sm">
-              © {new Date().getFullYear()} Ungdomsappen. Alla rättigheter förbehållna.
+              © {new Date().getFullYear()} Ungdomsappen. {t('footer.copyright')}.
             </p>
           </div>
         </div>

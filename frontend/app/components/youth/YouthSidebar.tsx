@@ -17,6 +17,7 @@ import {
     MapPin, 
     Newspaper,
     CalendarDays,
+    Building2,
     ChevronRight
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -98,7 +99,7 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                             ? 'bg-[#4D4DA4] text-white' 
                             : badgeColor === 'orange'
                             ? 'bg-orange-500 text-white'
-                            : 'bg-[#FF5485] text-white'
+                            : 'bg-[var(--brand-primary)] text-gray-900'
                 }`}>
                     {badge}
                 </span>
@@ -179,6 +180,12 @@ export default function YouthSidebar({ activePath, unfinishedCount = 0, darkMode
             path: user?.preferred_club?.id ? `/dashboard/youth/club/${user.preferred_club.id}` : '',
             checkPath: '/dashboard/youth/club',
             disabled: !user?.preferred_club?.id,
+        },
+        // Find Clubs
+        { 
+            icon: <Building2 className="w-5 h-5" />, 
+            label: t('findClubs'), 
+            path: '/dashboard/youth/clubs',
         },
         // Feature: News (Posts)
         ...(hasFeature('posts') ? [{ 

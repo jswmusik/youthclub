@@ -154,7 +154,7 @@ export default function NotificationItem({ notification, onClick, onDelete, dark
             
             {/* Main content that slides */}
             <div
-                className={`relative z-10 ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-100'}`}
+                className={`relative z-10 ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-gray-50'}`}
                 style={{
                     transform: `translateX(${translateX}px)`,
                     transition: isAnimating ? 'transform 0.2s ease-out' : 'none',
@@ -171,8 +171,8 @@ export default function NotificationItem({ notification, onClick, onDelete, dark
                                 ? 'bg-[var(--dark-800)] border-y sm:border sm:rounded-xl border-[var(--dark-600)] opacity-70 hover:opacity-100' 
                                 : 'bg-[var(--dark-700)] border-y sm:border sm:rounded-xl border-[var(--brand-primary)]/30 ring-1 ring-[var(--brand-primary)]/10'
                             : notification.is_read 
-                                ? 'bg-white border-y sm:border sm:border-gray-100 sm:rounded-xl opacity-70 hover:opacity-100'
-                                : 'bg-white border-y sm:border sm:border-blue-200 sm:rounded-xl shadow-sm ring-1 ring-blue-50'
+                                ? 'bg-white border-y sm:border sm:border-gray-200 sm:rounded-xl opacity-70 hover:opacity-100'
+                                : 'bg-white border-y sm:border sm:border-[var(--brand-primary)]/30 sm:rounded-xl shadow-sm ring-1 ring-[var(--brand-primary)]/10'
                     }`}
                 >
                     {/* Icon Box */}

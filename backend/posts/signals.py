@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.db.models import Q
 import re
@@ -9,6 +9,21 @@ from notifications.models import Notification
 from .engine import PostEngine
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(pre_delete, sender=Post)
+def cleanup_post_notifications(sender, instance, **kwargs):
+    """
+    Delete all notifications related to this post when it is deleted.
+    This prevents users from clicking on notifications that point to deleted posts.
+    """
+    post = instance
+    
+    # Delete notifications that reference this post (via action_url)
+    # Posts use action_url like "/dashboard/youth?post={id}"
+    Notification.objects.filter(
+        action_url__icontains=f"post={post.id}"
+    ).delete()
 
 @receiver(post_save, sender=Post)
 def create_post_notification(sender, instance, created, **kwargs):

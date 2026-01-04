@@ -15,7 +15,6 @@ import {
     Bell, 
     MoreVertical,
     Settings,
-    HelpCircle,
     LogOut,
     Home,
     Users,
@@ -47,7 +46,8 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
         setMounted(true);
     }, []);
     
-    const darkMode = !mounted || theme === 'dark';
+    // Use theme directly for navbar visibility, default to light mode for initial render
+    const darkMode = theme === 'dark';
 
     const handleLogout = () => {
         logout();
@@ -141,7 +141,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                                 className="flex-shrink-0 h-8 sm:h-10 flex items-center hover:opacity-80 transition-opacity active:scale-95"
                             >
                                 <img 
-                                    src="/ua-logo-2026.svg" 
+                                    src={darkMode ? "/ua-logo-2026.svg" : "/ua-logo.svg"} 
                                     alt="Ungdomsappen Logo" 
                                     className={`h-full w-auto object-contain ${darkMode ? 'brightness-0 invert' : ''}`}
                                 />
@@ -222,7 +222,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                                     <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
                                         darkMode
                                             ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                                            : 'bg-[#FF5485] text-white'
+                                            : 'bg-[var(--brand-primary)] text-gray-900'
                                     }`}>
                                         {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
                                     </span>
@@ -245,7 +245,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                                     <span className={`absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
                                         darkMode
                                             ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                                            : 'bg-[#FF5485] text-white'
+                                            : 'bg-[var(--brand-primary)] text-gray-900'
                                     }`}>
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
@@ -331,20 +331,6 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                                                 <Settings className="w-5 h-5" />
                                                 <span className="font-medium">{t('settings') || 'Settings'}</span>
                                             </button>
-                                            <button
-                                                onClick={() => {
-                                                    router.push('/dashboard/guardian/help');
-                                                    setShowMenu(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
-                                                    darkMode
-                                                        ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)]'
-                                                        : 'text-gray-700 hover:bg-[#EBEBFE]'
-                                                }`}
-                                            >
-                                                <HelpCircle className="w-5 h-5" />
-                                                <span className="font-medium">{t('help') || 'Help'}</span>
-                                            </button>
                                             <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`} />
                                             <button
                                                 onClick={() => {
@@ -354,7 +340,7 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                                                 className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
                                                     darkMode
                                                         ? 'text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10'
-                                                        : 'text-[#FF5485] hover:bg-[#FF5485]/10'
+                                                        : 'text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10'
                                                 }`}
                                             >
                                                 <LogOut className="w-5 h-5" />
@@ -425,8 +411,6 @@ export default function GuardianNavBar({ onMenuToggle, darkMode: _darkModeProp =
                 </div>
             </div>
 
-            {/* Spacer for fixed nav */}
-            <div className="h-14 sm:h-16" />
             {/* Spacer for bottom nav on mobile */}
             <div className="h-[72px] md:hidden" />
         </>
@@ -471,7 +455,7 @@ function MobileNavItem({ icon, label, isActive, onClick, badge, darkMode }: Mobi
                 <span className={`absolute top-0 right-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
                     darkMode
                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                        : 'bg-[#FF5485] text-white'
+                        : 'bg-[var(--brand-primary)] text-gray-900'
                 }`}>
                     {badge > 9 ? '9+' : badge}
                 </span>

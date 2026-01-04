@@ -8,8 +8,19 @@ import {
   Navigation, Loader2, ArrowRight 
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { sv } from 'date-fns/locale';
+import { sv, da, nb, enUS, fi } from 'date-fns/locale';
+import { useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { getMediaUrl } from '../../utils';
+
+// Map locale codes to date-fns locales
+const dateLocales: Record<string, Locale> = {
+  sv: sv,
+  da: da,
+  nb: nb,
+  en: enUS,
+  fi: fi,
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -48,10 +59,11 @@ interface PublicEvent {
   distance_km?: number;
 }
 
-function EventCard({ event }: { event: PublicEvent }) {
+function EventCard({ event, locale, t }: { event: PublicEvent; locale: string; t: ReturnType<typeof useTranslations> }) {
   const startDate = parseISO(event.start_date);
   const endDate = parseISO(event.end_date);
   const isSameDay = format(startDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+  const dateLocale = dateLocales[locale] || sv;
   
   const coverUrl = getMediaUrl(event.cover_image);
   const organizerAvatar = event.club_detail?.avatar 
@@ -85,15 +97,15 @@ function EventCard({ event }: { event: PublicEvent }) {
             {format(startDate, 'd')}
           </div>
           <div className="text-xs text-[var(--brand-light)]/70 uppercase">
-            {format(startDate, 'MMM', { locale: sv })}
+            {format(startDate, 'MMM', { locale: dateLocale })}
           </div>
         </div>
 
         {/* Distance Badge */}
         {event.distance_km !== undefined && (
-          <div className="absolute top-4 right-4 bg-[var(--brand-sky)]/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
-            <Navigation className="w-3 h-3 text-[var(--dark-900)]" />
-            <span className="text-xs font-semibold text-[var(--dark-900)]">
+          <div className="absolute top-4 right-4 bg-[var(--brand-sky)] backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1 shadow-md">
+            <Navigation className="w-3 h-3 text-white" />
+            <span className="text-xs font-semibold text-white">
               {event.distance_km < 1 
                 ? `${Math.round(event.distance_km * 1000)}m` 
                 : `${event.distance_km.toFixed(1)}km`}
@@ -103,8 +115,8 @@ function EventCard({ event }: { event: PublicEvent }) {
 
         {/* Free Badge */}
         {event.is_free && (
-          <div className="absolute bottom-4 left-4 bg-[var(--brand-green)]/90 backdrop-blur-sm rounded-full px-3 py-1">
-            <span className="text-xs font-semibold text-[var(--dark-900)]">Gratis</span>
+          <div className="absolute bottom-4 left-4 bg-[var(--brand-green)] backdrop-blur-sm rounded-full px-3 py-1 shadow-md">
+            <span className="text-xs font-semibold text-white">{t('free')}</span>
           </div>
         )}
       </div>
@@ -164,14 +176,14 @@ function EventCard({ event }: { event: PublicEvent }) {
                     : 'text-[var(--brand-light)]/70'
               }`}>
                 {event.spots_available === 0 
-                  ? 'Fullbokat' 
+                  ? t('fullyBooked')
                   : event.spots_available === null 
-                    ? 'Obegränsat' 
-                    : `${event.spots_available} platser kvar`}
+                    ? t('unlimited')
+                    : t('spotsLeft', { count: event.spots_available })}
               </span>
             </div>
           ) : (
-            <span className="text-sm text-[var(--brand-light)]/50">Öppet för alla</span>
+            <span className="text-sm text-[var(--brand-light)]/50">{t('openForAll')}</span>
           )}
 
           {/* Arrow */}
@@ -185,6 +197,8 @@ function EventCard({ event }: { event: PublicEvent }) {
 }
 
 export default function EventsSection() {
+  const t = useTranslations('public.events');
+  const locale = useLocale();
   const [events, setEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -242,15 +256,15 @@ export default function EventsSection() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <p className="text-[var(--brand-primary)] text-sm font-semibold uppercase tracking-wider mb-2">
-              Händer just nu
+              {t('sectionLabel')}
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold text-[var(--brand-light)] font-heading">
-              Kommande aktiviteter
+              {t('sectionTitle')}
             </h2>
             {userLocation && (
               <p className="text-[var(--brand-light)]/50 text-sm mt-2 flex items-center gap-2">
                 <Navigation className="w-4 h-4" />
-                Sorterat efter avstånd från dig
+                {t('sortedByDistance')}
               </p>
             )}
           </div>
@@ -259,7 +273,7 @@ export default function EventsSection() {
             href="/events"
             className="inline-flex items-center gap-2 text-[var(--brand-primary)] hover:text-[var(--brand-primary)]/80 font-medium transition-colors group"
           >
-            Se alla aktiviteter
+            {t('viewAll')}
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -283,16 +297,16 @@ export default function EventsSection() {
           <div className="text-center py-16">
             <Calendar className="w-16 h-16 mx-auto text-[var(--brand-light)]/20 mb-4" />
             <h3 className="text-xl font-semibold text-[var(--brand-light)] mb-2">
-              Inga kommande aktiviteter
+              {t('noUpcoming')}
             </h3>
             <p className="text-[var(--brand-light)]/60">
-              Det finns inga publika aktiviteter just nu. Kom tillbaka snart!
+              {t('noUpcomingDescription')}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} locale={locale} t={t} />
             ))}
           </div>
         )}
@@ -304,7 +318,7 @@ export default function EventsSection() {
               href="/events"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)] font-medium hover:bg-[var(--dark-600)] transition-all"
             >
-              Utforska fler aktiviteter
+              {t('exploreMore')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

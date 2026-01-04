@@ -18,3 +18,5 @@ export const createInventoryItemSchema = (t: (key: string) => string) => {
 export type InventoryItemFormData = z.infer<ReturnType<typeof createInventoryItemSchema>>;
 
 
+
+

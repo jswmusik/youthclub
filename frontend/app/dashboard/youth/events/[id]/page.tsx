@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import api from '@/lib/api';
@@ -83,6 +83,7 @@ export default function EventDetailPage() {
     const { theme } = useTheme();
     const t = useTranslations('events');
     const tSidebar = useTranslations('sidebar');
+    const locale = useLocale();
     const [mounted, setMounted] = useState(false);
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
@@ -338,7 +339,7 @@ export default function EventDetailPage() {
                                     <div>
                                         <p className={`text-xs uppercase tracking-wider font-medium ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>{t('dateLabel')}</p>
                                         <p className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
-                                            {eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            {eventDate.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' })}
                                         </p>
                                     </div>
                                 </div>
@@ -552,7 +553,7 @@ export default function EventDetailPage() {
                                                 <span className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('registerBy')}</span>
                                             </div>
                                             <span className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
-                                                {new Date(event.registration_close_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                {new Date(event.registration_close_date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
                                     )}

@@ -460,7 +460,7 @@ export default function YouthEventList({ user, darkMode = false }: YouthEventLis
         <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading ${
           darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
         }`}>
-          <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#FF5485]'}`}></span>
+          <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[var(--brand-primary)]'}`}></span>
           <CalendarDays className="w-5 h-5" />
           {t('myEvents') || 'My Events'}
         </h3>

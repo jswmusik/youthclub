@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import GuardianNavBar from '@/app/components/guardian/GuardianNavBar';
@@ -19,12 +20,20 @@ export default function GuardianSettingsPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const t = useTranslations('profile');
     const tSidebar = useTranslations('sidebar');
     const [profileData, setProfileData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
 
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -65,11 +74,11 @@ export default function GuardianSettingsPage() {
     if (!showSkeleton && !profileData) return null;
 
     return (
-        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+        <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
             <div className="flex-1">
                 <GuardianNavBar 
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                    darkMode={true}
+                    darkMode={darkMode}
                 />
                 
                 {/* Mobile Sidebar Overlay */}
@@ -82,21 +91,21 @@ export default function GuardianSettingsPage() {
                 
                 {/* Mobile Sidebar */}
                 <aside 
-                    className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                    className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
+                    } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
                 >
-                    <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+                    <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                         <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                         <button
                             onClick={() => setIsSidebarOpen(false)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                     <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                        <GuardianSidebar darkMode={true} />
+                        <GuardianSidebar />
                     </div>
                 </aside>
                 
@@ -105,7 +114,7 @@ export default function GuardianSettingsPage() {
                     <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                         {/* Desktop Sidebar */}
                         <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                            <GuardianSidebar darkMode={true} />
+                            <GuardianSidebar />
                         </aside>
                         
                         {/* Content wrapper with left margin for sidebar */}
@@ -120,38 +129,38 @@ export default function GuardianSettingsPage() {
                                         {/* Header Section */}
                                         <div className="mb-4 sm:mb-6 px-4 sm:px-0">
                                             <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                                                <Settings className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                                                <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                                                <Settings className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                                <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                     {tSidebar('settings')}
                                                 </h1>
                                             </div>
-                                            <p className="text-[var(--brand-light)]/60 text-sm pl-9">
+                                            <p className={`text-sm pl-9 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                 {t('updateContactInfo') || 'Update your contact information and profile details.'}
                                             </p>
                                         </div>
 
                                         {/* Settings Form Card */}
-                                        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-4 sm:p-6">
+                                        <div className={`rounded-none sm:rounded-2xl border-y sm:border p-4 sm:p-6 ${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'}`}>
                                             <ProfileEditForm 
                                                 user={profileData} 
-                                                darkMode={true}
+                                                darkMode={darkMode}
                                             />
                                         </div>
 
                                         {/* 2FA Settings Section */}
                                         <div className="mt-6 px-4 sm:px-0">
                                             <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                                                <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                                                <h2 className="text-xl sm:text-2xl text-[var(--brand-light)] font-heading font-bold">
+                                                <ShieldCheck className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                                <h2 className={`text-xl sm:text-2xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                     {t('security') || 'Security'}
                                                 </h2>
                                             </div>
-                                            <p className="text-[var(--brand-light)]/60 text-sm pl-9 mb-4">
+                                            <p className={`text-sm pl-9 mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                 {t('securityDesc') || 'Manage your account security settings.'}
                                             </p>
                                         </div>
-                                        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-4 sm:p-6">
-                                            <TwoFactorSettings darkMode={true} />
+                                        <div className={`rounded-none sm:rounded-2xl border-y sm:border p-4 sm:p-6 ${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'}`}>
+                                            <TwoFactorSettings darkMode={darkMode} />
                                         </div>
                                     </>
                                 )}

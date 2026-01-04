@@ -759,7 +759,7 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'email', 'password', 'password_confirm',
-            'first_name', 'last_name', 'nickname',
+            'first_name', 'last_name', 'nickname', 'phone_number',
             'date_of_birth', 'legal_gender', 'preferred_gender',
             'grade', 'preferred_club_id',
             'guardian_email', 'guardian_first_name', 'guardian_last_name', 'guardian_phone', 'guardian_legal_gender',

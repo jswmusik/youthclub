@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { 
     Home, 
@@ -20,7 +21,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 interface GuardianSidebarProps {
     unfinishedCount?: number; // For questionnaires or notifications
     pendingApprovalsCount?: number; // For event approvals - can be passed or fetched
-    darkMode?: boolean;
+    darkMode?: boolean; // Deprecated - theme is now detected automatically
 }
 
 interface NavItemProps {
@@ -72,7 +73,7 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
                             ? 'bg-white/20 text-white' 
                             : badgeColor === 'orange'
                             ? 'bg-orange-500 text-white'
-                            : 'bg-[#FF5485] text-white'
+                            : 'bg-[var(--brand-primary)] text-gray-900'
                 }`}>
                     {badge}
                 </span>
@@ -84,10 +85,19 @@ function NavItem({ icon, label, path, isActive, onClick, badge, badgeColor = 'pi
     );
 }
 
-export default function GuardianSidebar({ unfinishedCount = 0, pendingApprovalsCount, darkMode }: GuardianSidebarProps) {
+export default function GuardianSidebar({ unfinishedCount = 0, pendingApprovalsCount, darkMode: _darkModeProp }: GuardianSidebarProps) {
     const router = useRouter();
     const pathname = usePathname();
     const t = useTranslations('sidebar');
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    
+    // Avoid hydration mismatch for theme
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
     
     // Local state for pending approvals if not passed as prop
     const [localPendingCount, setLocalPendingCount] = useState<number>(0);

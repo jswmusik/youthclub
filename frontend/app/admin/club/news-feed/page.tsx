@@ -11,11 +11,11 @@ function NewsFeedContent() {
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
       {/* Header */}
-      <div className="bg-[var(--dark-800)] border-b border-[var(--dark-600)]">
+      <div>
         <div className="sm:max-w-6xl sm:mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <Newspaper className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Newspaper className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>

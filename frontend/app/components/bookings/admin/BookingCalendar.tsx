@@ -124,6 +124,18 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
   // 4. Fetch Available Slots (schedule slots) when a resource is selected
   useEffect(() => {
     if (selectedResource) {
+      // Verify that the selected resource exists in the loaded resources
+      // This handles cases where a resource was deleted but still stored in localStorage
+      if (resources.length > 0 && !resources.find(r => r.id.toString() === selectedResource.toString())) {
+        // Resource no longer exists, clear it
+        setSelectedResource('');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(`booking-calendar-resource-${scope || 'default'}`);
+        }
+        setAvailableSlots([]);
+        return;
+      }
+      
       const fetchSlots = async () => {
         if (!selectedResource) {
           setAvailableSlots([]);
@@ -139,6 +151,13 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
           setAvailableSlots(slotsData);
         } catch (e: any) {
           console.error('Error fetching available slots:', e);
+          // If 404, the resource doesn't exist - clear it
+          if (e.response?.status === 404) {
+            setSelectedResource('');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(`booking-calendar-resource-${scope || 'default'}`);
+            }
+          }
           setAvailableSlots([]);
         }
       };
@@ -146,7 +165,7 @@ const BookingCalendar = forwardRef<BookingCalendarRef, { scope?: 'CLUB' | 'MUNIC
     } else {
       setAvailableSlots([]);
     }
-  }, [selectedResource, currentWeekStart]);
+  }, [selectedResource, currentWeekStart, resources, scope]);
 
   const fetchBookings = async () => {
     setLoading(true);

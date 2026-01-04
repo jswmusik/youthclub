@@ -293,8 +293,8 @@ export default function InventoryDashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <Package className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <Package className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('clubTitle')}</h1>
             </div>
@@ -345,8 +345,8 @@ export default function InventoryDashboardPage() {
                 {/* Total Items */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                      <Package className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                      <Package className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.totalItems')}</span>
                   </div>
@@ -356,8 +356,8 @@ export default function InventoryDashboardPage() {
                 {/* Borrowings Last 7 Days */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.last7Days')}</span>
                   </div>
@@ -367,7 +367,7 @@ export default function InventoryDashboardPage() {
                 {/* Borrowings Last 30 Days */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                       <TrendingUp className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.last30Days')}</span>
@@ -378,8 +378,8 @@ export default function InventoryDashboardPage() {
                 {/* All Time Borrowings */}
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                      <History className="h-5 w-5 text-white" />
+                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                      <History className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.allTime')}</span>
                   </div>

@@ -1,5 +1,5 @@
 # backend/notifications/signals.py
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from notifications.models import Notification
@@ -10,6 +10,34 @@ from news.models import NewsArticle
 # RewardUsage import removed - reward notifications are now handled in rewards/utils.py
 
 User = get_user_model()
+
+
+# --- CLEANUP SIGNALS ---
+# These signals delete related notifications when entities are deleted
+
+@receiver(pre_delete, sender=NewsArticle)
+def cleanup_news_article_notifications(sender, instance, **kwargs):
+    """
+    Delete all notifications related to this news article when it is deleted.
+    This prevents users from clicking on notifications that point to deleted articles.
+    """
+    Notification.objects.filter(
+        category=Notification.Category.NEWS,
+        action_url__icontains=f"/news/{instance.id}"
+    ).delete()
+
+
+@receiver(pre_delete, sender=SystemMessage)
+def cleanup_system_message_notifications(sender, instance, **kwargs):
+    """
+    Delete all notifications related to this system message when it is deleted.
+    Since system message notifications use a generic action_url (/dashboard/messages),
+    we match by the title pattern instead.
+    """
+    Notification.objects.filter(
+        category=Notification.Category.SYSTEM,
+        title__icontains=instance.title
+    ).delete()
 
 # --- 1. SYSTEM MESSAGES (Broadcast with Role Targeting) ---
 @receiver(post_save, sender=SystemMessage)

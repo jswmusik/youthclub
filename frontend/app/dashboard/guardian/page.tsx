@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { format } from 'date-fns';
 import { enUS, sv } from 'date-fns/locale';
 import api from '../../../lib/api';
@@ -17,6 +18,7 @@ import { questionnaireApi } from '../../../lib/questionnaire-api';
 import { Calendar, User, X, Users, MapPin, ArrowRight } from 'lucide-react';
 import { getMediaUrl } from '../../utils';
 import Link from 'next/link';
+import Footer from '@/app/components/Footer';
 import { 
     DashboardFeedSkeleton, 
     ClubCardSkeleton, 
@@ -41,11 +43,20 @@ export default function GuardianDashboardPage() {
     const tErrors = useTranslations('errors');
     const locale = useLocale();
     const dateLocale = locale === 'sv' ? sv : enUS;
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
     const [nextEvent, setNextEvent] = useState<any>(null);
+    
+    // Avoid hydration mismatch for theme
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
     
     const MIN_LOADING_TIME = 400;
     const [error, setError] = useState<string | null>(null);
@@ -261,8 +272,9 @@ export default function GuardianDashboardPage() {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]">
-            <GuardianNavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} darkMode />
+        <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+            <div className="flex-1">
+            <GuardianNavBar onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
             
             {/* Mobile Sidebar Overlay */}
             <div 
@@ -274,30 +286,34 @@ export default function GuardianDashboardPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+                <div className={`flex items-center justify-between h-14 sm:h-16 px-4 border-b ${
+                    darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'
+                }`}>
                     <h1 className="text-xl font-bold text-[var(--brand-primary)]">{t('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl ${
+                            darkMode ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' : 'text-gray-500 hover:bg-gray-100'
+                        }`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-                    <GuardianSidebar darkMode unfinishedCount={unfinishedCount} />
+                    <GuardianSidebar unfinishedCount={unfinishedCount} />
                 </div>
             </aside>
             
             {/* Main Layout */}
-            <div className="">
+            <div className="pt-14 sm:pt-16">
                 <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                     {/* Desktop Sidebar - Fixed position aligned with container */}
                     <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                        <GuardianSidebar darkMode unfinishedCount={unfinishedCount} />
+                        <GuardianSidebar unfinishedCount={unfinishedCount} />
                     </aside>
                     
                     {/* Content wrapper with left margin for sidebar */}
@@ -306,33 +322,53 @@ export default function GuardianDashboardPage() {
                             {/* Main Feed */}
                             <main className="flex-1 min-w-0 sm:px-0">
                                 {/* Welcome Banner - Using brand colors with gradient */}
-                                <div className="relative bg-[var(--dark-700)] rounded-none sm:rounded-2xl p-4 sm:p-6 text-white mb-6 sm:mb-8 overflow-hidden border-y sm:border border-[var(--dark-500)] sm:mx-0">
+                                <div className={`relative rounded-none sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8 overflow-hidden border-y sm:border sm:mx-0 ${
+                                    darkMode 
+                                        ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                        : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                }`}>
                                     {/* Gradient accent line at top */}
                                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-primary)] via-[var(--brand-purple)] to-[var(--brand-third)]" />
                                     {/* Subtle glow effect */}
-                                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-[var(--brand-primary)] opacity-10 rounded-full blur-3xl" />
-                                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[var(--brand-purple)] opacity-10 rounded-full blur-3xl" />
-                                    <h1 className="text-2xl font-bold mb-2 text-[var(--brand-light)] relative z-10">
+                                    <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl ${
+                                        darkMode ? 'bg-[var(--brand-primary)] opacity-10' : 'bg-[#4D4DA4] opacity-20'
+                                    }`} />
+                                    <div className={`absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl ${
+                                        darkMode ? 'bg-[var(--brand-purple)] opacity-10' : 'bg-[var(--brand-primary)] opacity-15'
+                                    }`} />
+                                    <h1 className={`text-2xl font-bold mb-2 relative z-10 ${
+                                        darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
+                                    }`}>
                                         {t('welcomeBack')}, {user.first_name} 👋
                                     </h1>
-                                    <p className="text-[var(--brand-light)]/70 relative z-10">
+                                    <p className={`relative z-10 ${
+                                        darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'
+                                    }`}>
                                         {t('guardianDashboardSubtitle') || "Here's what's happening with your children's clubs today."}
                                     </p>
                                 </div>
 
                                 {/* Questionnaires Section */}
                                 {unfinishedCount > 0 && (
-                                    <div className="relative bg-[var(--dark-600)] rounded-none sm:rounded-xl p-6 text-white mb-6 overflow-hidden border-y sm:border border-[var(--dark-400)]">
+                                    <div className={`relative rounded-none sm:rounded-xl p-6 mb-6 overflow-hidden border-y sm:border ${
+                                        darkMode 
+                                            ? 'bg-[var(--dark-600)] border-[var(--dark-400)]' 
+                                            : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                    }`}>
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-sky)] via-[var(--brand-primary)] to-[var(--brand-purple)]" />
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-[var(--dark-500)] flex items-center justify-center border border-[var(--brand-sky)]/30">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${
+                                                darkMode 
+                                                    ? 'bg-[var(--dark-500)] border-[var(--brand-sky)]/30' 
+                                                    : 'bg-[#EBEBFE] border-[#4D4DA4]/20'
+                                            }`}>
                                                 <ClipboardListIcon className="w-5 h-5 text-[var(--brand-sky)]" />
                                             </div>
                                             <div className="flex-1">
-                                                <h2 className="font-bold text-[var(--brand-light)]">
+                                                <h2 className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>
                                                     {t('surveysForYou') || "Surveys for You"}
                                                 </h2>
-                                                <p className="text-sm text-[var(--brand-light)]/60">
+                                                <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                     {t('surveysDescription') || "You have questionnaires waiting for your response."}
                                                 </p>
                                             </div>
@@ -346,12 +382,20 @@ export default function GuardianDashboardPage() {
                                 {(loading || !minLoadingComplete) ? (
                                     <DashboardFeedSkeleton />
                                 ) : error ? (
-                                    <div className="text-center py-10 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                                    <div className={`text-center py-10 rounded-xl border ${
+                                        darkMode 
+                                            ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                            : 'bg-red-50 border-red-200'
+                                    }`}>
                                         <p className="text-[var(--brand-red)] font-medium">{error}</p>
                                     </div>
                                 ) : feedItems.length === 0 ? (
-                                    <div className="text-center py-10 bg-[var(--dark-700)] rounded-xl border border-dashed border-[var(--dark-500)]">
-                                        <p className="text-[var(--brand-light)]/60">{t('noPostsYet')}</p>
+                                    <div className={`text-center py-10 rounded-xl border border-dashed ${
+                                        darkMode 
+                                            ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                            : 'bg-[#EBEBFE]/50 border-[#4D4DA4]/30'
+                                    }`}>
+                                        <p className={darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}>{t('noPostsYet')}</p>
                                     </div>
                                 ) : (
                                     <div>
@@ -365,15 +409,15 @@ export default function GuardianDashboardPage() {
                                                     <QuestionnaireCard 
                                                         questionnaire={item}
                                                         onComplete={handleQuestionnaireComplete}
-                                                        darkMode
+                                                        darkMode={darkMode}
                                                     />
                                                 );
                                             } else if (item.feed_type === 'EVENT') {
                                                 postContent = (
-                                                    <EventCard event={item as any} darkMode />
+                                                    <EventCard event={item as any} darkMode={darkMode} basePath="guardian" />
                                                 );
                                             } else {
-                                                postContent = <PostCard post={item as any} darkMode />;
+                                                postContent = <PostCard post={item as any} darkMode={darkMode} basePath="guardian" />;
                                             }
 
                                             return (
@@ -386,13 +430,13 @@ export default function GuardianDashboardPage() {
                                         {/* Loading More Indicator / Observer Target */}
                                         <div ref={observerTarget} className="h-20 flex items-center justify-center py-4">
                                             {loadingMore && (
-                                                <div className="flex items-center gap-2 text-[var(--brand-light)]/50">
+                                                <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
                                                     <span className="text-sm">{t('loadingMore')}</span>
                                                 </div>
                                             )}
                                             {!hasMore && feedItems.length > 0 && (
-                                                <p className="text-sm text-[var(--brand-light)]/40">{t('noMorePosts') || 'No more posts'}</p>
+                                                <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-gray-400'}`}>{t('noMorePosts') || 'No more posts'}</p>
                                             )}
                                         </div>
                                     </div>
@@ -410,8 +454,14 @@ export default function GuardianDashboardPage() {
                                     ) : (
                                         <>
                                             {/* My Children Card */}
-                                            <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] p-6">
-                                                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-light)]/50 mb-4">
+                                            <div className={`rounded-xl border p-6 ${
+                                                darkMode 
+                                                    ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                                    : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                            }`}>
+                                                <h3 className={`text-xs font-bold uppercase tracking-wider mb-4 ${
+                                                    darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                                                }`}>
                                                     {t('myChildren') || "MY CHILDREN"}
                                                 </h3>
                                                 <div className="space-y-3">
@@ -419,7 +469,9 @@ export default function GuardianDashboardPage() {
                                                         user.youth_members.map((child: any) => (
                                                             <div 
                                                                 key={child.id} 
-                                                                className="flex items-center gap-3 p-2 hover:bg-[var(--dark-600)] rounded-lg cursor-pointer transition-colors"
+                                                                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                                                                    darkMode ? 'hover:bg-[var(--dark-600)]' : 'hover:bg-[#EBEBFE]'
+                                                                }`}
                                                                 onClick={() => router.push(`/dashboard/guardian/children/${child.id}`)}
                                                             >
                                                                 <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0">
@@ -434,8 +486,8 @@ export default function GuardianDashboardPage() {
                                                                     )}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="font-bold text-sm text-[var(--brand-light)]">{child.first_name} {child.last_name}</div>
-                                                                    <div className="text-xs text-[var(--brand-light)]/50">
+                                                                    <div className={`font-bold text-sm ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>{child.first_name} {child.last_name}</div>
+                                                                    <div className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                                                         {t('viewProfile') || "View Profile"}
                                                                     </div>
                                                                 </div>
@@ -443,8 +495,8 @@ export default function GuardianDashboardPage() {
                                                         ))
                                                     ) : (
                                                         <div className="text-center py-4">
-                                                            <Users className="w-8 h-8 mx-auto mb-2 text-[var(--brand-light)]/30" />
-                                                            <p className="text-sm text-[var(--brand-light)]/50">
+                                                            <Users className={`w-8 h-8 mx-auto mb-2 ${darkMode ? 'text-[var(--brand-light)]/30' : 'text-gray-300'}`} />
+                                                            <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                                                 {t('noChildrenLinked') || "No children linked yet"}
                                                             </p>
                                                         </div>
@@ -456,7 +508,11 @@ export default function GuardianDashboardPage() {
                                             {nextEvent && (
                                                 <Link
                                                     href={`/dashboard/guardian/events/${nextEvent.id}`}
-                                                    className="block bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] overflow-hidden hover:border-[var(--brand-primary)]/50 transition-all group"
+                                                    className={`block rounded-xl overflow-hidden transition-all group ${
+                                                        darkMode 
+                                                            ? 'bg-[var(--dark-700)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50' 
+                                                            : 'bg-white border border-[#4D4DA4]/15 hover:border-[#4D4DA4]/40 shadow-sm'
+                                                    }`}
                                                 >
                                                     {nextEvent.cover_image && (
                                                         <div className="relative h-24 overflow-hidden">
@@ -465,7 +521,9 @@ export default function GuardianDashboardPage() {
                                                                 alt={nextEvent.title}
                                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                             />
-                                                            <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-700)] to-transparent" />
+                                                            <div className={`absolute inset-0 bg-gradient-to-t ${
+                                                                darkMode ? 'from-[var(--dark-700)]' : 'from-white'
+                                                            } to-transparent`} />
                                                             <div className="absolute top-2 left-2">
                                                                 <span className="px-2 py-0.5 bg-[var(--brand-primary)] text-[var(--dark-900)] text-xs font-bold rounded-full">
                                                                     {tEvents('upcoming') || 'Upcoming'}
@@ -475,33 +533,47 @@ export default function GuardianDashboardPage() {
                                                     )}
                                                     <div className="p-4">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Calendar className="w-4 h-4 text-[var(--brand-primary)]" />
-                                                            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-light)]/50">
+                                                            <Calendar className={`w-4 h-4 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                                            <h3 className={`text-xs font-bold uppercase tracking-wider ${
+                                                                darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                                                            }`}>
                                                                 {t('upcomingEvents') || "UPCOMING EVENTS"}
                                                             </h3>
                                                         </div>
-                                                        <h4 className="font-bold text-[var(--brand-light)] mb-1 line-clamp-1 group-hover:text-[var(--brand-primary)] transition-colors">
+                                                        <h4 className={`font-bold mb-1 line-clamp-1 transition-colors ${
+                                                            darkMode 
+                                                                ? 'text-[var(--brand-light)] group-hover:text-[var(--brand-primary)]' 
+                                                                : 'text-gray-800 group-hover:text-[#4D4DA4]'
+                                                        }`}>
                                                             {nextEvent.title}
                                                         </h4>
-                                                        <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/60 mb-2">
+                                                        <div className={`flex items-center gap-2 text-xs mb-2 ${
+                                                            darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                                                        }`}>
                                                             <Calendar className="w-3 h-3" />
                                                             <span>
                                                                 {nextEvent.start_date && format(new Date(nextEvent.start_date), 'PPP', { locale: dateLocale })}
                                                             </span>
                                                         </div>
                                                         {nextEvent.location && (
-                                                            <div className="flex items-center gap-2 text-xs text-[var(--brand-light)]/60 mb-2">
+                                                            <div className={`flex items-center gap-2 text-xs mb-2 ${
+                                                                darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'
+                                                            }`}>
                                                                 <MapPin className="w-3 h-3" />
                                                                 <span className="line-clamp-1">{nextEvent.location}</span>
                                                             </div>
                                                         )}
                                                         {nextEvent.child_name && (
-                                                            <div className="flex items-center gap-2 text-xs text-[var(--brand-primary)] mt-2">
+                                                            <div className={`flex items-center gap-2 text-xs mt-2 ${
+                                                                darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                                                            }`}>
                                                                 <User className="w-3 h-3" />
                                                                 <span>{nextEvent.child_name}</span>
                                                             </div>
                                                         )}
-                                                        <div className="flex items-center justify-end mt-2 text-[var(--brand-primary)] group-hover:translate-x-1 transition-transform">
+                                                        <div className={`flex items-center justify-end mt-2 group-hover:translate-x-1 transition-transform ${
+                                                            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
+                                                        }`}>
                                                             <ArrowRight className="w-4 h-4" />
                                                         </div>
                                                     </div>
@@ -510,19 +582,35 @@ export default function GuardianDashboardPage() {
 
                                             {/* Municipality Card */}
                                             {user.assigned_municipality && (
-                                                <div className="bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] p-6">
-                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--brand-light)]/50 mb-4">
+                                                <div className={`rounded-xl border p-6 ${
+                                                    darkMode 
+                                                        ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' 
+                                                        : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                                }`}>
+                                                    <h3 className={`text-xs font-bold uppercase tracking-wider mb-4 ${
+                                                        darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'
+                                                    }`}>
                                                         {t('myMunicipality') || "MY MUNICIPALITY"}
                                                     </h3>
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-xl bg-[var(--dark-500)] flex-shrink-0 flex items-center justify-center">
-                                                            <span className="text-lg">🏛️</span>
+                                                        <div className={`w-12 h-12 rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center ${
+                                                            darkMode ? 'bg-[var(--dark-500)]' : 'bg-[#EBEBFE]'
+                                                        }`}>
+                                                            {user.assigned_municipality.avatar ? (
+                                                                <img 
+                                                                    src={getMediaUrl(user.assigned_municipality.avatar)} 
+                                                                    alt={user.assigned_municipality.name}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-lg">🏛️</span>
+                                                            )}
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-bold text-[var(--brand-light)]">
+                                                            <h4 className={`font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}`}>
                                                                 {user.assigned_municipality.name}
                                                             </h4>
-                                                            <p className="text-xs text-[var(--brand-light)]/50">
+                                                            <p className={`text-xs ${darkMode ? 'text-[var(--brand-light)]/50' : 'text-gray-500'}`}>
                                                                 {t('guardianAccount') || "Guardian Account"}
                                                             </p>
                                                         </div>
@@ -537,6 +625,10 @@ export default function GuardianDashboardPage() {
                     </div>
                 </div>
             </div>
+            </div>
+            
+            {/* Footer */}
+            <Footer />
         </div>
     );
 }

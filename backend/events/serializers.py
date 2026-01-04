@@ -3,8 +3,9 @@ from django.utils.text import slugify
 from .models import Event, EventRegistration, EventTicket, EventImage, EventDocument
 from users.serializers import UserListSerializer
 from organization.serializers import MunicipalitySerializer, ClubSerializer
-from organization.models import Municipality, Club
+from organization.models import Municipality, Club, Interest
 from groups.serializers import GroupSerializer
+from groups.models import Group
 from custom_fields.models import EventCustomField, CustomFieldDefinition, EventRegistrationCustomFieldValue
 from custom_fields.serializers import EventCustomFieldSerializer, CustomFieldDefinitionSerializer, EventRegistrationCustomFieldValueSerializer
 import json
@@ -122,7 +123,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
             'organizer_name', 'organizer_display_name',
             
             # Registration info (public-safe)
-            'allow_registration', 'is_registration_open',
+            'registration_mode', 'allow_registration', 'is_registration_open',
             'registration_open_date', 'registration_close_date',
             'max_seats', 'confirmed_participants_count',
             'spots_available', 'is_free', 'cost',
@@ -245,6 +246,14 @@ class EventSerializer(serializers.ModelSerializer):
     
     # Read-only details for target groups
     target_groups_details = GroupSerializer(source='target_groups', many=True, read_only=True)
+    
+    # Explicit ManyToMany fields for proper FormData handling
+    target_groups = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Group.objects.all(), required=False
+    )
+    target_interests = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Interest.objects.all(), required=False
+    )
     
     # Custom Fields for event registration
     event_custom_fields = EventCustomFieldSerializer(many=True, read_only=True)
@@ -395,6 +404,7 @@ class EventSerializer(serializers.ModelSerializer):
             # Fields that should be arrays (ManyToMany or JSON fields)
             array_fields = ['target_groups', 'target_interests', 'target_genders', 'target_grades']
             json_fields = ['target_genders', 'target_grades']
+            many_to_many_fields = ['target_groups', 'target_interests']
             
             for key in list(data.keys()):
                 # Get value - could be a list or single value
@@ -456,8 +466,31 @@ class EventSerializer(serializers.ModelSerializer):
                             data[key] = [value]
                     continue
                 
-                # Skip other array fields - they're handled by DRF's ManyToMany handling
-                if key in array_fields:
+                # Handle ManyToMany fields (target_groups, target_interests)
+                # DRF's PrimaryKeyRelatedField(many=True) expects a list, not a string
+                if key in many_to_many_fields:
+                    if isinstance(value, list):
+                        # Filter out empty strings and ensure all values are valid
+                        filtered = [v for v in value if v and str(v).strip()]
+                        data[key] = filtered if filtered else []
+                    elif isinstance(value, str):
+                        # Check if it's a JSON array string
+                        if value.strip().startswith('[') and value.strip().endswith(']'):
+                            try:
+                                parsed = json.loads(value.strip())
+                                if isinstance(parsed, list):
+                                    data[key] = [v for v in parsed if v]
+                                else:
+                                    data[key] = []
+                            except (json.JSONDecodeError, ValueError):
+                                # Single string value, wrap in list
+                                data[key] = [value] if value.strip() else []
+                        else:
+                            # Single string value, wrap in list
+                            data[key] = [value] if value.strip() else []
+                    else:
+                        # Other types (int, etc.), wrap in list
+                        data[key] = [value]
                     continue
                 
                 # Handle lists (from QueryDict when FormData sends multiple values)

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import { ShieldAlert } from 'lucide-react';
 import { BackgroundGlow } from '@/components/BackgroundGlow';
 
@@ -21,18 +22,60 @@ const getAdminDashboardUrl = (role: string): string | null => {
     }
 };
 
+// List of public/auth paths that authenticated users should not navigate back to
+const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/'];
+
 export default function GuardianLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const t = useTranslations('errors');
+    const historyCleared = useRef(false);
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
 
     // For unverified guardians, ONLY the verify tab and children tab on the profile page is allowed
     // They cannot access settings, other tabs, or any other guardian pages
     const isOnVerifyTab = pathname === '/dashboard/guardian/profile' && searchParams.get('tab') === 'verify';
     const isOnChildrenTab = pathname === '/dashboard/guardian/profile' && searchParams.get('tab') === 'children';
     const isOnProfilePage = pathname === '/dashboard/guardian/profile';
+
+    // Clear browser history to prevent back navigation to public pages
+    useEffect(() => {
+        if (!loading && user && user.role === 'GUARDIAN' && !historyCleared.current) {
+            // Replace the current history state to prevent going back to public pages
+            // This effectively makes the dashboard the "start" of the navigation history
+            if (typeof window !== 'undefined') {
+                // Clear the history by replacing state
+                const fullPath = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+                window.history.replaceState(null, '', fullPath);
+                historyCleared.current = true;
+            }
+        }
+    }, [loading, user, pathname, searchParams]);
+
+    // Handle popstate (back button) to prevent navigation to public pages
+    useEffect(() => {
+        if (!loading && user && user.role === 'GUARDIAN') {
+            const handlePopState = () => {
+                // If user tries to navigate back to a public page, redirect to dashboard
+                const currentPath = window.location.pathname;
+                if (publicPaths.some(p => currentPath === p || currentPath.startsWith(p + '/'))) {
+                    router.replace('/dashboard/guardian');
+                }
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }
+    }, [loading, user, router]);
 
     useEffect(() => {
         if (!loading) {
@@ -64,7 +107,7 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
+            <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
             </div>
         );
@@ -85,15 +128,15 @@ export default function GuardianLayout({ children }: { children: React.ReactNode
         // Only show modal for YOUTH_MEMBER role (cross-role access)
         if (user.role === 'YOUTH_MEMBER') {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
-                    <div className="text-center p-8 sm:p-10 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] max-w-md mx-4">
+                <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+                    <div className={`text-center p-8 sm:p-10 rounded-xl border max-w-md mx-4 ${darkMode ? 'bg-[var(--dark-700)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/15 shadow-lg'}`}>
                         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--brand-red)]/20 flex items-center justify-center">
                             <ShieldAlert className="w-8 h-8 text-[var(--brand-red)]" />
                         </div>
-                        <h2 className="text-xl font-bold text-[var(--brand-light)] mb-2">
+                        <h2 className={`text-xl font-bold mb-2 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                             {t('accessDenied')}
                         </h2>
-                        <p className="text-[var(--brand-light)]/60 mb-6">
+                        <p className={`mb-6 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                             {t('guardianAccountRequired')}
                         </p>
                         <button

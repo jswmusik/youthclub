@@ -34,7 +34,7 @@ function ResourceCardSkeleton() {
   return (
     <div className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
       <div className="flex items-start gap-3">
-        <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+        <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-5 w-36" />
           <Skeleton className="h-4 w-48" />
@@ -53,7 +53,7 @@ function ResourceTableRowSkeleton() {
     <tr className="border-b border-[var(--dark-600)]/50">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
+          <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
           <div className="space-y-1">
             <Skeleton className="h-5 w-32" />
             <Skeleton className="h-4 w-24" />
@@ -632,10 +632,10 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                           <img 
                             src={imageUrl} 
                             alt={res.name}
-                            className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                            className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
                             <Package className="h-6 w-6 text-[var(--dark-900)]" />
                           </div>
                         )}
@@ -711,10 +711,10 @@ export default function BookingResourceManager({ basePath, scope }: BookingResou
                               <img 
                                 src={imageUrl} 
                                 alt={res.name}
-                                className="w-10 h-10 rounded-xl object-cover"
+                                className="w-10 h-10 rounded-full object-cover"
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center">
                                 <Package className="h-5 w-5 text-[var(--dark-900)]" />
                               </div>
                             )}

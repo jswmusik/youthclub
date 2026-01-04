@@ -55,6 +55,7 @@ type ReactionType = 'LIKE' | 'LOVE' | 'LAUGH' | 'WOW' | 'SAD' | 'ANGRY';
 interface PostCardProps {
     post: Post;
     darkMode?: boolean;
+    basePath?: 'youth' | 'guardian';
 }
 
 // Helper function to get initials from name
@@ -192,8 +193,13 @@ const REACTION_COLORS: Record<ReactionType, string> = {
     ANGRY: 'text-[#FF5485]',
 };
 
-export default function PostCard({ post, darkMode = false }: PostCardProps) {
+export default function PostCard({ post, darkMode = false, basePath }: PostCardProps) {
     const { user } = useAuth();
+    
+    // Determine the base path based on user role if not explicitly provided
+    const dashboardPath = basePath 
+        ? `/dashboard/${basePath}` 
+        : (user?.role === 'GUARDIAN' ? '/dashboard/guardian' : '/dashboard/youth');
     const router = useRouter();
     const t = useTranslations('posts');
     const tCommon = useTranslations('common');
@@ -541,7 +547,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                     <button
                         onClick={() => {
                             if (isClubPost && post.club) {
-                                router.push(`/dashboard/youth/club/${post.club}`);
+                                router.push(`${dashboardPath}/club/${post.club}`);
                             }
                         }}
                         className={isClubPost ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
@@ -569,7 +575,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                 <div className="flex-1">
                     {isClubPost && post.club ? (
                         <button
-                            onClick={() => router.push(`/dashboard/youth/club/${post.club}`)}
+                            onClick={() => router.push(`${dashboardPath}/club/${post.club}`)}
                             className="text-left hover:opacity-80 transition-opacity"
                         >
                             <h4 className={`font-bold ${darkMode ? 'text-[var(--brand-light)] hover:text-[var(--brand-primary)]' : 'text-gray-800 hover:text-[#6D6DD4]'}`}>{displayName}</h4>
@@ -630,7 +636,7 @@ export default function PostCard({ post, darkMode = false }: PostCardProps) {
                         </div>
                         {groupId && (
                             <button
-                                onClick={() => router.push(`/dashboard/youth/groups/${groupId}`)}
+                                onClick={() => router.push(`${dashboardPath}/groups/${groupId}`)}
                                 className={`px-4 py-2 ${darkMode ? 'bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/80 text-[var(--dark-900)]' : 'bg-[#4D4DA4] hover:bg-[#5D5DB4] text-white shadow-lg shadow-[#4D4DA4]/20'} font-semibold rounded-lg transition-colors whitespace-nowrap flex-shrink-0`}
                             >
                                 {t('viewGroup')}

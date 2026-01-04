@@ -3,8 +3,8 @@ export const locales = ['en', 'sv', 'da', 'nb', 'fi', 'ar', 'so', 'prs'] as cons
 
 export type Locale = (typeof locales)[number];
 
-// Default locale (English)
-export const defaultLocale: Locale = 'en';
+// Default locale (Swedish)
+export const defaultLocale: Locale = 'sv';
 
 // RTL languages
 export const rtlLocales: Locale[] = ['ar', 'prs'];

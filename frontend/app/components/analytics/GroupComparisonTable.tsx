@@ -43,8 +43,8 @@ export default function GroupComparisonTable({ data }: Props) {
         className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-[var(--dark-700)]/30 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[#38BDF8] flex items-center justify-center shadow-lg shadow-[var(--brand-blue)]/20">
-            <UsersRound className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center shadow-lg shadow-[var(--brand-blue)]/20">
+            <UsersRound className="w-5 h-5 text-[var(--dark-900)]" />
           </div>
           <div className="text-left">
             <h3 className="font-semibold text-[var(--brand-light)]">{t('title')}</h3>

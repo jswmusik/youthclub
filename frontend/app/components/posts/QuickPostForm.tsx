@@ -70,6 +70,82 @@ const ICON_MAP: Record<string, React.ReactNode> = {
     'ROCKET': <Rocket className="w-5 h-5" />,
 };
 
+// Helper function to generate translated target summary
+const getTranslatedTargetSummary = (template: PostTemplate, t: (key: string, params?: Record<string, string | number>) => string): string => {
+    const parts: string[] = [];
+    
+    // Distribution
+    if (template.is_global) {
+        parts.push(t('templateSettings.summaries.global'));
+    } else if (template.target_municipalities && template.target_municipalities.length > 0) {
+        const count = template.target_municipalities.length;
+        parts.push(t(count > 1 ? 'templateSettings.summaries.municipalities' : 'templateSettings.summaries.municipality', { count }));
+    } else if (template.target_clubs && template.target_clubs.length > 0) {
+        const count = template.target_clubs.length;
+        parts.push(t(count > 1 ? 'templateSettings.summaries.clubs' : 'templateSettings.summaries.club', { count }));
+    }
+    
+    // Member type
+    if (template.target_member_type === 'YOUTH') {
+        parts.push(t('templateSettings.summaries.youthOnly'));
+    } else if (template.target_member_type === 'GUARDIAN') {
+        parts.push(t('templateSettings.summaries.guardiansOnly'));
+    }
+    
+    // Age range
+    if (template.target_min_age || template.target_max_age) {
+        if (template.target_min_age && template.target_max_age) {
+            parts.push(t('templateSettings.summaries.ages', { min: template.target_min_age, max: template.target_max_age }));
+        } else if (template.target_min_age) {
+            parts.push(t('templateSettings.summaries.agesMin', { min: template.target_min_age }));
+        } else if (template.target_max_age) {
+            parts.push(t('templateSettings.summaries.agesMax', { max: template.target_max_age }));
+        }
+    }
+    
+    // Grades
+    if (template.target_grades && template.target_grades.length > 0) {
+        const grades = template.target_grades;
+        if (grades.length > 3) {
+            parts.push(t('templateSettings.summaries.gradesRange', { min: Math.min(...grades), max: Math.max(...grades) }));
+        } else {
+            parts.push(t(grades.length > 1 ? 'templateSettings.summaries.grades' : 'templateSettings.summaries.grade', { grades: grades.join(', ') }));
+        }
+    }
+    
+    // Groups
+    if (template.target_groups && template.target_groups.length > 0) {
+        const count = template.target_groups.length;
+        parts.push(t(count > 1 ? 'templateSettings.summaries.groups' : 'templateSettings.summaries.group', { count }));
+    }
+    
+    return parts.length > 0 ? parts.join(', ') : t('templateSettings.summaries.allMembers');
+};
+
+// Helper function to generate translated settings summary
+const getTranslatedSettingsSummary = (template: PostTemplate, t: (key: string) => string): string => {
+    const parts: string[] = [];
+    
+    if (template.allow_comments) {
+        parts.push(t('templateSettings.summaries.commentsOn'));
+        if (template.require_moderation) {
+            parts.push(t('templateSettings.summaries.moderated'));
+        }
+    } else {
+        parts.push(t('templateSettings.summaries.commentsOff'));
+    }
+    
+    if (template.send_push_notification) {
+        parts.push(t('templateSettings.summaries.pushEnabled'));
+    }
+    
+    if (template.is_pinned_default) {
+        parts.push(t('templateSettings.summaries.pinned'));
+    }
+    
+    return parts.length > 0 ? parts.join(', ') : t('templateSettings.summaries.defaultSettings');
+};
+
 export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -463,7 +539,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                                     <div className="flex items-center gap-2 mt-2">
                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--dark-600)] text-[var(--brand-light)]/60 text-xs">
                                                             <Users className="w-3 h-3" />
-                                                            {template.target_summary}
+                                                            {getTranslatedTargetSummary(template, t)}
                                                         </span>
                                                         <span className="text-xs text-[var(--brand-light)]/40">
                                                             {template.usage_count}× {t('templateSelection.used')}
@@ -780,10 +856,10 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
                                             status === value 
                                                 ? value === 'PUBLISHED' 
-                                                    ? 'bg-[var(--brand-green)] text-[var(--dark-900)]'
+                                                    ? 'bg-transparent bg-[var(--brand-green)]/10 border border-[var(--brand-green)] text-[var(--brand-green)]'
                                                     : value === 'DRAFT'
-                                                        ? 'bg-[var(--brand-blue)] text-white'
-                                                        : 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
+                                                        ? 'bg-transparent bg-[var(--brand-blue)]/10 border border-[var(--brand-blue)] text-[var(--brand-blue)]'
+                                                        : 'bg-transparent bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)] text-[var(--brand-primary)]'
                                                 : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30'
                                         }`}
                                     >
@@ -828,11 +904,11 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="p-3 rounded-xl bg-[var(--dark-700)]">
                                         <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('templateSettings.targetAudience')}</p>
-                                        <p className="text-sm text-[var(--brand-light)]">{selectedTemplate.target_summary}</p>
+                                        <p className="text-sm text-[var(--brand-light)]">{getTranslatedTargetSummary(selectedTemplate, t)}</p>
                                     </div>
                                     <div className="p-3 rounded-xl bg-[var(--dark-700)]">
                                         <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('templateSettings.settings')}</p>
-                                        <p className="text-sm text-[var(--brand-light)]">{selectedTemplate.settings_summary}</p>
+                                        <p className="text-sm text-[var(--brand-light)]">{getTranslatedSettingsSummary(selectedTemplate, t)}</p>
                                     </div>
                                     {selectedTemplate.is_pinned_default && (
                                         <div className="p-3 rounded-xl bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30">
@@ -872,7 +948,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                             type="submit" 
                             disabled={loading || !selectedTemplate || !title.trim()} 
                             className="w-full sm:w-auto px-6 py-2.5 rounded-xl text-sm font-semibold 
-                                     bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-purple)] transition-all
+                                     bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 transition-all
                                      disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading && <Sparkles className="w-4 h-4 animate-pulse" />}

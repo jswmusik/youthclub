@@ -76,8 +76,8 @@ export default function KnowledgeDashboard({ basePath }: Props) {
         return (
             <div className="flex items-center justify-center min-h-[400px] px-4">
                 <div className="text-center">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <GraduationCap className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <GraduationCap className="w-6 h-6 text-[var(--dark-900)]" />
                     </div>
                     <p className="text-[var(--brand-light)]/60">{t('loading')}</p>
                 </div>
@@ -88,43 +88,49 @@ export default function KnowledgeDashboard({ basePath }: Props) {
     return (
         <div className="py-4 sm:py-6 md:py-8 px-0 space-y-8 sm:space-y-12 pb-12">
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-none sm:rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] via-[var(--brand-purple)] to-[var(--brand-peach)] p-6 md:p-8 text-white mx-0 sm:mx-4 md:mx-6">
-                {/* Decorative elements */}
-                <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-72 h-72 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+            <div className="relative overflow-hidden rounded-none sm:rounded-2xl bg-[var(--dark-800)] border-y sm:border border-[var(--dark-600)] p-6 md:p-10 mx-0 sm:mx-4 md:mx-6">
+                {/* Decorative background elements */}
+                <div className="absolute inset-0 overflow-hidden">
+                    <div className="absolute -top-24 -right-24 w-96 h-96 bg-[var(--brand-primary)]/10 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-[var(--brand-purple)]/15 rounded-full blur-3xl"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--brand-primary)]/5 rounded-full blur-3xl"></div>
+                </div>
+                
+                {/* Accent line */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--brand-primary)]"></div>
                 
                 <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
-                            <GraduationCap className="w-6 h-6" />
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-3 bg-[var(--brand-primary)] rounded-xl">
+                            <GraduationCap className="w-6 h-6 text-[var(--dark-900)]" />
                         </div>
-                        <div className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                        <div className="px-3 py-1.5 bg-[var(--brand-purple)]/20 text-[var(--brand-purple)] border border-[var(--brand-purple)]/30 rounded-full text-xs font-semibold flex items-center gap-1.5">
                             <Sparkles className="w-3 h-3" />
                             {t('hero.badge')}
                         </div>
                     </div>
                     
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 leading-tight">
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight text-[var(--brand-light)]">
                         {t('hero.title')}
                         <br />
-                        <span className="text-[var(--brand-third)]">{t('hero.titleHighlight')}</span>
+                        <span className="text-[var(--brand-primary)]">{t('hero.titleHighlight')}</span>
                     </h1>
                     
-                    <p className="text-base md:text-lg text-white/90 max-w-2xl mb-6 leading-relaxed">
+                    <p className="text-base md:text-lg text-[var(--brand-light)]/70 max-w-2xl mb-8 leading-relaxed">
                         {t('hero.description')}
                     </p>
                     
                     <div className="flex flex-wrap gap-4">
                         <Link 
                             href={`${basePath}`}
-                            className="px-6 py-3 rounded-xl bg-white text-[var(--brand-primary)] hover:bg-white/90 font-semibold transition-all flex items-center gap-2"
+                            className="px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/90 font-semibold transition-all flex items-center gap-2 shadow-lg shadow-[var(--brand-primary)]/20 hover:shadow-xl hover:shadow-[var(--brand-primary)]/30"
                         >
                             <BookOpen className="w-5 h-5" />
                             {t('hero.browseAllCourses')}
                         </Link>
                         <Link 
                             href={`${basePath}?filter=recommended`}
-                            className="px-6 py-3 rounded-xl bg-white/10 backdrop-blur-sm text-white border border-white/30 hover:bg-white/20 font-semibold transition-all flex items-center gap-2"
+                            className="px-6 py-3 rounded-xl bg-[var(--dark-700)] text-[var(--brand-light)] border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 hover:text-[var(--brand-primary)] font-semibold transition-all flex items-center gap-2"
                         >
                             <TrendingUp className="w-5 h-5" />
                             {t('hero.recommended')}
@@ -165,8 +171,8 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                 <section className="px-4 sm:px-6 md:px-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                                <TrendingUp className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                                <TrendingUp className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
                                 <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.recommended.title')}</h2>
@@ -192,8 +198,8 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                 <section className="px-4 sm:px-6 md:px-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                <Sparkles className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                <Sparkles className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <div>
                                 <h2 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('sections.latest.title')}</h2>
@@ -264,7 +270,7 @@ export default function KnowledgeDashboard({ basePath }: Props) {
                                                             <div className="mt-1 flex items-center gap-2">
                                                                 <div className="w-16 bg-[var(--dark-600)] rounded-full h-1.5 overflow-hidden">
                                                                     <div 
-                                                                        className="bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] h-full rounded-full transition-all"
+                                                                        className="bg-[var(--brand-primary)] h-full rounded-full transition-all"
                                                                         style={{ width: `${course.user_progress.percent_completed || 0}%` }}
                                                                     />
                                                                 </div>

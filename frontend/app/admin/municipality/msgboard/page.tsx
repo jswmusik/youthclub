@@ -280,10 +280,10 @@ function MunicipalityMessageBoardContent() {
 
   const getTypeIcon = (type: string) => {
     switch(type) {
-      case 'INFO': return <Info className="w-5 h-5 text-white" />;
+      case 'INFO': return <Info className="w-5 h-5 text-[var(--dark-900)]" />;
       case 'IMPORTANT': return <AlertCircle className="w-5 h-5 text-[var(--dark-900)]" />;
-      case 'WARNING': return <AlertTriangle className="w-5 h-5 text-white" />;
-      default: return <MessageSquare className="w-5 h-5 text-white" />;
+      case 'WARNING': return <AlertTriangle className="w-5 h-5 text-[var(--dark-900)]" />;
+      default: return <MessageSquare className="w-5 h-5 text-[var(--dark-900)]" />;
     }
   };
 
@@ -303,8 +303,8 @@ function MunicipalityMessageBoardContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
             </div>
@@ -357,7 +357,7 @@ function MunicipalityMessageBoardContent() {
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-blue)] hover:border-[var(--brand-blue)] transition-all">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
-                    <Info className="h-5 w-5 text-white" />
+                    <Info className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('info')}</span>
                 </div>
@@ -379,7 +379,7 @@ function MunicipalityMessageBoardContent() {
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border-l-4 border-[var(--brand-red)] hover:border-[var(--brand-red)] transition-all">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
-                    <AlertTriangle className="h-5 w-5 text-white" />
+                    <AlertTriangle className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('warning')}</span>
                 </div>
@@ -680,8 +680,8 @@ function LoadingFallback() {
   const t = useTranslations('municipalityAdmin.msgboard');
   return (
     <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-        <MessageSquare className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+        <MessageSquare className="w-6 h-6 text-[var(--dark-900)]" />
       </div>
       <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>

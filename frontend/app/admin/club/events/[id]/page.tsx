@@ -152,7 +152,7 @@ export default function EventDashboardPage() {
                 
                 {/* Navigation Header */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 sm:px-0 mb-6">
-                    <BackButton href={buildBackUrl()} translationKey="backToEvents" />
+                    <BackButton href={buildBackUrl()} translationKey="navigation.backToEvents" />
                     <Link 
                         href={`/admin/club/events/edit/${event.id}`}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all text-sm shadow-lg shadow-[var(--brand-primary)]/20"
@@ -202,9 +202,19 @@ export default function EventDashboardPage() {
                     <div className="relative z-10 px-4 sm:px-6 pb-6 -mt-14 sm:-mt-16">
                         <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6">
                             {/* Icon */}
-                            <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-2xl border-4 border-[var(--dark-800)] shadow-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center overflow-hidden flex-shrink-0">
-                                <CalendarDays className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
-                            </div>
+                            {event.cover_image ? (
+                                <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[var(--dark-800)] shadow-xl overflow-hidden flex-shrink-0">
+                                    <img 
+                                        src={getMediaUrl(event.cover_image)} 
+                                        alt={event.title}
+                                        className="w-full h-full object-cover rounded-full"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="relative z-20 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-[var(--dark-800)] shadow-xl bg-[var(--brand-primary)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    <CalendarDays className="w-12 h-12 sm:w-16 sm:h-16 text-[var(--dark-900)]" />
+                                </div>
+                            )}
 
                             {/* Title & Info */}
                             <div className="flex-1 space-y-2 pt-2">
@@ -239,8 +249,8 @@ export default function EventDashboardPage() {
                             className="w-full px-6 py-4 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                    <BarChart3 className="h-5 w-5 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                    <BarChart3 className="h-5 w-5 text-[var(--dark-900)]" />
                                 </div>
                                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h2>
                             </div>
@@ -299,10 +309,10 @@ export default function EventDashboardPage() {
                                     </div>
 
                                     {/* Target Groups */}
-                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-pink)]/30 hover:border-[var(--brand-pink)]/50 transition-all">
+                                    <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-purple)]/30 hover:border-[var(--brand-purple)]/50 transition-all">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)]/20 flex items-center justify-center">
-                                                <Target className="h-5 w-5 text-[var(--brand-pink)]" />
+                                            <div className="w-10 h-10 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                                                <Target className="h-5 w-5 text-[var(--brand-purple)]" />
                                             </div>
                                             <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('targetGroups')}</span>
                                         </div>
@@ -422,9 +432,9 @@ export default function EventDashboardPage() {
                                                 
                                                 return (
                                                     <div key={reg.id} className="flex items-center gap-4 p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]">
-                                                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                                             {reg.user_detail?.avatar ? (
-                                                                <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-xl" />
+                                                                <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover rounded-full" />
                                                             ) : (
                                                                 <span className="text-white font-bold">
                                                                     {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}

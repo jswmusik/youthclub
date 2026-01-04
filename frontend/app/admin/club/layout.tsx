@@ -700,7 +700,7 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
 
   return (
     <RoleGuard allowedRoles={['CLUB_ADMIN']}>
-      <div className="flex min-h-screen bg-[var(--dark-900)]">
+      <div className="flex min-h-screen bg-[var(--dark-900)]" data-admin="true">
         {/* Background Glow Effect */}
         <BackgroundGlow variant="admin" />
         

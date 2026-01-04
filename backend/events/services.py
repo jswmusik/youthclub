@@ -147,6 +147,7 @@ def generate_recurring_events(master_event):
             target_max_age=master_event.target_max_age,
             target_grades=master_event.target_grades,
             
+            registration_mode=master_event.registration_mode,
             allow_registration=master_event.allow_registration,
             requires_verified_account=master_event.requires_verified_account,
             requires_guardian_approval=master_event.requires_guardian_approval,
@@ -331,11 +332,20 @@ def register_user_for_event(user, event):
     """
     Handles the registration logic state machine.
     Determines if user goes to APPROVED, WAITLIST, PENDING_GUARDIAN, or PENDING_ADMIN.
+    
+    Registration modes:
+    - OPEN: No registration needed (this function shouldn't be called)
+    - FIRST_COME: Automatic spot assignment based on capacity
+    - MANUAL_APPROVAL: All applications go to PENDING_ADMIN for admin to manually approve
     """
     
     # 1. Basic Validation
     if event.status != Event.Status.PUBLISHED:
         raise ValidationError("Event is not open for registration.")
+    
+    # Check if event is in OPEN mode (no registration needed)
+    if event.registration_mode == Event.RegistrationMode.OPEN:
+        raise ValidationError("This event does not require registration.")
     
     if event.registration_open_date and timezone.now() < event.registration_open_date:
         raise ValidationError("Registration has not opened yet.")
@@ -351,25 +361,36 @@ def register_user_for_event(user, event):
     # Check for cancelled registration that we can reuse
     cancelled_reg = EventRegistration.objects.filter(user=user, event=event, status=EventRegistration.Status.CANCELLED).first()
 
-    # 2. Determine Initial Status
+    # 2. Determine Initial Status based on Registration Mode
     initial_status = None
 
-    # Priority 1: Guardian Approval Required
-    if event.requires_guardian_approval:
-        initial_status = EventRegistration.Status.PENDING_GUARDIAN
-    
-    # Priority 2: Admin Approval Required (Only if Guardian isn't blocking it)
-    elif event.requires_admin_approval:
-        initial_status = EventRegistration.Status.PENDING_ADMIN
-    
-    # Priority 3: Automatic Assignment based on Capacity
-    else:
-        if not event.is_full:
-            initial_status = EventRegistration.Status.APPROVED
-        elif event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
-            initial_status = EventRegistration.Status.WAITLIST
+    # MANUAL_APPROVAL mode: All applications go to PENDING_ADMIN
+    # Admin will manually select who gets a spot
+    if event.registration_mode == Event.RegistrationMode.MANUAL_APPROVAL:
+        # Guardian approval still takes priority if enabled
+        if event.requires_guardian_approval:
+            initial_status = EventRegistration.Status.PENDING_GUARDIAN
         else:
-            raise ValidationError("Event is full and waitlist is at capacity.")
+            initial_status = EventRegistration.Status.PENDING_ADMIN
+    
+    # FIRST_COME mode: Automatic assignment based on capacity
+    else:
+        # Priority 1: Guardian Approval Required
+        if event.requires_guardian_approval:
+            initial_status = EventRegistration.Status.PENDING_GUARDIAN
+        
+        # Priority 2: Admin Approval Required (legacy flag, still supported)
+        elif event.requires_admin_approval:
+            initial_status = EventRegistration.Status.PENDING_ADMIN
+        
+        # Priority 3: Automatic Assignment based on Capacity
+        else:
+            if not event.is_full:
+                initial_status = EventRegistration.Status.APPROVED
+            elif event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
+                initial_status = EventRegistration.Status.WAITLIST
+            else:
+                raise ValidationError("Event is full and waitlist is at capacity.")
 
     # 3. Create or Update Registration Transactionally
     with transaction.atomic():

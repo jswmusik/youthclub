@@ -127,13 +127,14 @@ def announce_new_group(sender, instance, created, **kwargs):
     # to avoid duplicate notifications
 
 
-# 5. Clean up announcement posts when a group is deleted
+# 5. Clean up announcement posts and notifications when a group is deleted
 @receiver(pre_delete, sender=Group)
 def delete_group_announcement_posts(sender, instance, **kwargs):
     """
     When a group is deleted:
     1. Delete the announcement post that was created for it (identified by title pattern)
     2. Remove the group from any posts that target it (via target_groups M2M)
+    3. Delete notifications that reference this group
     """
     # 1. Find and delete announcement posts with titles matching the group announcement pattern
     announcement_posts = Post.objects.filter(
@@ -151,6 +152,11 @@ def delete_group_announcement_posts(sender, instance, **kwargs):
     posts_targeting_group = Post.objects.filter(target_groups=instance)
     for post in posts_targeting_group:
         post.target_groups.remove(instance)
+    
+    # 3. Delete notifications that reference this group (via action_url)
+    Notification.objects.filter(
+        action_url__icontains=f"/groups/{instance.id}"
+    ).delete()
 
 
 # --- NEW SIGNALS FOR MEMBERSHIP NOTIFICATIONS ---

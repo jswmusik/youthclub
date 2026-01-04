@@ -463,7 +463,7 @@ export default function CustomFieldForm({ initialData, redirectPath, scope }: Cu
                   <button
                     type="button"
                     onClick={addOption}
-                    className="px-4 h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-white font-medium transition-all flex items-center gap-2"
+                    className="px-4 h-11 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-medium transition-all flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">{t('options.add')}</span>

@@ -329,8 +329,6 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
       title: t('groups.settingsAndConfiguration'),
       icon: Wrench,
       items: [
-        // Municipality Settings is always visible
-        { name: t('items.municipalitySettings'), href: '/admin/municipality/settings', icon: Settings },
         // Filter individual items inside Settings
         ...(hasFeature('messenger') ? [{ name: t('items.messageBoard'), href: '/admin/municipality/msgboard', showBadge: true, icon: MessageCircle }] : []),
         ...(hasFeature('custom_fields') ? [{ name: t('items.customFields'), href: '/admin/municipality/custom-fields', icon: Wrench }] : []),
@@ -707,7 +705,7 @@ export default function MunicipalityAdminLayout({ children }: { children: React.
 
   return (
     <RoleGuard allowedRoles={['MUNICIPALITY_ADMIN']}>
-      <div className="flex min-h-screen bg-[var(--dark-900)]">
+      <div className="flex min-h-screen bg-[var(--dark-900)]" data-admin="true">
         {/* Background Glow Effect */}
         <BackgroundGlow variant="admin" />
         

@@ -241,7 +241,7 @@ export default function ClubDetailsPage() {
         {/* Tab Content */}
         <div className="max-w-6xl mx-auto px-0 sm:px-4 md:px-6 py-6">
           {activeTab === 'overview' && club && (
-            <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={darkMode} />
+            <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={darkMode} basePath="youth" />
           )}
           
           {activeTab === 'groups' && club && (

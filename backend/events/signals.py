@@ -1,7 +1,22 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
-from .models import EventRegistration, EventTicket
+from .models import Event, EventRegistration, EventTicket
+from notifications.models import Notification
 from notifications.services import send_notification
+
+
+@receiver(pre_delete, sender=Event)
+def cleanup_event_notifications(sender, instance, **kwargs):
+    """
+    Delete all notifications related to this event when it is deleted.
+    This prevents users from clicking on notifications that point to deleted events.
+    """
+    event = instance
+    
+    # Delete notifications that reference this event (via action_url)
+    Notification.objects.filter(
+        action_url__icontains=f"/events/{event.id}"
+    ).delete()
 
 
 @receiver(post_save, sender=EventRegistration)

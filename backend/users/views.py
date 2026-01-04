@@ -892,6 +892,7 @@ class CheckGuardianView(APIView):
     """
     Checks if a guardian email exists.
     Returns { "exists": true/false }
+    Only matches users with the GUARDIAN role.
     """
     permission_classes = [permissions.AllowAny]
     authentication_classes = ()  # Skip authentication entirely for public endpoint (use tuple)
@@ -901,8 +902,8 @@ class CheckGuardianView(APIView):
         if not email:
             return Response({"exists": False})
         
-        # Check if a user with this email exists (any role, but usually guardians)
-        exists = User.objects.filter(email=email).exists()
+        # Check if a user with this email exists AND has the GUARDIAN role
+        exists = User.objects.filter(email=email, role=User.Role.GUARDIAN).exists()
         return Response({"exists": exists})
 
 

@@ -20,7 +20,6 @@ import {
     Bell, 
     MoreVertical,
     Settings,
-    HelpCircle,
     LogOut,
     ArrowLeft,
     Home,
@@ -57,7 +56,8 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode:
         setMounted(true);
     }, []);
     
-    const darkMode = !mounted || theme === 'dark';
+    // Use theme directly for navbar visibility, default to light mode for initial render
+    const darkMode = theme === 'dark';
 
     const handleLogout = () => {
         logout();
@@ -185,7 +185,7 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode:
                                 className="flex-shrink-0 h-8 sm:h-10 flex items-center hover:opacity-80 transition-opacity active:scale-95"
                             >
                                 <img 
-                                    src="/ua-logo-2026.svg" 
+                                    src={darkMode ? "/ua-logo-2026.svg" : "/ua-logo.svg"} 
                                     alt="Ungdomsappen Logo" 
                                     className={`h-full w-auto object-contain ${darkMode ? 'brightness-0 invert' : ''}`}
                                 />
@@ -395,20 +395,6 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode:
                                             >
                                                 <Settings className="w-5 h-5" />
                                                 <span className="font-medium">{t('settings')}</span>
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    router.push('/dashboard/youth/help');
-                                                    setShowMenu(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
-                                                    darkMode
-                                                        ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)]'
-                                                        : 'text-gray-700 hover:bg-gray-100'
-                                                }`}
-                                            >
-                                                <HelpCircle className="w-5 h-5" />
-                                                <span className="font-medium">{t('help')}</span>
                                             </button>
                                             <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`} />
                                             <button

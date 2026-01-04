@@ -11,7 +11,9 @@ import {
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import ConfirmationModal from './ConfirmationModal';
+import SelfDeletionModal from './SelfDeletionModal';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../context/AuthContext';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -247,6 +249,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { user: currentUser } = useAuth();
   
   const [allAdmins, setAllAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -262,6 +265,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
   
   // Delete
   const [adminToDelete, setAdminToDelete] = useState<any>(null);
+  const [showSelfDeletionModal, setShowSelfDeletionModal] = useState(false);
   const { success, error, info, warning } = useToast();
 
   // Filter State
@@ -453,6 +457,19 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
     return queryString ? `${path}?${queryString}` : path;
   };
 
+  // Check if admin is trying to delete themselves
+  const isSelfDeletion = (admin: any) => {
+    if (!currentUser || !admin) return false;
+    return currentUser.id === admin.id;
+  };
+
+  const handleDeleteClick = (admin: any) => {
+    setAdminToDelete(admin);
+    if (isSelfDeletion(admin)) {
+      setShowSelfDeletionModal(true);
+    }
+  };
+
   const handleDelete = async () => {
     if (!adminToDelete) return;
     try {
@@ -463,7 +480,13 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       error(t('toast.failedToDeleteAdmin'));
     } finally {
       setAdminToDelete(null);
+      setShowSelfDeletionModal(false);
     }
+  };
+
+  const handleSelfDeletionConfirm = async () => {
+    if (!adminToDelete) return;
+    await handleDelete();
   };
 
   const getRoleBadgeClasses = (role: string) => {
@@ -559,8 +582,8 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
           </div>
@@ -582,8 +605,8 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
             className="w-full flex items-center justify-between px-4 sm:px-6 py-4 hover:bg-[var(--dark-700)]/30 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                <BarChart3 className="h-4 w-4 text-[var(--brand-purple)]" />
+              <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)] flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 text-[var(--dark-900)]" />
               </div>
               <h3 className="text-sm font-semibold text-[var(--brand-light)]">{t('analyticsDashboard')}</h3>
             </div>
@@ -602,7 +625,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+                    <Users className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.total')}</span>
                 </div>
@@ -614,7 +637,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-red)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-red)] flex items-center justify-center">
-                      <ShieldCheck className="h-5 w-5 text-white" />
+                      <ShieldCheck className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.super')}</span>
                   </div>
@@ -627,7 +650,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
-                      <Building className="h-5 w-5 text-white" />
+                      <Building className="h-5 w-5 text-[var(--dark-900)]" />
                     </div>
                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('stats.municipality')}</span>
                   </div>
@@ -771,7 +794,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                 key={user.id}
                 onClick={() => router.push(buildUrlWithParams(`${basePath}/${user.id}`))}
                 onEdit={() => router.push(buildUrlWithParams(`${basePath}/edit/${user.id}`))}
-                onDelete={() => setAdminToDelete(user)}
+                onDelete={() => handleDeleteClick(user)}
               >
                 <div className="border-y border-[var(--dark-600)] p-4">
                   <div className="flex items-start gap-3">
@@ -858,7 +881,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
                           </button>
                         </Link>
                         <button 
-                          onClick={() => setAdminToDelete(user)}
+                          onClick={() => handleDeleteClick(user)}
                           className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--brand-light)]/50 hover:text-[var(--brand-red)] hover:bg-[var(--brand-red)]/10 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -898,7 +921,7 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
 
       {/* Modals */}
       <ConfirmationModal 
-        isVisible={!!adminToDelete}
+        isVisible={!!adminToDelete && !showSelfDeletionModal}
         onClose={() => setAdminToDelete(null)}
         onConfirm={handleDelete}
         title={t('deleteModal.title')}
@@ -906,6 +929,17 @@ export default function AdminManager({ basePath, scope }: AdminManagerProps) {
         confirmButtonText={t('deleteModal.delete')}
         cancelButtonText={t('deleteModal.cancel')}
         variant="danger"
+        darkMode={true}
+      />
+      
+      <SelfDeletionModal
+        isVisible={showSelfDeletionModal && !!adminToDelete}
+        onClose={() => {
+          setShowSelfDeletionModal(false);
+          setAdminToDelete(null);
+        }}
+        onConfirm={handleSelfDeletionConfirm}
+        adminName={adminToDelete ? `${adminToDelete.first_name} ${adminToDelete.last_name}` : undefined}
         darkMode={true}
       />
       </div>

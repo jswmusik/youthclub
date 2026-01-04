@@ -58,7 +58,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                 <div className={`w-20 h-20 rounded-2xl overflow-hidden shrink-0 ${
                     darkMode 
                         ? 'bg-[var(--dark-600)] border-2 border-[var(--dark-400)]' 
-                        : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10 border-2 border-[#4D4DA4]/20 shadow-sm'
+                        : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[var(--brand-primary)]/10 border-2 border-[#4D4DA4]/20 shadow-sm'
                 }`}>
                     {guardian.avatar ? (
                         <img 
@@ -87,7 +87,7 @@ export default function GuardianCard({ link, onView, onRemove, darkMode = false 
                     {guardian.first_name} {guardian.last_name}
                 </h3>
                 <p className={`text-sm font-bold capitalize mb-2 flex items-center gap-1 ${
-                    darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+                    darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'
                 }`}>
                     <Shield className="w-4 h-4" />
                     {getRelationshipLabel(relationship_type)}

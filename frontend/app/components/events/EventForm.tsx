@@ -6,7 +6,7 @@ import { ArrowLeft, Upload, X, FileText, Search, Calendar, MapPin, Users, Clock,
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import api from '@/lib/api';
-import { Event, EventStatus, TargetAudience } from '@/types/event';
+import { Event, EventStatus, TargetAudience, RegistrationMode } from '@/types/event';
 import { useAuth } from '@/context/AuthContext';
 import { getMediaUrl } from '@/app/utils';
 import DarkRichTextEditor from '@/app/components/DarkRichTextEditor';
@@ -109,6 +109,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
         is_map_visible: true, // Default true
         max_seats: 0,
         max_waitlist: 0,
+        registration_mode: RegistrationMode.FIRST_COME,
         allow_registration: true,
         requires_guardian_approval: false,
         requires_admin_approval: false,
@@ -2386,9 +2387,9 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             
                             {/* Selected Interests Display */}
                             {selectedInterests.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[var(--brand-primary)]/10 rounded-xl border border-[var(--brand-primary)]/30">
+                                <div className="flex flex-wrap gap-2 mb-3 p-3 bg-[var(--brand-purple)]/10 rounded-xl border border-[var(--brand-purple)]/30">
                                     {selectedInterests.map(interest => (
-                                        <span key={interest.id} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium">
+                                        <span key={interest.id} className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-[var(--dark-900)] text-sm font-medium">
                                             {interest.name}
                                             <button
                                                 type="button"
@@ -2396,7 +2397,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                                 className="ml-1.5 hover:opacity-75 rounded-full p-0.5 transition-opacity"
                                                 aria-label={`Remove ${interest.name}`}
                                             >
-                                                <X className="w-3 h-3" />
+                                                <X className="w-3 h-3 text-[var(--dark-900)]" />
                                             </button>
                                         </span>
                                     ))}
@@ -2578,18 +2579,80 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                     </div>
                 </div>
                 <div className="p-6">
-                    <div className="flex items-center gap-2 mb-6">
-                        <input 
-                            type="checkbox" 
-                            id="allowReg"
-                            className={checkboxClasses}
-                            checked={formData.allow_registration}
-                            onChange={e => handleChange('allow_registration', e.target.checked)}
-                        />
-                        <label htmlFor="allowReg" className="font-bold cursor-pointer text-[var(--brand-light)]">{t('sections.registration.enableRegistration')}</label>
+                    {/* Registration Mode Selector */}
+                    <div className="space-y-4 mb-6">
+                        <label className={labelClasses}>{t('sections.registration.registrationMode')}</label>
+                        <div className="grid grid-cols-1 gap-3">
+                            {/* Open Event - No Registration */}
+                            <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                                formData.registration_mode === RegistrationMode.OPEN
+                                    ? 'bg-[var(--brand-green)]/10 border-[var(--brand-green)]' 
+                                    : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                            }`}>
+                                <input 
+                                    type="radio" 
+                                    name="registrationMode"
+                                    checked={formData.registration_mode === RegistrationMode.OPEN}
+                                    onChange={() => {
+                                        handleChange('registration_mode', RegistrationMode.OPEN);
+                                        handleChange('allow_registration', false);
+                                    }}
+                                    className="mt-1 accent-[var(--brand-green)]"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-semibold text-[var(--brand-light)]">{t('sections.registration.modes.open')}</div>
+                                    <div className="text-sm text-[var(--brand-light)]/50">{t('sections.registration.modes.openDescription')}</div>
+                                </div>
+                            </label>
+                            
+                            {/* First Come First Served */}
+                            <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                                formData.registration_mode === RegistrationMode.FIRST_COME
+                                    ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]' 
+                                    : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                            }`}>
+                                <input 
+                                    type="radio" 
+                                    name="registrationMode"
+                                    checked={formData.registration_mode === RegistrationMode.FIRST_COME}
+                                    onChange={() => {
+                                        handleChange('registration_mode', RegistrationMode.FIRST_COME);
+                                        handleChange('allow_registration', true);
+                                    }}
+                                    className="mt-1 accent-[var(--brand-primary)]"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-semibold text-[var(--brand-light)]">{t('sections.registration.modes.firstCome')}</div>
+                                    <div className="text-sm text-[var(--brand-light)]/50">{t('sections.registration.modes.firstComeDescription')}</div>
+                                </div>
+                            </label>
+                            
+                            {/* Manual Approval */}
+                            <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                                formData.registration_mode === RegistrationMode.MANUAL_APPROVAL
+                                    ? 'bg-[var(--brand-purple)]/10 border-[var(--brand-purple)]' 
+                                    : 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--dark-400)]'
+                            }`}>
+                                <input 
+                                    type="radio" 
+                                    name="registrationMode"
+                                    checked={formData.registration_mode === RegistrationMode.MANUAL_APPROVAL}
+                                    onChange={() => {
+                                        handleChange('registration_mode', RegistrationMode.MANUAL_APPROVAL);
+                                        handleChange('allow_registration', true);
+                                    }}
+                                    className="mt-1 accent-[var(--brand-purple)]"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-semibold text-[var(--brand-light)]">{t('sections.registration.modes.manualApproval')}</div>
+                                    <div className="text-sm text-[var(--brand-light)]/50">{t('sections.registration.modes.manualApprovalDescription')}</div>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
-                    {formData.allow_registration && (
+                    {/* Show capacity settings only for First Come First Served mode */}
+                    {formData.registration_mode === RegistrationMode.FIRST_COME && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -2612,7 +2675,12 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                     />
                                 </div>
                             </div>
+                        </div>
+                    )}
 
+                    {/* Show additional settings for both FIRST_COME and MANUAL_APPROVAL modes */}
+                    {formData.registration_mode !== RegistrationMode.OPEN && (
+                        <div className="space-y-6 mt-6">
                             <div className="space-y-2">
                                 <label className={labelClasses}>{t('sections.registration.registrationCloses')}</label>
                                 <input 
@@ -2635,7 +2703,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                             </div>
 
                             <div className="space-y-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
-                                <h4 className="font-bold text-sm text-[var(--brand-light)]">{t('sections.registration.approvalRules')}</h4>
+                                <h4 className="font-bold text-sm text-[var(--brand-light)]">{t('sections.registration.additionalOptions')}</h4>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
                                         type="checkbox" 
@@ -2644,15 +2712,6 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
                                         className={checkboxClasses}
                                     />
                                     <span className="text-sm text-[var(--brand-light)]/80">{t('sections.registration.requiresGuardianApproval')}</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={formData.requires_admin_approval} 
-                                        onChange={e => handleChange('requires_admin_approval', e.target.checked)}
-                                        className={checkboxClasses}
-                                    />
-                                    <span className="text-sm text-[var(--brand-light)]/80">{t('sections.registration.requiresAdminApproval')}</span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input 
@@ -2670,7 +2729,7 @@ export default function EventForm({ initialData, scope }: EventFormProps) {
             </div>
 
             {/* Section 8: Custom Fields for Registration */}
-            {availableCustomFields.length > 0 && formData.allow_registration && (
+            {availableCustomFields.length > 0 && formData.registration_mode !== RegistrationMode.OPEN && (
                 <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)]">
                     <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50 sm:rounded-t-2xl">
                         <div className="flex items-center gap-3">

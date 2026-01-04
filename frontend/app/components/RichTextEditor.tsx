@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
 import { learningApi } from '@/lib/learning-api';
@@ -36,9 +36,59 @@ export default function RichTextEditor({
   minHeight = "300px"
 }: EditorProps) {
   const quillRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Support both 'value' and 'content' props for backwards compatibility
   const editorValue = value ?? content ?? '';
+
+  // Handle Tab key to allow escaping from editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow Tab to escape from editor (don't trap focus)
+      if (e.key === 'Tab') {
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          // Stop the event from reaching Quill
+          e.stopPropagation();
+          // Blur the editor to allow tab navigation
+          quill.blur();
+          // Focus the next/previous element manually
+          const focusableElements = document.querySelectorAll(
+            'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          const focusableArray = Array.from(focusableElements);
+          const currentIndex = focusableArray.findIndex(el => el.contains(document.activeElement) || el === document.activeElement);
+          
+          if (e.shiftKey) {
+            // Shift+Tab: go to previous
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : focusableArray.length - 1;
+            (focusableArray[prevIndex] as HTMLElement)?.focus();
+          } else {
+            // Tab: go to next
+            const nextIndex = currentIndex < focusableArray.length - 1 ? currentIndex + 1 : 0;
+            (focusableArray[nextIndex] as HTMLElement)?.focus();
+          }
+          e.preventDefault();
+        }
+      }
+      // Also allow Escape to blur the editor
+      if (e.key === 'Escape') {
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          quill.blur();
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      // Use capture phase to intercept before Quill handles it
+      container.addEventListener('keydown', handleKeyDown, true);
+      return () => {
+        container.removeEventListener('keydown', handleKeyDown, true);
+      };
+    }
+  }, []);
 
   const uploadImageFile = async (file: File, index: number) => {
     const quill = quillRef.current?.getEditor();
@@ -142,11 +192,19 @@ export default function RichTextEditor({
           return delta;
         }]
       ]
+    },
+    // Disable Tab key for indentation to allow form navigation
+    keyboard: {
+      bindings: {
+        // Override the default tab binding to allow escaping the editor
+        tab: false,
+        'indent': false
+      }
     }
   }), []);
 
   return (
-    <div className="cms-rich-editor">
+    <div className="cms-rich-editor" ref={containerRef}>
       <ReactQuill 
         ref={quillRef}
         theme="snow" 

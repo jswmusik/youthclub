@@ -444,7 +444,7 @@ export default function LicenseManagementPage() {
         <style>{`
           .licenses-tabs [data-slot="tabs-trigger"][data-state="active"] {
             background-color: var(--brand-primary) !important;
-            color: #111 !important;
+            color: #fff !important;
             font-weight: 600 !important;
           }
         `}</style>
@@ -560,7 +560,7 @@ export default function LicenseManagementPage() {
                           </TableCell>
                           <TableCell>
                             {license.is_active ? (
-                              <span className="inline-flex items-center justify-center rounded-full border border-transparent px-2 py-0.5 text-xs font-semibold bg-[var(--brand-primary)] text-[#111]">
+                              <span className="inline-flex items-center justify-center rounded-full border border-[var(--brand-primary)] px-2 py-0.5 text-xs font-semibold bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
                                 {t('licensesTab.active')}
                               </span>
                             ) : (

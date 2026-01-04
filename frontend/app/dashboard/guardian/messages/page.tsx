@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import MessengerManager from '../../../components/messenger/MessengerManager';
 import GuardianNavBar from '../../../components/guardian/GuardianNavBar';
 import GuardianSidebar from '../../../components/guardian/GuardianSidebar';
@@ -14,10 +15,18 @@ const MIN_LOADING_TIME = 400;
 
 export default function GuardianMessagesPage() {
     const pathname = usePathname();
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSkeleton, setShowSkeleton] = useState(true);
     const t = useTranslations('messages');
     const tSidebar = useTranslations('sidebar');
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    
+    const darkMode = !mounted || theme === 'dark';
     
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -28,9 +37,9 @@ export default function GuardianMessagesPage() {
     }, []);
     
     return (
-        <div className="min-h-screen bg-[var(--dark-900)]" style={{ overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
+        <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`} style={{ overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
             <GuardianNavBar 
-                darkMode={true} 
+                darkMode={darkMode} 
                 onMenuToggle={() => setIsSidebarOpen(true)} 
             />
             
@@ -44,21 +53,21 @@ export default function GuardianMessagesPage() {
             
             {/* Mobile Sidebar */}
             <aside 
-                className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                     isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+                } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
             >
-                <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-[var(--dark-500)]">
+                <div className={`flex items-center justify-between h-14 sm:h-16 px-4 border-b ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/10'}`}>
                     <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                     <button
                         onClick={() => setIsSidebarOpen(false)}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl text-[var(--brand-light)] hover:bg-[var(--dark-600)]"
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl ${darkMode ? 'text-[var(--brand-light)] hover:bg-[var(--dark-600)]' : 'text-gray-600 hover:bg-gray-100'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-                    <GuardianSidebar darkMode />
+                    <GuardianSidebar />
                 </div>
             </aside>
             
@@ -66,8 +75,8 @@ export default function GuardianMessagesPage() {
             <div className="pt-12 sm:pt-16 md:px-6 lg:px-8" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                 {/* Mobile: Hide title when in conversation view, Desktop: Always show */}
                 <div className="mb-6 sm:mb-8 pt-4 sm:pt-6 px-2 sm:px-4 md:px-0 hidden md:block md:max-w-6xl lg:max-w-7xl md:mx-auto">
-                    <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)] font-heading">{t('myMessages')}</h1>
-                    <p className="text-xs sm:text-sm text-[var(--brand-light)]/60">{t('guardianMessagesDesc') || t('chatWithStaff')}</p>
+                    <h1 className={`text-xl sm:text-2xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('myMessages')}</h1>
+                    <p className={`text-xs sm:text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>{t('guardianMessagesDesc') || t('chatWithStaff')}</p>
                 </div>
 
                 {/* Mobile: Full height minus navbar, Desktop: Fixed height */}
@@ -75,7 +84,7 @@ export default function GuardianMessagesPage() {
                     {showSkeleton ? (
                         <MessagesPageSkeleton />
                     ) : (
-                        <MessengerManager role="GUARDIAN" darkMode={true} />
+                        <MessengerManager role="GUARDIAN" darkMode={darkMode} />
                     )}
                 </div>
             </div>

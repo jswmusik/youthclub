@@ -118,7 +118,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
             : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
         }`}>
           <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading ${
-            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+            darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'
           }`}>
             <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-third)]' : 'bg-[#10B981]'}`}></span>
             {t('childrenClubMembership') || "Children's Memberships"}
@@ -181,7 +181,7 @@ export default function GuardianClubs({ user, childrenData, darkMode = false }: 
             <Link 
               href="/dashboard/guardian/clubs" 
               className={`text-xs font-bold flex items-center gap-1 ${
-                darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[#FF5485] hover:text-[#4D4DA4]'
+                darkMode ? 'text-[var(--brand-primary)] hover:text-[var(--brand-purple)]' : 'text-[var(--brand-primary)] hover:text-[#4D4DA4]'
               }`}
             >
               {t('findMore') || 'Find More'}

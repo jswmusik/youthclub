@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -30,14 +30,106 @@ export default function PostRichTextEditor({
   minHeight = "150px"
 }: PostRichTextEditorProps) {
   const quillRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Handle Tab key to allow escaping from editor
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow Tab to escape from editor (don't trap focus)
+      if (e.key === 'Tab') {
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          // Stop the event from reaching Quill
+          e.stopPropagation();
+          // Blur the editor to allow tab navigation
+          quill.blur();
+          // Focus the next/previous element manually
+          const focusableElements = document.querySelectorAll(
+            'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          );
+          const focusableArray = Array.from(focusableElements);
+          const currentIndex = focusableArray.findIndex(el => el.contains(document.activeElement) || el === document.activeElement);
+          
+          if (e.shiftKey) {
+            // Shift+Tab: go to previous
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : focusableArray.length - 1;
+            (focusableArray[prevIndex] as HTMLElement)?.focus();
+          } else {
+            // Tab: go to next
+            const nextIndex = currentIndex < focusableArray.length - 1 ? currentIndex + 1 : 0;
+            (focusableArray[nextIndex] as HTMLElement)?.focus();
+          }
+          e.preventDefault();
+        }
+      }
+      // Also allow Escape to blur the editor
+      if (e.key === 'Escape') {
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          quill.blur();
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      // Use capture phase to intercept before Quill handles it
+      container.addEventListener('keydown', handleKeyDown, true);
+      return () => {
+        container.removeEventListener('keydown', handleKeyDown, true);
+      };
+    }
+  }, []);
+
+  // Register custom icon for the clean formatting button
+  useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const Quill = require('react-quill-new').Quill;
+      const icons = Quill.import('ui/icons');
+      icons['clean-formatting'] = `<svg viewBox="0 0 18 18">
+        <line class="ql-stroke" x1="5" y1="3" x2="13" y2="11"></line>
+        <line class="ql-stroke" x1="13" y1="3" x2="5" y2="11"></line>
+        <path class="ql-stroke" d="M3,13 L6,16 M12,13 L15,16"></path>
+      </svg>`;
+    }
+  }, []);
 
   // Simplified toolbar: only text formatting and links
   const modules = useMemo(() => ({
-    toolbar: [
-      ['bold', 'italic', 'underline', 'strike'],
-      ['link']
-    ],
-  }), []);
+    toolbar: {
+      container: [
+        ['bold', 'italic', 'underline', 'strike'],
+        ['link'],
+        ['clean-formatting'] // Custom button
+      ],
+      handlers: {
+        'clean-formatting': function() {
+          const quill = quillRef.current?.getEditor();
+          if (!quill) return;
+          
+          const selection = quill.getSelection();
+          if (selection) {
+            // If text is selected, clean only selection
+            const selectedText = quill.getText(selection.index, selection.length);
+            quill.deleteText(selection.index, selection.length);
+            quill.insertText(selection.index, selectedText);
+          } else {
+            // If nothing selected, clean all content
+            const plainText = quill.getText();
+            onChange(plainText.trim());
+          }
+        }
+      }
+    },
+    // Disable Tab key for indentation to allow form navigation
+    keyboard: {
+      bindings: {
+        // Override the default tab binding to allow escaping the editor
+        tab: false,
+        'indent': false
+      }
+    }
+  }), [onChange]);
 
   const formats = [
     'bold', 'italic', 'underline', 'strike',
@@ -45,7 +137,7 @@ export default function PostRichTextEditor({
   ];
 
   return (
-    <div className="post-rich-editor">
+    <div className="post-rich-editor" ref={containerRef}>
       <ReactQuill 
         ref={quillRef}
         theme="snow" 
@@ -140,6 +232,35 @@ export default function PostRichTextEditor({
         
         .post-rich-editor .ql-toolbar button:hover .ql-fill {
           fill: var(--brand-primary);
+          opacity: 1;
+        }
+        
+        /* Clean Formatting Button */
+        .post-rich-editor .ql-toolbar button.ql-clean-formatting {
+          background: var(--dark-600);
+        }
+        
+        .post-rich-editor .ql-toolbar button.ql-clean-formatting .ql-stroke {
+          stroke: var(--brand-light);
+          opacity: 0.7;
+        }
+        
+        :root:not(.dark) .post-rich-editor .ql-toolbar button.ql-clean-formatting .ql-stroke {
+          stroke: #374151;
+          opacity: 0.7;
+        }
+        
+        .post-rich-editor .ql-toolbar button.ql-clean-formatting:hover {
+          background: rgba(239, 68, 68, 0.2);
+        }
+        
+        .post-rich-editor .ql-toolbar button.ql-clean-formatting:hover .ql-stroke {
+          stroke: #ef4444;
+          opacity: 1;
+        }
+        
+        :root:not(.dark) .post-rich-editor .ql-toolbar button.ql-clean-formatting:hover .ql-stroke {
+          stroke: #ef4444;
           opacity: 1;
         }
         
@@ -331,6 +452,8 @@ export default function PostRichTextEditor({
     </div>
   );
 }
+
+
 
 
 

@@ -150,6 +150,50 @@ class OpenAIProvider(AIProvider):
         except Exception as e:
             logger.error(f"OpenAI API error: {str(e)}")
             raise
+    
+    def generate_image(
+        self, 
+        prompt: str, 
+        size: str = "1792x1024",  # Landscape for hero images
+        quality: str = "standard",
+        style: str = "vivid"
+    ) -> Optional[str]:
+        """
+        Generate an image using DALL-E 3.
+        
+        Args:
+            prompt: Description of the image to generate
+            size: Image size ('1024x1024', '1792x1024', '1024x1792')
+            quality: 'standard' or 'hd'
+            style: 'vivid' or 'natural'
+        
+        Returns:
+            URL of the generated image, or None on failure
+        """
+        if not self.is_available():
+            raise ValueError("OpenAI API key not configured")
+        
+        try:
+            from openai import OpenAI
+            
+            client = OpenAI(api_key=get_openai_api_key())
+            
+            response = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size=size,
+                quality=quality,
+                style=style,
+                n=1
+            )
+            
+            return response.data[0].url
+            
+        except ImportError:
+            raise ImportError("openai package not installed. Run: pip install openai")
+        except Exception as e:
+            logger.error(f"OpenAI Image Generation error: {str(e)}")
+            raise
 
 
 # =============================================================================

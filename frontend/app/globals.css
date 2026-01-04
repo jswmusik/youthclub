@@ -124,9 +124,9 @@
 
   /* --- BRAND COLORS --- */
   --brand-purple: #7C5DC7;
-  --brand-primary: #E85A8F;
+  --brand-primary: #FFA8CD;        /* Same soft pink as dark mode */
   --brand-dark: #050211;
-  --brand-light: #1A1A2E;
+  --brand-light: #1A1A2E;          /* Dark text for light mode */
   --brand-brown: #B75D41;
   --brand-blue: #4C5D87;
   --brand-red: #E54545;
@@ -138,17 +138,17 @@
   --brand-green: #10B981;
 
   /* --- LIGHT MODE LEVELS (brand purple tints with white cards) --- */
-  --dark-900: #F8F7FE;             /* Very light purple (main bg) */
-  --dark-800: #F0EEFE;             /* Light purple */
+  --dark-900: #F5F3FF;             /* Soft purple-tinted background */
+  --dark-800: #EDE9FE;             /* Slightly deeper purple tint */
   --dark-700: #FFFFFF;             /* White (card bg) */
-  --dark-600: rgba(77, 77, 164, 0.12); /* Purple border */
-  --dark-500: rgba(77, 77, 164, 0.20); /* Purple muted */
+  --dark-600: rgba(107, 79, 184, 0.15); /* Purple border - more visible */
+  --dark-500: rgba(107, 79, 184, 0.25); /* Purple muted - stronger */
   --dark-400: #4D4DA4;             /* Brand purple (text accents) */
 
   /* --- LIGHT MODE GLOW COLORS (for ambient background effect) --- */
-  --glow-primary: rgba(232, 90, 143, 0.12);    /* Pink glow */
-  --glow-secondary: rgba(77, 77, 164, 0.15);   /* Purple glow - brand aligned */
-  --glow-tertiary: rgba(124, 93, 199, 0.10);   /* Softer purple glow */
+  --glow-primary: rgba(255, 168, 205, 0.12);   /* Soft pink glow */
+  --glow-secondary: rgba(124, 93, 199, 0.15);  /* Purple glow */
+  --glow-tertiary: rgba(91, 79, 163, 0.10);    /* Softer purple glow */
 }
 
 .dark {
@@ -377,6 +377,132 @@ body {
 }
 .event-description-content a[style*="color"] {
   color: var(--brand-primary) !important;
+}
+
+/* Rich text content - theme-aware styling for policies and other content */
+.rich-text-content {
+  line-height: 1.75;
+}
+.rich-text-content p {
+  margin-bottom: 1rem;
+}
+.rich-text-content a {
+  color: var(--brand-primary) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rich-text-content a:hover {
+  color: var(--brand-purple) !important;
+}
+.rich-text-content strong,
+.rich-text-content b {
+  font-weight: 600;
+}
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3,
+.rich-text-content h4,
+.rich-text-content h5,
+.rich-text-content h6 {
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.rich-text-content h1 { font-size: 1.75rem; }
+.rich-text-content h2 { font-size: 1.5rem; }
+.rich-text-content h3 { font-size: 1.25rem; }
+.rich-text-content h4 { font-size: 1.125rem; }
+.rich-text-content ul,
+.rich-text-content ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+.rich-text-content li {
+  margin-bottom: 0.5rem;
+}
+.rich-text-content ul li::marker {
+  color: var(--brand-primary);
+}
+.rich-text-content ol li::marker {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+.rich-text-content blockquote {
+  border-left: 4px solid var(--brand-primary);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+}
+.rich-text-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+}
+.rich-text-content hr {
+  border: none;
+  margin: 1.5rem 0;
+}
+
+/* Dark mode styles for rich text */
+.dark .rich-text-content,
+.rich-text-content.prose-invert {
+  color: rgba(249, 248, 245, 0.8);
+}
+.dark .rich-text-content *,
+.rich-text-content.prose-invert * {
+  color: inherit;
+}
+.dark .rich-text-content strong,
+.dark .rich-text-content b,
+.rich-text-content.prose-invert strong,
+.rich-text-content.prose-invert b {
+  color: var(--brand-light);
+}
+.dark .rich-text-content h1,
+.dark .rich-text-content h2,
+.dark .rich-text-content h3,
+.dark .rich-text-content h4,
+.dark .rich-text-content h5,
+.dark .rich-text-content h6,
+.rich-text-content.prose-invert h1,
+.rich-text-content.prose-invert h2,
+.rich-text-content.prose-invert h3,
+.rich-text-content.prose-invert h4,
+.rich-text-content.prose-invert h5,
+.rich-text-content.prose-invert h6 {
+  color: var(--brand-light);
+}
+.dark .rich-text-content hr,
+.rich-text-content.prose-invert hr {
+  border-top: 1px solid var(--dark-600);
+}
+.dark .rich-text-content blockquote,
+.rich-text-content.prose-invert blockquote {
+  color: rgba(249, 248, 245, 0.7);
+}
+
+/* Light mode styles for rich text */
+:not(.dark) .rich-text-content:not(.prose-invert) {
+  color: #374151;
+}
+:not(.dark) .rich-text-content:not(.prose-invert) strong,
+:not(.dark) .rich-text-content:not(.prose-invert) b {
+  color: #111827;
+}
+:not(.dark) .rich-text-content:not(.prose-invert) h1,
+:not(.dark) .rich-text-content:not(.prose-invert) h2,
+:not(.dark) .rich-text-content:not(.prose-invert) h3,
+:not(.dark) .rich-text-content:not(.prose-invert) h4,
+:not(.dark) .rich-text-content:not(.prose-invert) h5,
+:not(.dark) .rich-text-content:not(.prose-invert) h6 {
+  color: #111827;
+}
+:not(.dark) .rich-text-content:not(.prose-invert) hr {
+  border-top: 1px solid #e5e7eb;
+}
+:not(.dark) .rich-text-content:not(.prose-invert) blockquote {
+  color: #6b7280;
 }
 
 /* Send icon animation for registration modal - horizontal slide */
@@ -909,6 +1035,105 @@ body {
 
 .news-content-light a[style*="color"] {
   color: #4D4DA4 !important;
+}
+
+/* ==========================================================================
+   ADMIN PANEL LIGHT MODE OVERRIDES
+   Only applies to elements within [data-admin] containers in light mode.
+   This ensures youth/guardian pages (which use conditional darkMode styling)
+   are NOT affected by these overrides.
+   ========================================================================== */
+
+/* Light mode admin-specific overrides - scoped to admin panel only */
+:root:not(.dark) [data-admin="true"] {
+  /* Card and container backgrounds - white for clean look */
+  --dark-900: #F8F7FE;                    /* Page background - soft purple tint */
+  --dark-800: #FFFFFF;                    /* Sidebar/header backgrounds - white */
+  --dark-700: #FFFFFF;                    /* Card backgrounds - white */
+  
+  /* Borders - subtle purple tint for cohesion */
+  --dark-600: rgba(77, 77, 164, 0.12);    /* Light borders */
+  --dark-500: rgba(77, 77, 164, 0.20);    /* Stronger borders/dividers */
+  --dark-400: #4D4DA4;                    /* Accent color - brand purple */
+  
+  /* Text colors for light mode readability */
+  --brand-light: #1F2937;                 /* Primary text - dark gray */
+  --brand-purple: #7C5DC7;                /* Keep purple accent */
+  --brand-primary: #4D4DA4;               /* Primary actions in light mode */
+}
+
+/* Ensure nested elements inherit the scoped variables */
+:root:not(.dark) [data-admin="true"] * {
+  /* This ensures all children use the scoped variable values */
+}
+
+/* Admin sidebar in light mode - keep it dark for contrast */
+:root:not(.dark) [data-admin="true"] aside,
+:root:not(.dark) [data-admin="true"] [data-sidebar="true"] {
+  --dark-800: #1A1430;                    /* Keep sidebar dark */
+  --dark-700: #120C22;
+  --dark-600: #241C42;
+  --dark-500: #2F2658;
+  --brand-light: #F9F8F5;                 /* Light text on dark sidebar */
+  --brand-primary: #FFA8CD;               /* Pink accent on dark */
+}
+
+/* Admin mobile header in light mode - keep it dark for contrast */
+:root:not(.dark) [data-admin="true"] header[class*="md:hidden"] {
+  --dark-800: #1A1430;
+  --dark-600: #241C42;
+  --brand-light: #F9F8F5;
+}
+
+/* Fix text colors in admin light mode main content */
+:root:not(.dark) [data-admin="true"] main {
+  color: #374151;                         /* Gray-700 for body text */
+}
+
+:root:not(.dark) [data-admin="true"] main h1,
+:root:not(.dark) [data-admin="true"] main h2,
+:root:not(.dark) [data-admin="true"] main h3,
+:root:not(.dark) [data-admin="true"] main h4,
+:root:not(.dark) [data-admin="true"] main h5,
+:root:not(.dark) [data-admin="true"] main h6 {
+  color: #111827;                         /* Gray-900 for headings */
+}
+
+/* Admin light mode card shadows for depth */
+:root:not(.dark) [data-admin="true"] main .rounded-xl,
+:root:not(.dark) [data-admin="true"] main .rounded-2xl {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* Admin light mode table row hover effects */
+:root:not(.dark) [data-admin="true"] table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+:root:not(.dark) [data-admin="true"] table tbody tr:hover {
+  background-color: rgba(124, 93, 199, 0.10) !important;  /* Soft purple hover */
+}
+
+:root:not(.dark) [data-admin="true"] table tbody tr:hover td {
+  color: #111827;                              /* Darker text on hover */
+}
+
+/* Override the hardcoded hover:bg-[var(--dark-700)]/30 classes in light mode */
+:root:not(.dark) [data-admin="true"] tr[class*="hover:bg-"]:hover {
+  background-color: rgba(124, 93, 199, 0.10) !important;
+}
+
+/* Also handle div-based table rows (some tables use divs instead of table elements) */
+:root:not(.dark) [data-admin="true"] main [role="row"]:hover {
+  background-color: rgba(124, 93, 199, 0.10) !important;
+  transition: background-color 0.15s ease;
+}
+
+/* Clickable list items hover effect in light mode */
+:root:not(.dark) [data-admin="true"] main a[class*="hover:bg-"]:hover,
+:root:not(.dark) [data-admin="true"] main div[class*="hover:bg-"]:hover {
+  background-color: rgba(124, 93, 199, 0.08) !important;
+  transition: background-color 0.15s ease;
 }
 
 /* ==========================================================================

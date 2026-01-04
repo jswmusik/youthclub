@@ -139,6 +139,100 @@
     "female": "Kvinne",
     "other": "Annet",
     "yes": "Ja"
+  },
+  "public": {
+    "hero": {
+      "badge": "Nye aktiviteter hver dag",
+      "defaultTitle": "Finn din greie!",
+      "defaultSubtitle": "En app for alle unge med samlede aktiviteter og arrangementer.",
+      "searchPlaceholder": "Søk aktiviteter, arrangementer...",
+      "searchButton": "Søk aktiviteter",
+      "myLocation": "Min plassering",
+      "searching": "Søker...",
+      "locationFound": "Plassering funnet",
+      "locationError": {
+        "denied": "Plasseringstilgang nektet",
+        "unavailable": "Plasseringsinformasjon utilgjengelig",
+        "timeout": "Forespørselen tok for lang tid",
+        "unknown": "En ukjent feil oppstod"
+      },
+      "scrollDown": "Rull ned",
+      "quickTags": {
+        "sport": "Sport",
+        "music": "Musikk",
+        "gaming": "Gaming",
+        "art": "Kunst",
+        "dance": "Dans"
+      }
+    },
+    "events": {
+      "sectionLabel": "Skjer akkurat nå",
+      "sectionTitle": "Kommende aktiviteter",
+      "sortedByDistance": "Sortert etter avstand fra deg",
+      "viewAll": "Se alle aktiviteter",
+      "exploreMore": "Utforsk flere aktiviteter",
+      "noUpcoming": "Ingen kommende aktiviteter",
+      "noUpcomingDescription": "Det er ingen offentlige aktiviteter akkurat nå. Kom tilbake snart!",
+      "free": "Gratis",
+      "fullyBooked": "Fullt booket",
+      "unlimited": "Ubegrenset",
+      "spotsLeft": "{count} plasser igjen",
+      "openForAll": "Åpent for alle"
+    },
+    "cta": {
+      "title": "Klar til å komme i gang?",
+      "subtitle": "Opprett en konto i dag og begynn å utforske alle aktiviteter og arrangementer som venter på deg. Det tar bare ett minutt!",
+      "createAccount": "Opprett konto gratis",
+      "login": "Logg inn",
+      "trustBadge": "Allerede tusenvis av unge bruker Ungdomsappen hver dag",
+      "features": {
+        "free": "Gratis å bruke",
+        "findNearby": "Finn aktiviteter i nærheten",
+        "oneClick": "Meld deg på med ett klikk",
+        "recommendations": "Få personlige anbefalinger"
+      }
+    },
+    "customers": {
+      "title": "Våre kunder",
+      "subtitle": "Stolte av å samarbeide med kommuner og organisasjoner over hele Norge"
+    },
+    "about": {
+      "title": "Hva er Ungdomsappen?",
+      "description": "Ungdomsappen er en digital plattform som samler alle aktiviteter, arrangementer og ungdomsklubber for unge på ett sted. Enten du leter etter sportsaktiviteter, kreative workshops eller bare vil henge med venner - vi har noe for alle.",
+      "features": {
+        "findNearby": "Finn aktiviteter i nærheten",
+        "signUp": "Meld deg på arrangementer enkelt",
+        "discover": "Oppdag nye ungdomsklubber",
+        "recommendations": "Få personlige anbefalinger"
+      }
+    },
+    "layout": {
+      "greeting": "Hei",
+      "myDashboard": "Mitt Dashboard",
+      "logout": "Logg ut",
+      "login": "Logg inn",
+      "createAccount": "Opprett konto",
+      "openMenu": "Åpne meny",
+      "closeMenu": "Lukk meny",
+      "home": "Hjem",
+      "quickLinks": "Hurtiglenker",
+      "prices": "Priser",
+      "contact": "Kontakt",
+      "contactInfo": {
+        "email": "info@ungdomsappen.se",
+        "location": "Stockholm, Sverige"
+      },
+      "newsletter": {
+        "title": "Hold deg oppdatert",
+        "subtitle": "Få de siste nyhetene og oppdateringene.",
+        "placeholder": "Skriv inn e-posten din",
+        "subscribe": "Abonner"
+      },
+      "footer": {
+        "description": "Plattformen som samler aktiviteter, arrangementer og ungdomsklubber for unge. Finn ditt fellesskap og utforsk nye muligheter.",
+        "copyright": "Alle rettigheter forbeholdt"
+      }
+    }
   }
 }
 

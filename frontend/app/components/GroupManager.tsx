@@ -11,6 +11,7 @@ import {
 import api from '../../lib/api';
 import { useToast } from '../../hooks/useToast';
 import ConfirmationModal from './ConfirmationModal';
+import { getMediaUrl } from '../utils';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -256,6 +257,7 @@ interface Group {
   municipality_name?: string;
   club: number | null;
   club_name?: string;
+  avatar?: string | null;
 }
 
 interface GroupManagerProps {
@@ -776,9 +778,13 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
               >
                 <div className="border-y border-[var(--dark-600)] p-4">
                   <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
-                      <Users className="w-5 h-5 text-[var(--brand-primary)]" />
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {group.avatar ? (
+                        <img src={getMediaUrl(group.avatar)} alt={group.name} className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        <Users className="w-5 h-5 text-[var(--brand-primary)]" />
+                      )}
                     </div>
                     
                     {/* Info */}
@@ -849,8 +855,12 @@ export default function GroupManager({ basePath }: GroupManagerProps) {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-purple)]/20 border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0">
-                          <Users className="w-4 h-4 text-[var(--brand-primary)]" />
+                        <div className="w-10 h-10 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {group.avatar ? (
+                            <img src={getMediaUrl(group.avatar)} alt={group.name} className="w-full h-full object-cover rounded-full" />
+                          ) : (
+                            <Users className="w-4 h-4 text-[var(--brand-primary)]" />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

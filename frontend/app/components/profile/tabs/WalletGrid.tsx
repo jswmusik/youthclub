@@ -251,20 +251,20 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
 
       {/* REDEMPTION MODAL */}
       {selectedReward && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm ${
-          darkMode ? 'bg-black/80' : 'bg-black/80'
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md ${
+          darkMode ? 'bg-black/85' : 'bg-black/75'
         }`} onClick={() => setSelectedReward(null)}>
            <div className={`max-w-md w-full p-8 pt-20 text-center relative ${
              darkMode 
-               ? 'bg-[var(--dark-800)] rounded-xl border border-[var(--dark-500)]' 
-               : 'bg-white rounded-3xl border-2 border-[#4D4DA4]/20 shadow-2xl'
+               ? 'bg-[var(--dark-800)] rounded-2xl border border-[var(--dark-500)] shadow-2xl shadow-[var(--brand-purple)]/10' 
+               : 'bg-white rounded-3xl border-2 border-[#4D4DA4]/20 shadow-2xl shadow-[#4D4DA4]/10'
            }`} onClick={e => e.stopPropagation()}>
               
               {/* Header Image */}
               <div className={`absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 rounded-2xl flex items-center justify-center overflow-hidden border-4 ${
                 darkMode 
-                  ? 'bg-gradient-to-br from-[var(--brand-secondary)] to-[var(--brand-purple)] border-[var(--dark-800)]' 
-                  : 'bg-gradient-to-br from-[#EBEBFE] to-[#FFE8F0] border-white shadow-xl'
+                  ? 'bg-gradient-to-br from-[var(--brand-secondary)] via-[var(--brand-purple)] to-[var(--brand-primary)] border-[var(--dark-800)] shadow-xl shadow-[var(--brand-purple)]/30' 
+                  : 'bg-gradient-to-br from-[#EBEBFE] via-[#F0EEFE] to-[#FFE8F0] border-white shadow-xl'
               }`}>
                  {selectedReward.reward_image ? (
                     <img src={getMediaUrl(selectedReward.reward_image)} className="w-full h-full object-cover" />
@@ -303,6 +303,7 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
                           onSuccess={handleRedeem} 
                           text={t('slideToRedeem')}
                           color="blue"
+                          darkMode={darkMode}
                        />
                     </div>
                  )}
@@ -352,10 +353,10 @@ export default function WalletGrid({ user, darkMode = false }: { user: any; dark
               
               <button 
                 onClick={() => setSelectedReward(null)}
-                className={`w-full py-3 rounded-xl font-bold text-sm transition-colors ${
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-all duration-200 ${
                   darkMode 
-                    ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)]' 
-                    : 'bg-[#EBEBFE] hover:bg-gray-200 text-gray-700'
+                    ? 'bg-[var(--dark-600)] hover:bg-[var(--dark-500)] text-[var(--brand-light)]/80 border border-[var(--dark-400)] hover:border-[var(--brand-purple)]/50' 
+                    : 'bg-gradient-to-r from-[#EBEBFE] to-[#F0EEFE] hover:from-[#E0DFFE] hover:to-[#EBEBFE] text-[#4D4DA4] border-2 border-[#4D4DA4]/10 hover:border-[#4D4DA4]/30'
                 }`}
               >
                 {t('close')}

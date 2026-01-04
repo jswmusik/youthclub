@@ -3,14 +3,12 @@
 
 import Link from 'next/link';
 import { ArrowRight, Smartphone, CheckCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function CTASection() {
-  const features = [
-    'Gratis att använda',
-    'Hitta aktiviteter nära dig',
-    'Anmäl dig med ett klick',
-    'Få personliga rekommendationer',
-  ];
+  const t = useTranslations('public.cta');
+  
+  const featureKeys = ['free', 'findNearby', 'oneClick', 'recommendations'] as const;
 
   return (
     <section className="py-20 px-4 bg-gradient-to-b from-[var(--dark-900)] to-[var(--dark-800)] relative overflow-hidden">
@@ -30,29 +28,28 @@ export default function CTASection() {
           <div className="relative z-10">
             {/* Icon */}
             <div className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center shadow-2xl shadow-[var(--brand-primary)]/30">
-              <Smartphone className="w-10 h-10 text-[var(--dark-900)]" />
+              <Smartphone className="w-10 h-10 text-gray-900" />
             </div>
 
             {/* Headline */}
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[var(--brand-light)] mb-6 font-heading leading-tight">
-              Redo att komma igång?
+              {t('title')}
             </h2>
 
             {/* Subheadline */}
             <p className="text-lg sm:text-xl text-[var(--brand-light)]/60 max-w-2xl mx-auto mb-8">
-              Skapa ett konto idag och börja utforska alla aktiviteter och evenemang 
-              som väntar på dig. Det tar bara en minut!
+              {t('subtitle')}
             </p>
 
             {/* Features List */}
             <div className="flex flex-wrap justify-center gap-4 mb-10">
-              {features.map((feature, index) => (
+              {featureKeys.map((key) => (
                 <div 
-                  key={index}
+                  key={key}
                   className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--dark-600)]/50 border border-[var(--dark-500)]"
                 >
                   <CheckCircle className="w-4 h-4 text-[var(--brand-green)]" />
-                  <span className="text-sm text-[var(--brand-light)]/80">{feature}</span>
+                  <span className="text-sm text-[var(--brand-light)]/80">{t(`features.${key}`)}</span>
                 </div>
               ))}
             </div>
@@ -61,9 +58,9 @@ export default function CTASection() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/register/youth"
-                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-[var(--dark-900)] font-semibold text-lg hover:opacity-90 transition-all shadow-xl hover:shadow-[var(--brand-primary)]/30"
+                className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-gray-900 font-bold text-lg hover:opacity-90 transition-all shadow-xl hover:shadow-[var(--brand-primary)]/30"
               >
-                Skapa konto gratis
+                {t('createAccount')}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               
@@ -71,13 +68,13 @@ export default function CTASection() {
                 href="/login"
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[var(--dark-500)] text-[var(--brand-light)] font-semibold text-lg hover:bg-[var(--dark-600)] transition-all"
               >
-                Logga in
+                {t('login')}
               </Link>
             </div>
 
             {/* Trust Badge */}
             <p className="mt-8 text-sm text-[var(--brand-light)]/40">
-              Redan tusentals ungdomar använder Ungdomsappen varje dag
+              {t('trustBadge')}
             </p>
           </div>
         </div>

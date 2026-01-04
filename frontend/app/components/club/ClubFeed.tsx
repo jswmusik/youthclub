@@ -6,9 +6,10 @@ import PostCard from '@/app/components/posts/PostCard';
 interface ClubFeedProps {
   clubId: number;
   darkMode?: boolean;
+  basePath?: 'youth' | 'guardian';
 }
 
-export default function ClubFeed({ clubId, darkMode = false }: ClubFeedProps) {
+export default function ClubFeed({ clubId, darkMode = false, basePath }: ClubFeedProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -124,6 +125,7 @@ export default function ClubFeed({ clubId, darkMode = false }: ClubFeedProps) {
           key={post.id} 
           post={post}
           darkMode={darkMode}
+          basePath={basePath}
         />
       ))}
       

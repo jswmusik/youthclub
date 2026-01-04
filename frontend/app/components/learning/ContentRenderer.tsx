@@ -215,13 +215,13 @@ export default function ContentRenderer({ item, isCompleted, onMarkComplete, onN
                 {!isCompleted ? (
                     <button 
                         onClick={onMarkComplete} 
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[var(--brand-green)] hover:bg-[var(--brand-green)]/90 text-[var(--dark-900)] font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-[var(--brand-green)]/10 border border-[var(--brand-green)] text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20 transition-all flex items-center justify-center gap-2 font-medium"
                     >
                         <CheckCircle className="w-5 h-5" /> {t('markComplete')}
                     </button>
                 ) : (
                     <button 
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)] font-medium cursor-default flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full border border-[var(--brand-green)]/30 bg-[var(--brand-green)]/10 text-[var(--brand-green)] font-medium cursor-default flex items-center justify-center gap-2"
                     >
                         <CheckCircle className="w-5 h-5" /> {t('completed')}
                     </button>

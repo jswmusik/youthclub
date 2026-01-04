@@ -569,8 +569,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicInfo.title')}</h2>
@@ -768,8 +768,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contactLocation.title')}</h2>
@@ -1023,7 +1023,7 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
                   <button 
                     type="button" 
                     onClick={addHour}
-                    className="px-5 py-2.5 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
+                    className="px-5 py-2.5 bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2"
                   >
                     <Plus className="h-4 w-4" /> {t('openingHours.addTimeSlot')}
                   </button>
@@ -1098,8 +1098,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('legalDocuments.title')}</h2>
@@ -1147,8 +1147,8 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-primary)] flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('registrationSettings.title')}</h2>

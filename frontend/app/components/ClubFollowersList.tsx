@@ -327,8 +327,8 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
       <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-8">
         <div className="py-12 text-center">
           <div className="inline-flex flex-col items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-              <Users className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+              <Users className="w-5 h-5 text-[var(--dark-900)]" />
             </div>
             <span className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</span>
           </div>
@@ -376,8 +376,8 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Total Followers */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30 transition-all text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-primary)]/20">
-                  <Users className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-primary)]/20">
+                  <Users className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.total_followers}</div>
                 <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('totalFollowers')}</div>
@@ -385,8 +385,8 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
 
               {/* Youth Members */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/30 transition-all text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-blue)]/20">
-                  <UserCheck className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-blue)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-blue)]/20">
+                  <UserCheck className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.youth_members}</div>
                 <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('youthMembers')}</div>
@@ -394,8 +394,8 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
 
               {/* Guardians */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30 transition-all text-center">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-peach)]/20">
-                  <UsersRound className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-peach)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-peach)]/20">
+                  <UsersRound className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{analytics.guardians}</div>
                 <div className="text-xs text-[var(--brand-light)]/50 font-medium mt-1">{t('guardians')}</div>
@@ -403,7 +403,7 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
 
               {/* Gender Breakdown */}
               <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)] hover:border-[var(--brand-third)]/30 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-third)] to-[var(--brand-green)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-third)]/20">
+                <div className="w-10 h-10 rounded-full bg-[var(--brand-third)] flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[var(--brand-third)]/20">
                   <CheckCircle2 className="w-5 h-5 text-[var(--dark-900)]" />
                 </div>
                 <div className="text-xs text-[var(--brand-light)]/50 font-medium text-center mb-2">{t('gender')}</div>
@@ -541,12 +541,12 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
                     <tr key={user.id} className="border-b border-[var(--dark-600)] hover:bg-[var(--dark-700)]/30 transition-colors">
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
                             {user.avatar ? (
-                              <img src={getMediaUrl(user.avatar) || ''} className="w-full h-full object-cover" alt="" />
+                              <img src={getMediaUrl(user.avatar) || ''} className="w-full h-full object-cover rounded-full" alt="" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]">
-                                <span className="text-xs font-bold text-white">
+                              <div className="w-full h-full flex items-center justify-center bg-[var(--brand-primary)] rounded-full">
+                                <span className="text-xs font-bold text-[var(--dark-900)]">
                                   {getInitials(user.first_name, user.last_name)}
                                 </span>
                               </div>
@@ -607,12 +607,12 @@ export default function ClubFollowersList({ clubId }: ClubFollowersListProps) {
               return (
                 <div key={user.id} className="bg-[var(--dark-800)] border-y border-[var(--dark-600)] border-l-4 border-l-[var(--brand-primary)] p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0">
                       {user.avatar ? (
-                        <img src={getMediaUrl(user.avatar) || ''} className="w-full h-full object-cover" alt="" />
+                        <img src={getMediaUrl(user.avatar) || ''} className="w-full h-full object-cover rounded-full" alt="" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)]">
-                          <span className="text-sm font-bold text-white">
+                        <div className="w-full h-full flex items-center justify-center bg-[var(--brand-primary)] rounded-full">
+                          <span className="text-sm font-bold text-[var(--dark-900)]">
                             {getInitials(user.first_name, user.last_name)}
                           </span>
                         </div>

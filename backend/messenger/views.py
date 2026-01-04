@@ -984,6 +984,14 @@ class InboxViewSet(viewsets.ViewSet):
         # Serialize results with club/municipality info
         results = []
         for admin in queryset:
+            # Build absolute avatar URL
+            avatar_url = None
+            if admin.avatar:
+                try:
+                    avatar_url = request.build_absolute_uri(admin.avatar.url)
+                except:
+                    avatar_url = None
+            
             admin_data = {
                 'id': admin.id,
                 'email': admin.email,
@@ -991,7 +999,7 @@ class InboxViewSet(viewsets.ViewSet):
                 'last_name': admin.last_name,
                 'nickname': admin.nickname,
                 'role': admin.role,
-                'avatar_url': admin.avatar.url if admin.avatar else None,
+                'avatar_url': avatar_url,
             }
             
             # Add club/municipality information

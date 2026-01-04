@@ -636,7 +636,7 @@ export default function ProfileEditForm({ user, darkMode = true }: ProfileEditFo
             {getSelectedInterests().map(interest => (
               <span 
                 key={interest.id}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--brand-purple)] text-white text-sm rounded-full font-medium"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--brand-purple)] text-black text-sm rounded-full font-medium"
               >
                 {interest.name}
                 <button

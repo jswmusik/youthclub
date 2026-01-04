@@ -98,7 +98,7 @@ export default function VisitsTabs({
     <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-1.5 relative overflow-hidden">
       {/* Sliding Background Indicator */}
       <div
-        className="absolute top-1.5 bottom-1.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] shadow-lg shadow-[var(--brand-primary)]/20 transition-all duration-300 ease-in-out z-0"
+        className="absolute top-1.5 bottom-1.5 rounded-xl bg-[var(--brand-primary)] shadow-lg shadow-[var(--brand-primary)]/20 transition-all duration-300 ease-in-out z-0"
         style={{
           left: `${indicatorStyle.left}px`,
           width: `${indicatorStyle.width}px`,
@@ -114,7 +114,7 @@ export default function VisitsTabs({
               <button
                 key={key}
                 ref={(el) => { tabRefs.current[key] = el; }}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-semibold text-sm transition-colors duration-200 relative z-10 text-white cursor-default border-0 bg-transparent"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-xl font-semibold text-sm transition-colors duration-200 relative z-10 text-[var(--dark-900)] cursor-default border-0 bg-transparent"
               >
                 <Icon className="w-4 h-4" />
                 <span className="hidden sm:inline">{fullLabel}</span>

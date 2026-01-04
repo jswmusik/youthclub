@@ -173,7 +173,7 @@ export default function GuardianChildrenManager({ darkMode = false, onChildrenCh
           <h1 className={`text-3xl font-bold flex items-center gap-3 mb-2 font-heading ${
             darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
           }`}>
-            <Users className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+            <Users className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'}`} />
             {t('myChildren')}
           </h1>
           <p className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>{t('manageConnections')}</p>
@@ -197,7 +197,7 @@ export default function GuardianChildrenManager({ darkMode = false, onChildrenCh
           <div className={`mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-4 ${
             darkMode 
               ? 'bg-[var(--dark-600)] border border-[var(--dark-400)]' 
-              : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10'
+              : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[var(--brand-primary)]/10'
           }`}>
             <Users className={`w-10 h-10 ${darkMode ? 'text-[var(--brand-purple)]' : 'text-[#4D4DA4]'}`} />
           </div>

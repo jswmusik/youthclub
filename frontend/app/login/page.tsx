@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth, TrialInfo } from '../../context/AuthContext';
 import { AlertCircle, Sparkles, Users, Calendar, Gift, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
@@ -11,7 +12,8 @@ import AuthNavigation from '../components/AuthNavigation';
 import VerificationRequiredModal from '../components/VerificationRequiredModal';
 
 export default function LoginPage() {
-  const { login, twoFactorState, initiate2FA, verify2FA, cancel2FA } = useAuth();
+  const { login, twoFactorState, initiate2FA, verify2FA, cancel2FA, user, loading } = useAuth();
+  const router = useRouter();
   const t = useTranslations('auth');
   const tLanding = useTranslations('landing');
   const tCommon = useTranslations('common');
@@ -31,6 +33,36 @@ export default function LoginPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      // User is already logged in - they shouldn't be on the login page
+      // Use history.back() first to try going back, but if that would take us
+      // to another public page, redirect to dashboard instead
+      
+      const getDashboardUrl = () => {
+        switch (user.role) {
+          case 'SUPER_ADMIN':
+            return '/admin/super';
+          case 'MUNICIPALITY_ADMIN':
+            return '/admin/municipality';
+          case 'CLUB_ADMIN':
+            return '/admin/club';
+          case 'GUARDIAN':
+            return '/dashboard/guardian';
+          case 'YOUTH_MEMBER':
+            return '/dashboard/youth';
+          default:
+            return '/';
+        }
+      };
+
+      // Replace the current history entry with the dashboard
+      // This removes the login page from history
+      router.replace(getDashboardUrl());
+    }
+  }, [loading, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +105,15 @@ export default function LoginPage() {
     setPassword(''); // Clear password for security
   };
 
+  // Show loading spinner while checking authentication status
+  if (loading || (!loading && user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
+      </div>
+    );
+  }
+
   // Show 2FA verification if required
   if (twoFactorState?.required) {
     return (
@@ -89,8 +130,9 @@ export default function LoginPage() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+            {/* Dark Gradient Overlay - Fixed dark colors for consistent look in both light/dark mode */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-[rgba(5,2,17,0.7)] to-[rgba(5,2,17,0.4)]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[rgba(5,2,17,0.8)] to-transparent" />
           </div>
           
           <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
@@ -107,12 +149,16 @@ export default function LoginPage() {
             
             <div className="space-y-8">
               <div className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-                <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading">
-                  {tLanding('heroTitle')}
-                  <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
+                <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading" suppressHydrationWarning>
+                  {mounted && (
+                    <>
+                      {tLanding('heroTitle')}
+                      <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
+                    </>
+                  )}
                 </h1>
-                <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed">
-                  {t('2fa.securityMessage')}
+                <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed" suppressHydrationWarning>
+                  {mounted && t('2fa.securityMessage')}
                 </p>
               </div>
             </div>
@@ -171,9 +217,9 @@ export default function LoginPage() {
             className="object-cover"
             priority
           />
-          {/* Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+          {/* Dark Gradient Overlay - Fixed dark colors for consistent look in both light/dark mode */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-[rgba(5,2,17,0.7)] to-[rgba(5,2,17,0.4)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[rgba(5,2,17,0.8)] to-transparent" />
         </div>
         
         {/* Content */}
@@ -193,42 +239,48 @@ export default function LoginPage() {
           {/* Hero Content */}
           <div className="space-y-8">
             <div className={`transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading">
-                {tLanding('heroTitle')}
-                <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
+              <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white leading-tight font-heading" suppressHydrationWarning>
+                {mounted && (
+                  <>
+                    {tLanding('heroTitle')}
+                    <span className="block text-[var(--brand-primary)]">{tLanding('heroTitleHighlight')}</span>
+                  </>
+                )}
               </h1>
-              <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed">
-                {tLanding('heroDescription')}
+              <p className="mt-6 text-lg xl:text-xl text-white/70 max-w-lg leading-relaxed" suppressHydrationWarning>
+                {mounted && tLanding('heroDescription')}
               </p>
             </div>
             
             {/* Feature Cards */}
-            <div className={`grid grid-cols-2 gap-4 max-w-lg transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-              <FeatureCard 
-                icon={<Users className="w-5 h-5" />}
-                title={tLanding('joinGroups')}
-                description={tLanding('joinGroupsDesc')}
-                color="var(--brand-primary)"
-              />
-              <FeatureCard 
-                icon={<Calendar className="w-5 h-5" />}
-                title={tLanding('eventsTitle')}
-                description={tLanding('eventsDesc')}
-                color="var(--brand-purple)"
-              />
-              <FeatureCard 
-                icon={<Gift className="w-5 h-5" />}
-                title={tLanding('rewardsTitle')}
-                description={tLanding('rewardsDesc')}
-                color="var(--brand-third)"
-              />
-              <FeatureCard 
-                icon={<Sparkles className="w-5 h-5" />}
-                title={tLanding('activitiesTitle')}
-                description={tLanding('activitiesDesc')}
-                color="var(--brand-peach)"
-              />
-            </div>
+            {mounted && (
+              <div className={`grid grid-cols-2 gap-4 max-w-lg transition-all duration-700 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+                <FeatureCard 
+                  icon={<Users className="w-5 h-5" />}
+                  title={tLanding('joinGroups')}
+                  description={tLanding('joinGroupsDesc')}
+                  color="var(--brand-primary)"
+                />
+                <FeatureCard 
+                  icon={<Calendar className="w-5 h-5" />}
+                  title={tLanding('eventsTitle')}
+                  description={tLanding('eventsDesc')}
+                  color="var(--brand-purple)"
+                />
+                <FeatureCard 
+                  icon={<Gift className="w-5 h-5" />}
+                  title={tLanding('rewardsTitle')}
+                  description={tLanding('rewardsDesc')}
+                  color="var(--brand-third)"
+                />
+                <FeatureCard 
+                  icon={<Sparkles className="w-5 h-5" />}
+                  title={tLanding('activitiesTitle')}
+                  description={tLanding('activitiesDesc')}
+                  color="var(--brand-peach)"
+                />
+              </div>
+            )}
           </div>
           
           {/* Footer */}
@@ -343,11 +395,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/25"
+              className="w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--brand-light)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/25"
             >
-              {isLoading ? (
+            {isLoading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-[var(--brand-light)]/30 border-t-[var(--brand-light)] rounded-full animate-spin" />
                   <span>{t('signingIn')}</span>
                 </>
               ) : (

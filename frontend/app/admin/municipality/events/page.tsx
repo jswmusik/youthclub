@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import { Event } from '@/types/event';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import { useToast } from '../../../../hooks/useToast';
+import { getMediaUrl } from '@/app/utils';
 
 // Minimum loading time for skeleton display
 const MIN_LOADING_TIME = 400;
@@ -669,8 +670,8 @@ export default function MunicipalityEventsPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                <Calendar className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
                             </div>
                             <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                         </div>
@@ -704,8 +705,8 @@ export default function MunicipalityEventsPage() {
                                 {/* Total Events */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                            <Calendar className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                            <Calendar className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                                     </div>
@@ -715,8 +716,8 @@ export default function MunicipalityEventsPage() {
                                 {/* Upcoming Events */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                                            <Clock className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                            <Clock className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('upcoming')}</span>
                                     </div>
@@ -726,7 +727,7 @@ export default function MunicipalityEventsPage() {
                                 {/* Members Attended */}
                                 <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                                             <Users className="h-5 w-5 text-[var(--dark-900)]" />
                                         </div>
                                         <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('attended')}</span>
@@ -860,8 +861,16 @@ export default function MunicipalityEventsPage() {
                                 >
                                     <div className="border-y border-[var(--dark-600)] p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                <Calendar className="w-5 h-5 text-white" />
+                                            <div className="w-12 h-12 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                {event.cover_image ? (
+                                                    <img 
+                                                        src={getMediaUrl(event.cover_image) || ''} 
+                                                        alt={event.title} 
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-base font-semibold text-[var(--brand-light)] truncate">
@@ -922,8 +931,16 @@ export default function MunicipalityEventsPage() {
                                         <tr key={event.id} className="border-b border-[var(--dark-600)]/50 hover:bg-[var(--dark-700)]/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center flex-shrink-0">
-                                                        <Calendar className="w-5 h-5 text-white" />
+                                                    <div className="w-10 h-10 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                        {event.cover_image ? (
+                                                            <img 
+                                                                src={getMediaUrl(event.cover_image) || ''} 
+                                                                alt={event.title} 
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <div className="font-semibold text-[var(--brand-light)] truncate max-w-xs">{event.title}</div>

@@ -3,12 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/context/AuthContext';
 import YouthRegistrationWizard from '@/app/components/YouthRegistrationWizard';
 import AuthNavigation from '@/app/components/AuthNavigation';
 import { Users, Calendar, Gift, Star } from 'lucide-react';
 
 export default function YouthRegisterPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const t = useTranslations('youthRegister');
   const tCommon = useTranslations('common');
   const [mounted, setMounted] = useState(false);
@@ -16,6 +20,40 @@ export default function YouthRegisterPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      switch (user.role) {
+        case 'SUPER_ADMIN':
+          router.replace('/admin/super');
+          break;
+        case 'MUNICIPALITY_ADMIN':
+          router.replace('/admin/municipality');
+          break;
+        case 'CLUB_ADMIN':
+          router.replace('/admin/club');
+          break;
+        case 'GUARDIAN':
+          router.replace('/dashboard/guardian');
+          break;
+        case 'YOUTH_MEMBER':
+          router.replace('/dashboard/youth');
+          break;
+        default:
+          router.replace('/');
+      }
+    }
+  }, [loading, user, router]);
+
+  // Show loading spinner while checking authentication status
+  if (loading || (!loading && user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--dark-900)]">
@@ -32,9 +70,9 @@ export default function YouthRegisterPage() {
             className="object-cover"
             priority
           />
-          {/* Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+          {/* Dark Gradient Overlay - Always dark like dark mode */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#050211] via-[#050211]/70 to-[#050211]/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#050211]/80 to-transparent" />
         </div>
         
         {/* Content */}
@@ -93,7 +131,7 @@ export default function YouthRegisterPage() {
                 alt="Ungdomsappen"
                 width={120}
                 height={38}
-                className="object-contain mx-auto mb-4 brightness-0 invert"
+                className="object-contain mx-auto mb-4"
                 priority
               />
               <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading">

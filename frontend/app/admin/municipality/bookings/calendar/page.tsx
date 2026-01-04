@@ -1,12 +1,14 @@
 'use client';
 
 import { Suspense, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import BookingCalendar from '../../../../components/bookings/admin/BookingCalendar';
 import Link from 'next/link';
 import { Plus, CalendarDays } from 'lucide-react';
 import BackButton from '@/app/components/BackButton';
 
 function MunicipalityBookingCalendarPageContent() {
+  const t = useTranslations('bookingsAdmin.calendar');
   const calendarRef = useRef<{ openCreateModal: () => void }>(null);
 
   return (
@@ -16,24 +18,24 @@ function MunicipalityBookingCalendarPageContent() {
         <div className="px-4 sm:px-0 space-y-4">
           {/* Top row: Back button and New Booking button */}
           <div className="flex items-center justify-between">
-            <BackButton href="/admin/municipality/bookings" label="Back to Dashboard" />
+            <BackButton href="/admin/municipality/bookings" label={t('backToDashboard')} />
             <button 
               onClick={() => calendarRef.current?.openCreateModal()}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[var(--dark-900)] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 rounded-xl transition-colors shadow-lg shadow-[var(--brand-primary)]/20"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Booking</span>
+              <span className="hidden sm:inline">{t('newBooking')}</span>
             </button>
           </div>
           
           {/* Title and description */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <CalendarDays className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">Booking Calendar</h1>
-              <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">View and manage bookings in calendar format</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-sm text-[var(--brand-light)]/50 mt-0.5">{t('description')}</p>
             </div>
           </div>
         </div>
@@ -46,16 +48,21 @@ function MunicipalityBookingCalendarPageContent() {
   );
 }
 
+function LoadingFallback() {
+  const t = useTranslations('bookingsAdmin.calendar');
+  return (
+    <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+        <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
+      </div>
+      <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
+    </div>
+  );
+}
+
 export default function MunicipalityBookingCalendarPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-          <CalendarDays className="w-6 h-6 text-white" />
-        </div>
-        <div className="text-[var(--brand-light)]/60 animate-pulse">Loading calendar...</div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <MunicipalityBookingCalendarPageContent />
     </Suspense>
   );

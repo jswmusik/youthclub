@@ -707,7 +707,7 @@ export default function YouthManager({ basePath, scope }: YouthManagerProps) {
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+                    <Users className="h-5 w-5 text-[var(--dark-900)]" />
                   </div>
                   <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                 </div>

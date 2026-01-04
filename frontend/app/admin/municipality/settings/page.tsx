@@ -8,9 +8,6 @@ import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
 import { Building2, Code, FileText, Mail, Phone, Globe, Facebook, Instagram, Settings, Camera, Image as ImageIcon, CheckCircle, Trash2, Clock, AlertTriangle, UserCheck, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 // Dynamically import rich text editors to avoid SSR issues
 const LegalRichTextEditor = dynamic(
@@ -48,6 +45,7 @@ export default function MyMunicipalityPage() {
   const { user, loading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const { success, error, info, warning } = useToast();
   
   // Data State
@@ -147,6 +145,19 @@ export default function MyMunicipalityPage() {
     }
   };
 
+  // Styling classes matching the reference form
+  const labelClasses = "block text-sm font-medium text-[var(--brand-light)]/70 mb-2";
+  
+  const inputClasses = (field: string) => `
+    w-full h-11 px-4 rounded-xl
+    bg-[var(--dark-700)] border-2 
+    ${focusedField === field ? 'border-[var(--brand-primary)]' : 'border-[var(--dark-500)]'}
+    text-[var(--brand-light)] placeholder-[var(--brand-light)]/30
+    outline-none transition-all duration-200
+    hover:border-[var(--brand-primary)]/50
+    focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20
+  `;
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'hero') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -241,65 +252,68 @@ export default function MyMunicipalityPage() {
   );
 
   return (
-    <div className="py-4 sm:py-6 md:py-8 px-0 space-y-6">
-      {/* Header */}
-      <div className="px-4 sm:px-6 md:px-8 space-y-2">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
-            <Settings className="w-5 h-5 text-[var(--dark-900)]" />
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8">
+      <div className="sm:max-w-3xl sm:mx-auto sm:px-6">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 px-4 sm:px-0">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <Settings className="w-5 h-5 text-[var(--dark-900)]" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
+              <p className="text-[var(--brand-light)]/50 text-sm mt-1">{t('description')}</p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
         </div>
-        <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">{t('description')}</p>
-      </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:px-4 md:px-6 md:px-8">
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-xl border-y md:border border-[var(--dark-600)] p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-[var(--brand-primary)]" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">{t('summaryCards.municipality')}</p>
-              <p className="text-xl font-bold text-[var(--brand-light)]">{formData.name || '—'}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-xl border-y md:border border-[var(--dark-600)] p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
-              <Code className="h-5 w-5 text-[var(--brand-purple)]" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">{t('summaryCards.code')}</p>
-              <p className="text-xl font-bold text-[var(--brand-light)]">{formData.municipality_code || '—'}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Branding Section */}
-        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 px-4 sm:px-0">
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-4 sm:p-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
-                <ImageIcon className="h-5 w-5 text-[var(--brand-primary)]" />
+                <Building2 className="h-5 w-5 text-[var(--brand-primary)]" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('branding.title')}</h2>
+                <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">{t('summaryCards.municipality')}</p>
+                <p className="text-xl font-bold text-[var(--brand-light)]">{formData.name || '—'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
+                <Code className="h-5 w-5 text-[var(--brand-purple)]" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[var(--brand-light)]/50 font-semibold">{t('summaryCards.code')}</p>
+                <p className="text-xl font-bold text-[var(--brand-light)]">{formData.municipality_code || '—'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Branding Section */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <ImageIcon className="h-5 w-5 text-[var(--dark-900)]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('branding.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('branding.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
+          <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                <Label className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
                   <Camera className="h-4 w-4 text-[var(--brand-primary)]" />
                   {t('branding.logoAvatar')}
-                </Label>
+                </label>
                 <div className="relative">
                   <div className="bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-none sm:rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[var(--brand-primary)] transition-colors">
                     {avatarPreview ? (
@@ -325,10 +339,10 @@ export default function MyMunicipalityPage() {
               </div>
 
               <div className="space-y-3">
-                <Label className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2 flex items-center gap-2">
                   <ImageIcon className="h-4 w-4 text-[var(--brand-primary)]" />
                   {t('branding.heroBanner')}
-                </Label>
+                </label>
                 <div className="relative">
                   <div className="bg-[var(--dark-700)] border-2 border-dashed border-[var(--dark-500)] rounded-none sm:rounded-xl p-6 flex flex-col items-center justify-center gap-4 hover:border-[var(--brand-primary)] transition-colors">
                     {heroPreview ? (
@@ -357,53 +371,54 @@ export default function MyMunicipalityPage() {
         </div>
 
         {/* Basic Details Section */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)]/20 flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-[var(--brand-purple)]" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('basicDetails.title')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('basicDetails.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('basicDetails.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-[var(--brand-primary)]" />
-                  {t('basicDetails.municipalityName')}
-                </Label>
-                <Input
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label htmlFor="name" className={labelClasses}>
+                  {t('basicDetails.municipalityName')} <span className="text-[var(--brand-primary)]">*</span>
+                </label>
+                <input
                   id="name"
                   type="text"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('name')}
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField(null)}
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="municipality_code" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Code className="h-4 w-4 text-[var(--brand-primary)]" />
+              <div>
+                <label htmlFor="municipality_code" className={labelClasses}>
                   {t('basicDetails.municipalityCode')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="municipality_code"
                   type="text"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('municipality_code')}
                   value={formData.municipality_code}
                   onChange={e => setFormData({...formData, municipality_code: e.target.value})}
+                  onFocus={() => setFocusedField('municipality_code')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                <FileText className="h-4 w-4 text-[var(--brand-primary)]" />
+            <div>
+              <label htmlFor="description" className={labelClasses}>
                 {t('basicDetails.description')}
-              </Label>
+              </label>
               <DarkRichTextEditor
                 value={formData.description}
                 onChange={(content) => setFormData(prev => ({...prev, description: content}))}
@@ -415,85 +430,95 @@ export default function MyMunicipalityPage() {
         </div>
 
         {/* Contact & Socials Section */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)]/20 flex items-center justify-center">
-                <Mail className="h-5 w-5 text-[var(--brand-blue)]" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                <Mail className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('contactSocials.title')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('contactSocials.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('contactSocials.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-[var(--brand-blue)]" />
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div>
+                <label htmlFor="email" className={labelClasses}>
+                  <Mail className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-blue)]" />
                   {t('contactSocials.email')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="email"
                   type="email"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('email')}
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-[var(--brand-third)]" />
+              <div>
+                <label htmlFor="phone" className={labelClasses}>
+                  <Phone className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-third)]" />
                   {t('contactSocials.phone')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="phone"
                   type="text"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('phone')}
                   value={formData.phone}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="website_link" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-[var(--brand-primary)]" />
+              <div>
+                <label htmlFor="website_link" className={labelClasses}>
+                  <Globe className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
                   {t('contactSocials.website')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="website_link"
                   type="url"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('website_link')}
                   value={formData.website_link}
                   onChange={e => setFormData({...formData, website_link: e.target.value})}
+                  onFocus={() => setFocusedField('website_link')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="facebook" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Facebook className="h-4 w-4 text-[var(--brand-primary)]" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label htmlFor="facebook" className={labelClasses}>
+                  <Facebook className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
                   {t('contactSocials.facebookUrl')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="facebook"
                   type="text"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('facebook')}
                   value={formData.facebook}
                   onChange={e => setFormData({...formData, facebook: e.target.value})}
+                  onFocus={() => setFocusedField('facebook')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="instagram" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                  <Instagram className="h-4 w-4 text-[var(--brand-primary)]" />
+              <div>
+                <label htmlFor="instagram" className={labelClasses}>
+                  <Instagram className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
                   {t('contactSocials.instagramUrl')}
-                </Label>
-                <Input
+                </label>
+                <input
                   id="instagram"
                   type="text"
-                  className="bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={inputClasses('instagram')}
                   value={formData.instagram}
                   onChange={e => setFormData({...formData, instagram: e.target.value})}
+                  onFocus={() => setFocusedField('instagram')}
+                  onBlur={() => setFocusedField(null)}
                 />
               </div>
             </div>
@@ -501,19 +526,19 @@ export default function MyMunicipalityPage() {
         </div>
 
         {/* Settings Section */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)]/20 flex items-center justify-center">
-                <Settings className="h-5 w-5 text-[var(--brand-green)]" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
+                <Settings className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('settings.title')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('settings.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('settings.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
+          <div className="p-6 space-y-5">
             <div className="flex items-center gap-3 p-4 bg-[var(--dark-700)] rounded-none sm:rounded-xl border border-[var(--dark-500)]">
               <input
                 id="selfReg"
@@ -542,19 +567,19 @@ export default function MyMunicipalityPage() {
         </div>
 
         {/* Trial Period Section */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)]/20 flex items-center justify-center">
-                <UserCheck className="h-5 w-5 text-[var(--brand-primary)]" />
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <UserCheck className="h-5 w-5 text-[var(--dark-900)]" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('trialPeriod.title')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('trialPeriod.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
+          <div className="p-6 space-y-5">
             {/* Info Banner */}
             <div className="flex items-start gap-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
               <Info className="h-5 w-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
@@ -569,20 +594,22 @@ export default function MyMunicipalityPage() {
             </div>
 
             {/* Trial Days Input */}
-            <div className="space-y-3">
-              <Label htmlFor="trial_period_days" className="text-sm font-semibold text-[var(--brand-light)] flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[var(--brand-primary)]" />
+            <div>
+              <label htmlFor="trial_period_days" className={labelClasses}>
+                <Clock className="w-3.5 h-3.5 inline mr-1.5 text-[var(--brand-primary)]" />
                 {t('trialPeriod.daysLabel')}
-              </Label>
+              </label>
               <div className="flex items-center gap-4">
-                <Input
+                <input
                   id="trial_period_days"
                   type="number"
                   min={0}
                   max={90}
-                  className="w-32 bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/40 focus:border-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                  className={`w-32 ${inputClasses('trial_period_days')}`}
                   value={formData.trial_period_days}
                   onChange={e => setFormData({...formData, trial_period_days: parseInt(e.target.value) || 0})}
+                  onFocus={() => setFocusedField('trial_period_days')}
+                  onBlur={() => setFocusedField(null)}
                 />
                 <span className="text-sm text-[var(--brand-light)]/50">{t('trialPeriod.days')}</span>
               </div>
@@ -619,19 +646,19 @@ export default function MyMunicipalityPage() {
         </div>
 
         {/* Data Retention Section */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
-                <Trash2 className="h-5 w-5 text-red-500" />
+              <div className="w-10 h-10 rounded-xl bg-red-500 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--brand-light)]">{t('dataRetention.title')}</h2>
+                <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('dataRetention.title')}</h2>
                 <p className="text-sm text-[var(--brand-light)]/50">{t('dataRetention.description')}</p>
               </div>
             </div>
           </div>
-          <div className="px-4 sm:px-6 py-6 space-y-6">
+          <div className="p-6 space-y-5">
             {/* Info Banner */}
             <div className="flex items-start gap-3 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
               <Clock className="h-5 w-5 text-[var(--brand-primary)] flex-shrink-0 mt-0.5" />
@@ -674,17 +701,19 @@ export default function MyMunicipalityPage() {
               {formData.data_retention_months !== null && (
                 <div className="pl-7 space-y-3">
                   <div className="flex items-center gap-4">
-                    <Label htmlFor="retention_months" className="text-sm text-[var(--brand-light)]/70 whitespace-nowrap">
+                    <label htmlFor="retention_months" className="text-sm text-[var(--brand-light)]/70 whitespace-nowrap">
                       {t('dataRetention.retentionPeriod')}
-                    </Label>
-                    <Input
+                    </label>
+                    <input
                       id="retention_months"
                       type="number"
                       min={dataRetentionInfo?.min_allowed_months || 6}
                       max={dataRetentionInfo?.max_allowed_months || 36}
-                      className="w-24 bg-[var(--dark-700)] border-[var(--dark-500)] text-[var(--brand-light)]"
+                      className={`w-24 ${inputClasses('retention_months')}`}
                       value={formData.data_retention_months || ''}
                       onChange={e => setFormData({...formData, data_retention_months: parseInt(e.target.value) || null})}
+                      onFocus={() => setFocusedField('retention_months')}
+                      onBlur={() => setFocusedField(null)}
                     />
                     <span className="text-sm text-[var(--brand-light)]/50">{t('dataRetention.months')}</span>
                   </div>
@@ -708,20 +737,26 @@ export default function MyMunicipalityPage() {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="bg-[var(--dark-800)] rounded-none md:rounded-2xl border-y md:border border-[var(--dark-600)] overflow-hidden">
-          <div className="flex justify-end pt-4 border-t border-[var(--dark-600)] px-4 sm:px-6 md:px-8 pb-4 sm:pb-6 md:pb-8">
-            <Button
-              type="submit"
-              className="bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold px-8 py-3 rounded-xl transition-colors disabled:opacity-50"
+          {/* Submit Button */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 pb-10 px-4 sm:px-0">
+            <button 
+              type="submit" 
               disabled={isSaving}
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold hover:bg-[var(--brand-primary)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[180px]"
             >
-              {isSaving ? t('actions.saving') : t('actions.saveChanges')}
-            </Button>
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                  {t('actions.saving')}
+                </>
+              ) : (
+                t('actions.saveChanges')
+              )}
+            </button>
           </div>
-        </div>
-      </form>
+        </form>
 
+      </div>
     </div>
   );
 }

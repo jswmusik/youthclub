@@ -228,10 +228,20 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
   // Calculate completion percentage
   const calculateCompletion = useCallback(() => {
-    const requiredFields = [formData.name, formData.description];
-    const filled = requiredFields.filter(f => f && f.toString().trim()).length;
-    return Math.round((filled / requiredFields.length) * 100);
-  }, [formData]);
+    let filled = 0;
+    let total = 3; // name, description, image
+    
+    // Check name
+    if (formData.name && formData.name.toString().trim()) filled++;
+    
+    // Check description
+    if (formData.description && formData.description.toString().trim()) filled++;
+    
+    // Check image
+    if (imageFile || imagePreview) filled++;
+    
+    return Math.round((filled / total) * 100);
+  }, [formData, imageFile, imagePreview]);
 
   const completionPercent = calculateCompletion();
 

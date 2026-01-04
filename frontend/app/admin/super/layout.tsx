@@ -53,7 +53,13 @@ import {
   Crown,
   Trash2,
   CreditCard,
-  Phone
+  Phone,
+  Search,
+  Target,
+  Map,
+  FileSearch,
+  Link2,
+  TrendingUp
 } from 'lucide-react';
 
 import { useAuth } from '../../../context/AuthContext';
@@ -104,6 +110,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     bookings: false,
     learning: false,
     marketing: false,
+    seo: false,
     cms: false,
     settings: false,
   });
@@ -332,6 +339,19 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       ]
     },
     {
+      id: 'seo',
+      title: t('groups.seoTool'),
+      icon: Search,
+      items: [
+        { name: t('items.seoDashboard'), href: '/admin/super/seo', icon: TrendingUp },
+        { name: t('items.keywords'), href: '/admin/super/seo/keywords', icon: Target },
+        { name: t('items.locations'), href: '/admin/super/seo/locations', icon: Map },
+        { name: t('items.localPages'), href: '/admin/super/seo/local-pages', icon: MapPinned },
+        { name: t('items.seoArticles'), href: '/admin/super/seo/articles', icon: FileSearch },
+        { name: t('items.internalLinks'), href: '/admin/super/seo/links', icon: Link2 },
+      ]
+    },
+    {
       id: 'cms',
       title: t('groups.cms'),
       icon: Layers,
@@ -351,6 +371,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       items: [
         { name: t('items.dataRetention'), href: '/admin/super/settings/data-retention', icon: Trash2 },
         { name: t('items.emailTemplates'), href: '/admin/super/settings/email-templates', icon: Mail },
+        { name: t('items.notificationTemplates'), href: '/admin/super/settings/notification-templates', icon: Bell },
         { name: t('items.boilerplates'), href: '/admin/super/settings/boilerplates', icon: FileText },
         { name: t('items.customFields'), href: '/admin/super/custom-fields', icon: Wrench },
         { name: t('items.questionnaires'), href: '/admin/super/questionnaires', icon: FileText },
@@ -709,7 +730,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   return (
     <RoleGuard allowedRoles={['SUPER_ADMIN']}>
-      <div className="flex min-h-screen bg-[var(--dark-900)]">
+      <div className="flex min-h-screen bg-[var(--dark-900)]" data-admin="true">
         {/* Background Glow Effect */}
         <BackgroundGlow variant="admin" />
         

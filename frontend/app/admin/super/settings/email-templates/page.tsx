@@ -395,7 +395,7 @@ export default function EmailTemplatesPage() {
                     key={template.id}
                     onClick={() => handleSelectTemplate(template)}
                     className={`w-full p-4 text-left hover:bg-[var(--dark-700)] transition-colors ${
-                      selectedTemplate?.id === template.id ? 'bg-[var(--dark-700)]' : ''
+                      selectedTemplate?.id === template.id ? 'bg-[var(--brand-primary)]/10' : ''
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -424,7 +424,7 @@ export default function EmailTemplatesPage() {
                               </span>
                             ))
                           ) : (
-                            <span className="text-[10px] text-yellow-400/70">{t('noTranslations')}</span>
+                            <span className="text-[10px] text-[var(--brand-light)]/60">{t('noTranslations')}</span>
                           )}
                         </div>
                       </div>

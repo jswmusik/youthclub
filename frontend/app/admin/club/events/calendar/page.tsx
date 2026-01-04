@@ -32,8 +32,8 @@ function EventCalendarPageContent() {
                 {/* Title and description */}
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                     </div>

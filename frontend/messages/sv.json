@@ -44,7 +44,8 @@
   },
   "navigation": {
     "backToList": "Tillbaka till listan",
-    "backToEvents": "Tillbaka till evenemang"
+    "backToEvents": "Tillbaka till evenemang",
+    "backToDashboard": "Tillbaka till instrumentpanel"
   },
   "auth": {
     "login": "Logga in",
@@ -2042,6 +2043,11 @@
     "noLicenseFound": "Ingen aktiv licens hittades",
     "contactSupportMessage": "Kontakta support för att aktivera din licens.",
     "contactSupport": "Kontakta Support",
+    "contactSupportModalDescription": "Vi svarar vanligtvis inom 24 timmar.",
+    "supportPhone": "Telefon",
+    "supportEmail": "E-post",
+    "supportResponseTime": "Vi svarar vanligtvis inom 24 timmar.",
+    "contactSupportDescription": "Behöver du hjälp? Kontakta vårt supportteam.",
     "expiringSoon": "Ditt abonnemang går ut snart",
     "daysLeft": "Endast {days} dagar kvar. Förnya för att undvika avbrott.",
     "renewNow": "Förnya Nu",
@@ -2451,13 +2457,23 @@
         "registration": {
           "title": "Registrering & Kapacitet",
           "description": "Konfigurera registreringsinställningar och kapacitetsgränser.",
+          "registrationMode": "Anmälningsläge",
+          "modes": {
+            "open": "Öppet event",
+            "openDescription": "Ingen anmälan krävs – alla kan delta utan att registrera sig",
+            "firstCome": "Först till kvarn",
+            "firstComeDescription": "Platser tilldelas automatiskt baserat på anmälningsordning",
+            "manualApproval": "Manuellt urval",
+            "manualApprovalDescription": "Alla ansökningar väntar på godkännande – admin väljer vilka som får plats"
+          },
           "enableRegistration": "Aktivera registrering",
-          "regularSeats": "Vanliga platser",
+          "regularSeats": "Antal platser",
           "unlimited": "0 = Obegränsat",
           "waitlistSpots": "Väntelistplatser",
           "registrationCloses": "Registrering stänger",
           "registrationClosesHint": "Medlemmar kan ansöka tills detta datum och tid.",
           "registrationClosesDefaultHint": "Om inget datum/tid anges kan medlemmar ansöka tills evenemanget börjar. Registrering öppnas när evenemanget publiceras.",
+          "additionalOptions": "Ytterligare alternativ",
           "approvalRules": "Godkännanderegler",
           "requiresGuardianApproval": "Kräver vårdnadshavares godkännande",
           "requiresAdminApproval": "Kräver administratörsgodkännande (Manuell granskning)",
@@ -3848,8 +3864,8 @@
       }
     },
     "borrowed": {
-      "title": "För närvarande utlånade",
-      "description": "Visa alla artiklar som för närvarande är utlånade från alla fritidsgårdar.",
+      "title": "Utlånat just nu!",
+      "description": "Visa alla artiklar som förnärvarande är utlånade från alla fritidsgårdar.",
       "analyticsDashboard": "Analysöversikt",
       "analytics": {
         "total": "Totalt",
@@ -5974,6 +5990,25 @@
       },
       "guest": "Gäst",
       "active": "Aktiv",
+      "loading": "Laddar poster...",
+      "noRecords": "Inga poster hittades",
+      "tryAdjustingFilters": "Försök justera dina filter",
+      "searchPlaceholder": "Sök efter namn eller e-post...",
+      "allMembers": "Alla medlemmar",
+      "preferredMembers": "Föredragna medlemmar",
+      "guests": "Gäster",
+      "clear": "Rensa",
+      "member": "Medlem",
+      "date": "Datum",
+      "inOut": "In / Ut",
+      "duration": "Varaktighet",
+      "method": "Metod",
+      "checkIn": "Incheckning",
+      "checkOut": "Utcheckning",
+      "prev": "Föregående",
+      "next": "Nästa",
+      "page": "Sida",
+      "of": "av",
       "mobileLabels": {
         "date": "Datum",
         "duration": "Varaktighet",
@@ -5992,10 +6027,12 @@
     },
     "analytics": {
       "backToClub": "Tillbaka till fritidsgård",
-      "title": "Besök & Närvaro",
-      "description": "Analys & insikter för din fritidsgård.",
+      "title": "Besöksanalys",
+      "description": "Analys & insikter för denna fritidsgård",
       "loadingClubName": "denna fritidsgård",
-      "loading": "Laddar...",
+      "loading": "Laddar analys...",
+      "noData": "Kunde inte ladda analysdata",
+      "days": "Dagar",
       "periodSelector": {
         "days": "{count} dagar"
       },
@@ -6008,6 +6045,23 @@
         "failedToLoad": "Kunde inte ladda analysdata",
         "noDataOrError": "Ingen data tillgänglig eller ett fel uppstod."
       },
+      "totalVisits": "Totalt antal besök",
+      "totalCheckIns": "Totalt antal incheckningar",
+      "uniqueYouth": "Unika ungdomar",
+      "uniqueMembers": "Unika medlemmar",
+      "avgVisits": "Genomsnittliga besök",
+      "perYouth": "Per ungdom",
+      "visitsTrend": "Besökstrend",
+      "last": "Senaste",
+      "visit": "besök",
+      "visits": "besök",
+      "daysAgo": "dagar sedan",
+      "today": "Idag",
+      "noDataForPeriod": "Ingen data tillgänglig för denna period",
+      "genderDistribution": "Könsfördelning",
+      "visitorBreakdown": "Besöksfördelning",
+      "notSpecified": "Ej angivet",
+      "noDemographicData": "Ingen demografisk data tillgänglig",
       "stats": {
         "totalVisits": "Totalt antal besök",
         "uniqueYouth": "Unika ungdomar",
@@ -6051,6 +6105,19 @@
       }
     }
   },
+  "clubFollowers": {
+    "title": "Fritidsgårdsföljare",
+    "description": "Visa alla användare som följer denna fritidsgård",
+    "backToClub": "Tillbaka till fritidsgård",
+    "backToClubDashboard": "Tillbaka till fritidsgårdsöversikt",
+    "invalidClubId": "Ogiltigt fritidsgårds-ID",
+    "notAuthenticated": "Inte autentiserad. Vänligen logga in.",
+    "noClubAssigned": "Ingen fritidsgård tilldelad",
+    "noClubAssignedDescription": "Du har ingen fritidsgård tilldelad. Vänligen kontakta din administratör.",
+    "usersFollowing": "Användare som följer {clubName}",
+    "yourClub": "din fritidsgård",
+    "loadingFollowers": "Laddar följare..."
+  },
   "adminSidebar": {
     "role": "Superadministratör",
     "signOut": "Logga ut",
@@ -6072,6 +6139,7 @@
       "bookings": "Bokningar",
       "learningCenter": "Lärandecenter",
       "marketing": "Marknadsföring",
+      "seoTool": "SEO-verktyg",
       "cms": "CMS",
       "settingsAndConfiguration": "Inställningar & Konfiguration"
     },
@@ -6104,6 +6172,12 @@
       "homepageAndSeo": "Startsida & SEO",
       "customers": "Kunder",
       "newsletter": "Nyhetsbrev",
+      "seoDashboard": "SEO Dashboard",
+      "keywords": "Nyckelord",
+      "locations": "Platser",
+      "localPages": "Lokala sidor",
+      "seoArticles": "SEO-artiklar",
+      "internalLinks": "Interna länkar",
       "pages": "Sidor",
       "navigation": "Navigation",
       "features": "Funktioner",
@@ -6112,6 +6186,7 @@
       "contactPage": "Kontaktsida",
       "dataRetention": "Datalagring",
       "emailTemplates": "E-postmallar",
+      "notificationTemplates": "Notifikationsmallar",
       "boilerplates": "Textmallar",
       "customFields": "Anpassade fält",
       "questionnaires": "Frågeformulär",
@@ -6530,6 +6605,15 @@
       "delete": "Radera",
       "cancel": "Avbryt"
     },
+    "deleteSelfModal": {
+      "title": "Radera ditt eget konto",
+      "message": "Du är på väg att radera ditt eget konto ({name}). Detta är en kritisk åtgärd som inte kan ångras.",
+      "warning": "Du kommer omedelbart och permanent att förlora åtkomst till plattformen.",
+      "confirmationLabel": "Skriv 'radera' för att bekräfta radering:",
+      "confirmationMismatch": "Bekräftelsetexten stämmer inte överens. Vänligen skriv 'radera' exakt.",
+      "confirm": "Radera mitt konto",
+      "cancel": "Avbryt"
+    },
     "toast": {
       "adminDeletedSuccessfully": "Administratör raderad.",
       "failedToDeleteAdmin": "Kunde inte radera administratör."
@@ -6569,6 +6653,10 @@
       "password": "Lösenord",
       "phoneNumber": "Telefonnummer",
       "gender": "Kön",
+      "passwordRequirements": "Lösenordskrav",
+      "req8chars": "Minst 8 tecken",
+      "req1number": "Minst en siffra",
+      "req1special": "Minst ett specialtecken",
       "placeholders": {
         "firstName": "Ange förnamn",
         "lastName": "Ange efternamn",
@@ -6622,6 +6710,12 @@
       "emailRequired": "E-post krävs",
       "invalidEmail": "Vänligen ange en giltig e-postadress",
       "passwordRequired": "Lösenord krävs",
+      "passwordMinLength": "Lösenordet måste vara minst 8 tecken",
+      "passwordNumber": "Lösenordet måste innehålla minst en siffra",
+      "passwordSpecial": "Lösenordet måste innehålla minst ett specialtecken",
+      "passwordStrength": "Lösenordet måste vara minst 8 tecken, innehålla minst en siffra och ett specialtecken",
+      "phoneNumbersOnly": "Telefonnummer får endast innehålla siffror",
+      "assignedClubRequired": "Tilldelning av fritidsgård krävs",
       "genderRequired": "Kön krävs"
     },
     "toast": {
@@ -6815,7 +6909,7 @@
     "clubGuardiansInterests": {
       "title": "Fritidsgård, vårdnadshavare och intressen",
       "description": "Tilldela fritidsgård, vårdnadshavare och intressen",
-      "preferredClub": "Föredragen fritidsgård",
+      "preferredClub": "Vald fritidsgård",
       "selectClub": "Välj fritidsgård...",
       "assignGuardians": "Tilldela vårdnadshavare",
       "searchGuardians": "Sök vårdnadshavare efter namn eller e-post...",
@@ -6849,7 +6943,7 @@
       "dateOfBirthRequired": "Födelsedatum krävs",
       "gradeRequired": "Årskurs krävs",
       "legalGenderRequired": "Juridiskt kön krävs",
-      "preferredClubRequired": "Föredragen fritidsgård krävs"
+      "preferredClubRequired": "Vald fritidsgård krävs"
     },
     "actions": {
       "cancel": "Avbryt",
@@ -6905,7 +6999,7 @@
       "dateOfBirth": "Födelsedatum",
       "legalGender": "Juridiskt kön",
       "preferredGender": "Föredraget kön",
-      "preferredClub": "Föredragen fritidsgård",
+      "preferredClub": "Val fritidsgård",
       "notProvided": "Inte angivet",
       "notSet": "Inte angivet",
       "none": "Ingen"
@@ -6935,7 +7029,7 @@
       "header": {
         "backToProfile": "Tillbaka till profil",
         "visitHistory": "Besökshistorik",
-        "preferredClub": "Föredragen fritidsgård"
+        "preferredClub": "Vald fritidsgård"
       },
       "analytics": {
         "title": "Analysdashboard",
@@ -7811,6 +7905,90 @@
       "postDeleted": "Inlägg raderat framgångsrikt!",
       "failedToDelete": "Kunde inte radera inlägg."
     },
+    "detail": {
+      "title": "Inläggsdetaljer",
+      "description": "Visa och hantera inlägg",
+      "loading": "Laddar inlägg...",
+      "notFound": "Inlägg hittades inte",
+      "backToPosts": "Tillbaka till inlägg",
+      "editPost": "Redigera inlägg",
+      "pinned": "FASTNÅLD",
+      "viewFull": "Visa hela",
+      "watchVideo": "Titta på video",
+      "imagesAttached": "{count} bilder bifogade",
+      "analytics": "Analys",
+      "views": "Visningar",
+      "comments": "Kommentarer",
+      "reactions": "Reaktioner",
+      "pushSent": "Push skickad",
+      "yes": "Ja",
+      "no": "Nej",
+      "commentsSection": "Kommentarer ({count})",
+      "moderation": "Moderering",
+      "moderationOn": "På",
+      "moderationOff": "Av",
+      "noComments": "Inga kommentarer ännu",
+      "hide": "Dölj",
+      "approve": "Godkänn",
+      "pendingApproval": "Väntar på godkännande",
+      "targetAudience": "Målgrupp",
+      "memberTypeLabel": "Medlemstyp",
+      "memberType": {
+        "BOTH": "Båda",
+        "YOUTH": "Ungdom",
+        "GUARDIAN": "Vårdnadshavare"
+      },
+      "targetedGroups": "Målade grupper",
+      "group": "Grupp",
+      "ageRange": "Åldersomfång",
+      "genderLabel": "Kön",
+      "gender": {
+        "MALE": "Man",
+        "FEMALE": "Kvinna",
+        "OTHER": "Annat"
+      },
+      "grades": "Klasser",
+      "all": "Alla",
+      "any": "Vilket som helst",
+      "customFieldRules": "Anpassade fältregler",
+      "field": "Fält",
+      "configuration": "Konfiguration",
+      "commentsLabel": "Kommentarer",
+      "allowed": "Tillåten",
+      "disabled": "Inaktiverad",
+      "required": "Obligatorisk",
+      "pushNotification": "Push-notifikation",
+      "sent": "Skickad",
+      "notSent": "Inte skickad",
+      "expires": "Upphör",
+      "deleteComment": "Radera kommentar",
+      "deleteCommentMessage": "Är du säker på att du vill radera denna kommentar? Denna åtgärd kan inte ångras.",
+      "delete": "Radera",
+      "cancel": "Avbryt",
+      "scope": {
+        "global": "Global",
+        "municipalities": "{count} kommuner",
+        "clubs": "{count} fritidsgårdar"
+      },
+      "status": {
+        "PUBLISHED": "Publicerad",
+        "DRAFT": "Utkast",
+        "SCHEDULED": "Schemalagd",
+        "ARCHIVED": "Arkiverad"
+      },
+      "type": {
+        "TEXT": "Text",
+        "IMAGE": "Bild",
+        "VIDEO": "Video"
+      },
+      "toast": {
+        "commentHidden": "Kommentar dold",
+        "commentApproved": "Kommentar godkänd",
+        "failedToUpdateComment": "Kunde inte uppdatera kommentar",
+        "commentDeleted": "Kommentar raderad",
+        "failedToDeleteComment": "Kunde inte radera kommentar"
+      }
+    },
     "mobile": {
       "by": "Av",
       "unknown": "Okänd",
@@ -8002,7 +8180,31 @@
         "targetAudience": "Målgrupp",
         "settings": "Inställningar",
         "willBePinned": "Kommer att fästas",
-        "pushNotificationLabel": "Push-meddelande: {title}"
+        "pushNotificationLabel": "Push-meddelande: {title}",
+        "summaries": {
+          "global": "Global (alla användare)",
+          "municipality": "{count} kommun",
+          "municipalities": "{count} kommuner",
+          "club": "{count} fritidsgård",
+          "clubs": "{count} fritidsgårdar",
+          "youthOnly": "Endast ungdomar",
+          "guardiansOnly": "Endast vårdnadshavare",
+          "ages": "Ålder {min}-{max}",
+          "agesMin": "Ålder {min}+",
+          "agesMax": "Ålder upp till {max}",
+          "grade": "Årskurs {grades}",
+          "grades": "Årskurser {grades}",
+          "gradesRange": "Årskurser {min}-{max}",
+          "group": "{count} grupp",
+          "groups": "{count} grupper",
+          "allMembers": "Alla medlemmar",
+          "commentsOn": "Kommentarer på",
+          "commentsOff": "Kommentarer av",
+          "moderated": "modererade",
+          "pushEnabled": "Push aktiverat",
+          "pinned": "Fäst",
+          "defaultSettings": "Standardinställningar"
+        }
       },
       "actions": {
         "cancel": "Avbryt",
@@ -9589,7 +9791,7 @@
       "emailBody": "E-postinnehåll",
       "richText": "Rich Text",
       "html": "HTML",
-      "htmlHelp": "💡 Använd HTML-taggar för att formatera ditt e-postmeddelande. Variabler som {{user.first_name}} kommer att ersättas med faktiska värden.",
+      "htmlHelp": "💡 Använd HTML-taggar för att formatera ditt e-postmeddelande. Variabler (t.ex. user.first_name) kommer att ersättas med faktiska värden.",
       "plainTextVersion": "Klartext-version (valfri, genereras automatiskt om tom)",
       "plainTextPlaceholder": "Lämna tomt för att auto-generera från HTML...",
       "editorPlaceholder": "Börja skriva ditt e-postinnehåll...",
@@ -9644,6 +9846,54 @@
       "previewFailed": "Kunde inte generera förhandsgranskning",
       "testSent": "Test-e-post skickat till {email}",
       "testFailed": "Kunde inte skicka test-e-post"
+    },
+    "languages": {
+      "swedish": "Svenska",
+      "english": "Engelska",
+      "arabic": "Arabiska",
+      "danish": "Danska",
+      "finnish": "Finska",
+      "norwegian": "Norska",
+      "dariPersian": "Dari/Persiska",
+      "somali": "Somaliska"
+    }
+  },
+  "notificationTemplates": {
+    "title": "Notifikationsmallar",
+    "subtitle": "Hantera och anpassa notifikationer som skickas till användare i appen",
+    "search": "Sök mallar...",
+    "noTranslations": "Inga översättningar",
+    "disabled": "Inaktiverad",
+    "selectTemplate": {
+      "title": "Välj en mall",
+      "subtitle": "Välj en notifikationsmall från listan för att redigera dess innehåll och översättningar."
+    },
+    "editor": {
+      "language": "Språk:",
+      "availableVariables": "Tillgängliga variabler:",
+      "notificationTitle": "Notifikationstitel",
+      "titlePlaceholder": "Ange notifikationstitel...",
+      "notificationBody": "Notifikationsinnehåll",
+      "bodyPlaceholder": "Ange notifikationstext...",
+      "bodyHelp": "💡 Använd variabler (t.ex. event_title) för att inkludera dynamiskt innehåll. Se listan ovan.",
+      "active": "Aktiv",
+      "preview": "Förhandsgranska",
+      "saveTranslation": "Spara översättning"
+    },
+    "previewModal": {
+      "title": "Förhandsgranskning av notifikation",
+      "subtitle": "Så här kommer notifikationen att se ut för användaren.",
+      "justNow": "Just nu"
+    },
+    "toast": {
+      "loadFailed": "Kunde inte ladda notifikationsmallar",
+      "loadDetailsFailed": "Kunde inte ladda malldetaljer",
+      "saveSuccess": "Översättning sparad",
+      "saveFailed": "Kunde inte spara översättning",
+      "templateEnabled": "Mall aktiverad",
+      "templateDisabled": "Mall inaktiverad",
+      "updateFailed": "Kunde inte uppdatera mall",
+      "previewFailed": "Kunde inte generera förhandsgranskning"
     },
     "languages": {
       "swedish": "Svenska",
@@ -9855,9 +10105,11 @@
     },
     "step2": {
       "title": "Skapa din inloggning",
-      "subtitle": "Ställ in din e-post och ett säkert lösenord",
+      "subtitle": "Ställ in din e-post, telefon och ett säkert lösenord",
       "emailAddress": "E-postadress",
       "emailPlaceholder": "din@email.com",
+      "phone": "Telefonnummer",
+      "phonePlaceholder": "070-123 45 67",
       "checkingAvailability": "Kontrollerar tillgänglighet...",
       "emailAlreadyRegistered": "Denna e-post är redan registrerad.",
       "loginInstead": "Logga in istället?",
@@ -9913,8 +10165,11 @@
       "termsAndConditions": "Villkor",
       "clubPolicies": "Fritidsgårdens regler",
       "noTermsAvailable": "Inga villkor tillgängliga.",
+      "noPoliciesAvailable": "Inga regler tillgängliga.",
       "acceptTermsText": "Jag har läst och accepterar",
-      "and": "och"
+      "and": "och",
+      "readMore": "Läs mer...",
+      "close": "Stäng"
     }
   },
   "youthRegister": {
@@ -10525,6 +10780,100 @@
       "topEvents": "Toppevenemang efter anmälningar",
       "noEvents": "Inga evenemang under denna period",
       "createEventHint": "Skapa ett evenemang för att börja spåra statistik"
+    }
+  },
+  "public": {
+    "hero": {
+      "badge": "Nya aktiviteter varje dag",
+      "defaultTitle": "Hitta din grej!",
+      "defaultSubtitle": "En app för alla unga med samlade aktiviteter och händelser.",
+      "searchPlaceholder": "Sök aktiviteter, evenemang...",
+      "searchButton": "Sök aktiviteter",
+      "myLocation": "Min plats",
+      "searching": "Söker...",
+      "locationFound": "Plats hittad",
+      "locationError": {
+        "denied": "Platsåtkomst nekad",
+        "unavailable": "Platsinformation otillgänglig",
+        "timeout": "Begäran tog för lång tid",
+        "unknown": "Ett okänt fel uppstod"
+      },
+      "scrollDown": "Scrolla ner",
+      "quickTags": {
+        "sport": "Sport",
+        "music": "Musik",
+        "gaming": "Gaming",
+        "art": "Konst",
+        "dance": "Dans"
+      }
+    },
+    "events": {
+      "sectionLabel": "Händer just nu",
+      "sectionTitle": "Kommande aktiviteter",
+      "sortedByDistance": "Sorterat efter avstånd från dig",
+      "viewAll": "Se alla aktiviteter",
+      "exploreMore": "Utforska fler aktiviteter",
+      "noUpcoming": "Inga kommande aktiviteter",
+      "noUpcomingDescription": "Det finns inga publika aktiviteter just nu. Kom tillbaka snart!",
+      "free": "Gratis",
+      "fullyBooked": "Fullbokat",
+      "unlimited": "Obegränsat",
+      "spotsLeft": "{count} platser kvar",
+      "openForAll": "Öppet för alla"
+    },
+    "cta": {
+      "title": "Redo att komma igång?",
+      "subtitle": "Skapa ett konto idag och börja utforska alla aktiviteter och evenemang som väntar på dig. Det tar bara en minut!",
+      "createAccount": "Skapa konto gratis",
+      "login": "Logga in",
+      "trustBadge": "Redan tusentals ungdomar använder Ungdomsappen varje dag",
+      "features": {
+        "free": "Gratis att använda",
+        "findNearby": "Hitta aktiviteter nära dig",
+        "oneClick": "Anmäl dig med ett klick",
+        "recommendations": "Få personliga rekommendationer"
+      }
+    },
+    "customers": {
+      "title": "Våra kunder",
+      "subtitle": "Stolta över att samarbeta med kommuner och organisationer över hela Sverige"
+    },
+    "about": {
+      "title": "Vad är Ungdomsappen?",
+      "description": "Ungdomsappen är en digital plattform som samlar alla aktiviteter, evenemang och fritidsgårdar för unga på ett ställe. Oavsett om du söker efter sportaktiviteter, kreativa workshops eller bara vill hänga med vänner - vi har något för alla.",
+      "features": {
+        "findNearby": "Hitta aktiviteter nära dig",
+        "signUp": "Anmäl dig till evenemang enkelt",
+        "discover": "Upptäck nya fritidsgårdar",
+        "recommendations": "Få personliga rekommendationer"
+      }
+    },
+    "layout": {
+      "greeting": "Hej",
+      "myDashboard": "Min Dashboard",
+      "logout": "Logga ut",
+      "login": "Logga in",
+      "createAccount": "Skapa konto",
+      "openMenu": "Öppna meny",
+      "closeMenu": "Stäng meny",
+      "home": "Hem",
+      "quickLinks": "Snabblänkar",
+      "prices": "Priser",
+      "contact": "Kontakt",
+      "contactInfo": {
+        "email": "info@ungdomsappen.se",
+        "location": "Stockholm, Sverige"
+      },
+      "newsletter": {
+        "title": "Håll dig uppdaterad",
+        "subtitle": "Få de senaste nyheterna och uppdateringarna.",
+        "placeholder": "Ange din e-post",
+        "subscribe": "Prenumerera"
+      },
+      "footer": {
+        "description": "Plattformen som samlar aktiviteter, evenemang och fritidsgårdar för unga. Hitta din gemenskap och utforska nya möjligheter.",
+        "copyright": "Alla rättigheter förbehållna"
+      }
     }
   }
 }

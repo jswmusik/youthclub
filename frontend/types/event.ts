@@ -17,6 +17,12 @@ export enum TargetAudience {
     BOTH = 'BOTH',
 }
 
+export enum RegistrationMode {
+    OPEN = 'OPEN',
+    FIRST_COME = 'FIRST_COME',
+    MANUAL_APPROVAL = 'MANUAL_APPROVAL',
+}
+
 export interface Event {
     id: number;
     title: string;
@@ -63,6 +69,7 @@ export interface Event {
     target_interests: number[];
     
     // Registration
+    registration_mode: RegistrationMode;
     allow_registration: boolean;
     requires_verified_account: boolean;
     requires_guardian_approval: boolean;

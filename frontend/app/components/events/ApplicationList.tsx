@@ -382,8 +382,8 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                            <ClipboardList className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                            <ClipboardList className="w-5 h-5 text-[var(--dark-900)]" />
                         </div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
                     </div>
@@ -415,8 +415,8 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                             {/* Total Applications */}
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-purple)]/50 transition-all">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-                                        <ListTodo className="h-5 w-5 text-white" />
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                                        <ListTodo className="h-5 w-5 text-[var(--dark-900)]" />
                                     </div>
                                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('total')}</span>
                                 </div>
@@ -426,8 +426,8 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                             {/* Pending */}
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-blue)]/50 transition-all">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-blue)] to-[var(--brand-purple)] flex items-center justify-center">
-                                        <AlertCircle className="h-5 w-5 text-white" />
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
+                                        <AlertCircle className="h-5 w-5 text-[var(--dark-900)]" />
                                     </div>
                                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('pending')}</span>
                                 </div>
@@ -437,8 +437,8 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                             {/* Waitlist */}
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-peach)]/50 transition-all">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-red)] flex items-center justify-center">
-                                        <Hourglass className="h-5 w-5 text-white" />
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-peach)] flex items-center justify-center">
+                                        <Hourglass className="h-5 w-5 text-[var(--dark-900)]" />
                                     </div>
                                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('waitlist')}</span>
                                 </div>
@@ -448,7 +448,7 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                             {/* Approved */}
                             <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-green)]/50 transition-all">
                                 <div className="flex items-center gap-3 mb-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-green)] to-[var(--brand-third)] flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-xl bg-[var(--brand-green)] flex items-center justify-center">
                                         <CheckCircle2 className="h-5 w-5 text-[var(--dark-900)]" />
                                     </div>
                                     <span className="text-xs sm:text-sm font-medium text-[var(--brand-light)]/70">{t('approved')}</span>
@@ -551,11 +551,11 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                 <div className="border-y border-[var(--dark-600)] p-4">
                                     <div className="flex items-start gap-3">
                                         {/* Avatar */}
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                        <div className="w-12 h-12 rounded-full bg-[var(--dark-600)] border border-[var(--dark-500)] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                             {reg.user_detail?.avatar ? (
                                                 <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="text-sm font-bold text-white">
+                                                <span className="text-sm font-bold text-[var(--brand-primary)]">
                                                     {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
                                                 </span>
                                             )}
@@ -626,11 +626,11 @@ export default function ApplicationList({ scope }: ApplicationListProps) {
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-purple)] to-[var(--brand-primary)] flex items-center justify-center overflow-hidden">
+                                                <div className="w-10 h-10 rounded-full bg-[var(--dark-700)] border border-[var(--dark-500)] flex items-center justify-center overflow-hidden">
                                                     {reg.user_detail?.avatar ? (
                                                         <img src={getMediaUrl(reg.user_detail.avatar) || ''} alt="" className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <span className="text-xs font-bold text-white">
+                                                        <span className="text-xs font-bold text-[var(--brand-primary)]">
                                                             {getInitials(reg.user_detail?.first_name, reg.user_detail?.last_name)}
                                                         </span>
                                                     )}

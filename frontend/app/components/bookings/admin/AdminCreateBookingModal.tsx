@@ -127,7 +127,10 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
   // 3. Search Users
   const handleUserSearch = async (term: string) => {
     setUserSearch(term);
-    if (term.length < 2) return;
+    if (term.length < 2) {
+      setUsers([]); // Clear users list when search term is too short
+      return;
+    }
     
     try {
       // Assuming you have a user search endpoint or filter

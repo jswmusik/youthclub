@@ -128,14 +128,23 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       setLoading(true);
       questionnaireApi.get(initialId)
         .then(res => {
-            setFormData(res.data);
+            const data = res.data;
+            // Ensure questions array is properly initialized
+            const loadedData = {
+              ...data,
+              questions: Array.isArray(data.questions) ? data.questions : [],
+              rewards: Array.isArray(data.rewards) ? data.rewards : []
+            };
+            console.log('Loaded questionnaire data:', loadedData);
+            setFormData(loadedData);
         })
         .catch(err => {
-            console.error(err);
+            console.error('Error loading questionnaire:', err);
             error(t('toasts.loadFailed'));
         })
         .finally(() => setLoading(false));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialId]);
 
   // Calculate completion percentage
@@ -249,26 +258,52 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         
         delete dataToSend.start_date;
         
-        if (dataToSend.questions) {
-            dataToSend.questions = dataToSend.questions.map((q: any) => {
-                const cleanQ: any = {
-                    text: q.text,
-                    question_type: q.question_type,
-                    order: q.order,
-                };
-                if (q.description) cleanQ.description = q.description;
-                if (q.id) cleanQ.id = q.id;
-                if (q.options && q.options.length > 0) {
-                    cleanQ.options = q.options.map((opt: any) => ({
-                        text: opt.text,
-                        value: opt.value || opt.text,
-                        order: opt.order || 0,
-                        ...(opt.id && { id: opt.id })
-                    }));
+        // Ensure questions array is always present and properly formatted
+        console.log('formData.questions before processing:', formData.questions);
+        if (formData.questions && Array.isArray(formData.questions) && formData.questions.length > 0) {
+            dataToSend.questions = formData.questions.map((q: any, index: number) => {
+                // Validate required fields
+                if (!q.text || !q.question_type) {
+                    console.warn('Question missing required fields:', q);
+                    return null;
                 }
+                
+                const cleanQ: any = {
+                    text: q.text.trim(),
+                    question_type: q.question_type,
+                };
+                
+                // Optional fields
+                if (q.description && q.description.trim()) cleanQ.description = q.description.trim();
+                if (q.order !== undefined && q.order !== null) cleanQ.order = q.order;
+                if (q.id) cleanQ.id = q.id;
+                if (q.image) cleanQ.image = q.image;
+                if (q.parent_question) cleanQ.parent_question = q.parent_question;
+                
+                // Options for choice questions
+                if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+                    cleanQ.options = q.options
+                        .filter((opt: any) => opt && opt.text && opt.text.trim()) // Filter out empty options
+                        .map((opt: any, optIndex: number) => {
+                            const cleanOpt: any = {
+                                text: (opt.text || opt.label || '').trim(),
+                                value: (opt.value || opt.text || opt.label || '').trim(),
+                            };
+                            if (opt.order !== undefined && opt.order !== null) cleanOpt.order = opt.order;
+                            if (opt.id) cleanOpt.id = opt.id;
+                            return cleanOpt;
+                        });
+                }
+                
                 return cleanQ;
-            });
+            }).filter((q: any) => q !== null); // Remove any invalid questions
+        } else {
+            // Ensure questions is always an array, even if empty
+            dataToSend.questions = [];
         }
+        
+        console.log('Saving questionnaire with questions:', JSON.stringify(dataToSend.questions, null, 2));
+        console.log('Questions count:', dataToSend.questions.length);
         
         if (dataToSend.scheduled_publish_date && dataToSend.scheduled_publish_date !== '' && dataToSend.scheduled_publish_date !== 'null') {
             if (typeof dataToSend.scheduled_publish_date === 'string') {
@@ -304,8 +339,20 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
         }
         
         if (initialId) {
-            await questionnaireApi.update(initialId, dataToSend);
+            console.log('Updating questionnaire ID:', initialId);
+            console.log('Questions count being sent:', dataToSend.questions?.length || 0);
+            const res = await questionnaireApi.update(initialId, dataToSend);
+            console.log('Update response:', res.data);
+            console.log('Questions in response:', res.data?.questions?.length || 0);
+            
+            // Don't update local state here since we're redirecting
             success(t('toasts.updateSuccess'));
+            // Redirect after successful update
+            setTimeout(() => {
+                const pageParam = searchParams.get('page');
+                const redirectUrl = pageParam ? `${basePath}?page=${pageParam}` : basePath;
+                router.push(redirectUrl);
+            }, 1000);
         } else {
             const res = await questionnaireApi.create(dataToSend);
             success(t('toasts.createSuccess'));
@@ -348,14 +395,24 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
     };
 
   const handleQuestionSave = (question: any) => {
+    console.log('Saving question from modal:', question);
     const newQuestions = [...(formData.questions || [])];
     
+    // Ensure question has required fields
+    const questionToAdd = {
+      ...question,
+      text: question.text || '',
+      question_type: question.question_type || 'FREE_TEXT',
+      order: question.order !== undefined ? question.order : newQuestions.length + 1
+    };
+    
     if (editingQuestionIndex !== null) {
-        newQuestions[editingQuestionIndex] = question;
+        newQuestions[editingQuestionIndex] = questionToAdd;
     } else {
-        newQuestions.push({ ...question, order: newQuestions.length + 1 });
+        newQuestions.push(questionToAdd);
     }
     
+    console.log('Updated questions array:', newQuestions);
     setFormData({ ...formData, questions: newQuestions });
     setShowModal(false);
     setEditingQuestionIndex(null);
@@ -688,26 +745,28 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
             {loading ? `${t('buttons.saveDraft')}...` : t('buttons.saveDraft')}
           </button>
           
-          {formData.status === 'DRAFT' && initialId && (
-            <button 
-              onClick={handlePublish}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-green)] text-[var(--dark-900)] hover:bg-[var(--brand-green)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {loading ? `${t('buttons.publish')}...` : t('buttons.publish')}
-            </button>
-          )}
-          
-          {formData.status === 'PUBLISHED' && initialId && (
-            <button 
-              onClick={handleUnpublish}
-              disabled={loading}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl font-bold bg-[var(--brand-yellow)] text-[var(--dark-900)] hover:bg-[var(--brand-yellow)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <EyeOff className="w-4 h-4" />
-              {loading ? `${t('buttons.unpublish')}...` : t('buttons.unpublish')}
-            </button>
+          {initialId && (
+            <>
+              {formData.status === 'PUBLISHED' ? (
+                <button 
+                  onClick={handleUnpublish}
+                  disabled={loading}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)] text-[var(--brand-peach)] hover:bg-[var(--brand-peach)]/20"
+                >
+                  <EyeOff className="w-4 h-4" />
+                  {loading ? `${t('buttons.unpublish')}...` : t('buttons.unpublish')}
+                </button>
+              ) : (
+                <button 
+                  onClick={handlePublish}
+                  disabled={loading}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-[var(--brand-green)]/10 border border-[var(--brand-green)] text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20"
+                >
+                  <Send className="w-4 h-4" />
+                  {loading ? `${t('buttons.publish')}...` : t('buttons.publish')}
+                </button>
+              )}
+            </>
           )}
         </div>
 

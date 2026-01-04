@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { 
   ArrowLeft, Upload, X, Search, User, Mail, Phone, 
   CheckCircle2, Lightbulb, Save, Users, Shield, Lock,
-  FileText, Eye, Clock, XCircle, Loader2
+  FileText, Eye, Clock, XCircle, Loader2, RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -733,13 +733,13 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
                   {getSelectedYouth().map(y => (
                     <span 
                       key={y.id} 
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] text-sm font-medium"
                     >
                       {y.first_name} {y.last_name} {y.grade && `(${t('assignYouth.grade', { grade: y.grade })})`}
                       <button
                         type="button"
                         onClick={() => removeYouth(y.id)}
-                        className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                        className="hover:bg-[var(--dark-900)]/20 rounded-full p-0.5 transition-colors"
                         aria-label={`Remove ${y.first_name} ${y.last_name}`}
                       >
                         <X className="h-3 w-3" />
@@ -1023,8 +1023,9 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
               type="button"
               onClick={handleResetClick}
               disabled={loading}
-              className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-peach)] text-[var(--dark-900)] font-semibold text-sm hover:bg-[var(--brand-peach)]/90 transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)] text-[var(--brand-purple)] font-semibold text-sm hover:bg-[var(--brand-purple)]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
+              <RotateCcw className="w-4 h-4" />
               {loading ? t('processing') : t('resetToPending')}
             </button>
           )}
@@ -1042,8 +1043,9 @@ function RelationshipCard({ relationship, youth, onUpdate }: { relationship: any
                 type="button"
                 onClick={handleResetClick}
                 disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg bg-[var(--dark-600)] text-[var(--brand-light)] font-semibold text-sm hover:bg-[var(--dark-500)] transition-all disabled:opacity-50"
+                className="flex-1 px-4 py-2 rounded-lg bg-[var(--brand-purple)]/10 border border-[var(--brand-purple)] text-[var(--brand-purple)] font-semibold text-sm hover:bg-[var(--brand-purple)]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                <RotateCcw className="w-4 h-4" />
                 {loading ? t('processing') : t('reset')}
               </button>
             </>

@@ -196,10 +196,10 @@ export default function PostDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-4 sm:px-0">
                     <BackButton
                         onClick={() => router.push(buildBackUrl())}
-                        translationKey="backToList"
+                        translationKey="navigation.backToList"
                     />
                     <Link href={`/admin/club/posts/edit/${post.id}?${searchParams.toString()}`}>
-                        <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-purple)] text-white font-semibold hover:opacity-90 transition-all">
+                        <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all">
                             <Edit className="h-4 w-4" />
                             {t('editPost')}
                         </button>
@@ -259,7 +259,7 @@ export default function PostDetailPage() {
                             {post.author && (
                                 <>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] text-xs sm:text-sm font-bold">
                                             {getAuthorInitials(post.author)}
                                         </div>
                                         <span className="font-medium text-[var(--brand-light)] text-sm sm:text-base">
@@ -360,7 +360,7 @@ export default function PostDetailPage() {
                                             }`}>
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center text-white text-xs font-bold">
+                                                        <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex items-center justify-center text-[var(--dark-900)] text-xs font-bold">
                                                             {getAuthorInitials(comment.author)}
                                                         </div>
                                                         <div>

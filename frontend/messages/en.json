@@ -44,7 +44,8 @@
   },
   "navigation": {
     "backToList": "Back to List",
-    "backToEvents": "Back to Events"
+    "backToEvents": "Back to Events",
+    "backToDashboard": "Back to Dashboard"
   },
   "auth": {
     "login": "Sign In",
@@ -2043,6 +2044,11 @@
     "noLicenseFound": "No active license found",
     "contactSupportMessage": "Contact support to activate your license.",
     "contactSupport": "Contact Support",
+    "contactSupportModalDescription": "We usually respond within 24 hours.",
+    "supportPhone": "Phone",
+    "supportEmail": "Email",
+    "supportResponseTime": "We usually respond within 24 hours.",
+    "contactSupportDescription": "Need help? Contact our support team.",
     "expiringSoon": "Your subscription expires soon",
     "daysLeft": "Only {days} days left. Renew to avoid interruption.",
     "renewNow": "Renew Now",
@@ -3091,6 +3097,25 @@
       },
       "guest": "Guest",
       "active": "Active",
+      "loading": "Loading records...",
+      "noRecords": "No records found",
+      "tryAdjustingFilters": "Try adjusting your filters",
+      "searchPlaceholder": "Search by name or email...",
+      "allMembers": "All Members",
+      "preferredMembers": "Preferred Members",
+      "guests": "Guests",
+      "clear": "Clear",
+      "member": "Member",
+      "date": "Date",
+      "inOut": "In / Out",
+      "duration": "Duration",
+      "method": "Method",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "prev": "Prev",
+      "next": "Next",
+      "page": "Page",
+      "of": "of",
       "mobileLabels": {
         "date": "Date",
         "duration": "Duration",
@@ -3109,10 +3134,12 @@
     },
     "analytics": {
       "backToClub": "Back to Club",
-      "title": "Visits & Attendance",
-      "description": "Analytics & Insights for your club.",
+      "title": "Visit Analytics",
+      "description": "Analytics & Insights for this club",
       "loadingClubName": "this club",
-      "loading": "Loading...",
+      "loading": "Loading analytics...",
+      "noData": "Could not load analytics data",
+      "days": "Days",
       "periodSelector": {
         "days": "{count} Days"
       },
@@ -3125,6 +3152,23 @@
         "failedToLoad": "Failed to load analytics data",
         "noDataOrError": "No data available or an error occurred."
       },
+      "totalVisits": "Total Visits",
+      "totalCheckIns": "Total check-ins",
+      "uniqueYouth": "Unique Youth",
+      "uniqueMembers": "Unique members",
+      "avgVisits": "Avg. Visits",
+      "perYouth": "Per youth",
+      "visitsTrend": "Visits Trend",
+      "last": "Last",
+      "visit": "visit",
+      "visits": "visits",
+      "daysAgo": "days ago",
+      "today": "Today",
+      "noDataForPeriod": "No data available for this period",
+      "genderDistribution": "Gender Distribution",
+      "visitorBreakdown": "Visitor breakdown",
+      "notSpecified": "Not Specified",
+      "noDemographicData": "No demographic data available",
       "stats": {
         "totalVisits": "Total Visits",
         "uniqueYouth": "Unique Youth",
@@ -3168,6 +3212,19 @@
       }
     }
   },
+  "clubFollowers": {
+    "title": "Club Followers",
+    "description": "View all users who follow this club",
+    "backToClub": "Back to Club",
+    "backToClubDashboard": "Back to Club Dashboard",
+    "invalidClubId": "Invalid club ID",
+    "notAuthenticated": "Not authenticated. Please log in.",
+    "noClubAssigned": "No Club Assigned",
+    "noClubAssignedDescription": "You don't have a club assigned. Please contact your administrator.",
+    "usersFollowing": "Users following {clubName}",
+    "yourClub": "your club",
+    "loadingFollowers": "Loading followers..."
+  },
   "adminSidebar": {
     "role": "Super Admin",
     "signOut": "Sign Out",
@@ -3189,6 +3246,7 @@
       "bookings": "Bookings",
       "learningCenter": "Learning Center",
       "marketing": "Marketing",
+      "seoTool": "SEO Tool",
       "cms": "CMS",
       "settingsAndConfiguration": "Settings & Configuration"
     },
@@ -3221,6 +3279,12 @@
       "homepageAndSeo": "Homepage & SEO",
       "customers": "Customers",
       "newsletter": "Newsletter",
+      "seoDashboard": "SEO Dashboard",
+      "keywords": "Keywords",
+      "locations": "Locations",
+      "localPages": "Local Pages",
+      "seoArticles": "SEO Articles",
+      "internalLinks": "Internal Links",
       "pages": "Pages",
       "navigation": "Navigation",
       "features": "Features",
@@ -3229,6 +3293,7 @@
       "contactPage": "Contact Page",
       "dataRetention": "Data Retention",
       "emailTemplates": "Email Templates",
+      "notificationTemplates": "Notification Templates",
       "boilerplates": "Text Templates",
       "customFields": "Custom Fields",
       "questionnaires": "Questionnaires",
@@ -3647,6 +3712,15 @@
       "delete": "Delete",
       "cancel": "Cancel"
     },
+    "deleteSelfModal": {
+      "title": "Delete Your Own Account",
+      "message": "You are about to delete your own account ({name}). This is a critical action that cannot be undone.",
+      "warning": "You will lose access to the platform immediately and permanently.",
+      "confirmationLabel": "Type 'radera' to confirm deletion:",
+      "confirmationMismatch": "The confirmation text does not match. Please type 'radera' exactly.",
+      "confirm": "Delete My Account",
+      "cancel": "Cancel"
+    },
     "toast": {
       "adminDeletedSuccessfully": "Admin deleted successfully.",
       "failedToDeleteAdmin": "Failed to delete admin."
@@ -3686,6 +3760,10 @@
       "password": "Password",
       "phoneNumber": "Phone Number",
       "gender": "Gender",
+      "passwordRequirements": "Password Requirements",
+      "req8chars": "At least 8 characters",
+      "req1number": "At least one number",
+      "req1special": "At least one special character",
       "placeholders": {
         "firstName": "Enter first name",
         "lastName": "Enter last name",
@@ -3739,6 +3817,12 @@
       "emailRequired": "Email is required",
       "invalidEmail": "Please enter a valid email address",
       "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordNumber": "Password must contain at least one number",
+      "passwordSpecial": "Password must contain at least one special character",
+      "passwordStrength": "Password must be at least 8 characters, contain at least one number and one special character",
+      "phoneNumbersOnly": "Phone number must contain only numbers",
+      "assignedClubRequired": "Club assignment is required",
       "genderRequired": "Gender is required"
     },
     "toast": {
@@ -4928,6 +5012,90 @@
       "postDeleted": "Post deleted successfully!",
       "failedToDelete": "Failed to delete post."
     },
+    "detail": {
+      "title": "Post Details",
+      "description": "View and manage post",
+      "loading": "Loading post...",
+      "notFound": "Post not found",
+      "backToPosts": "Back to Posts",
+      "editPost": "Edit Post",
+      "pinned": "PINNED",
+      "viewFull": "View Full",
+      "watchVideo": "Watch Video",
+      "imagesAttached": "{count} images attached",
+      "analytics": "Analytics",
+      "views": "Views",
+      "comments": "Comments",
+      "reactions": "Reactions",
+      "pushSent": "Push Sent",
+      "yes": "Yes",
+      "no": "No",
+      "commentsSection": "Comments ({count})",
+      "moderation": "Moderation",
+      "moderationOn": "On",
+      "moderationOff": "Off",
+      "noComments": "No comments yet",
+      "hide": "Hide",
+      "approve": "Approve",
+      "pendingApproval": "Pending Approval",
+      "targetAudience": "Target Audience",
+      "memberTypeLabel": "Member Type",
+      "memberType": {
+        "BOTH": "Both",
+        "YOUTH": "Youth",
+        "GUARDIAN": "Guardian"
+      },
+      "targetedGroups": "Targeted Groups",
+      "group": "Group",
+      "ageRange": "Age Range",
+      "genderLabel": "Gender",
+      "gender": {
+        "MALE": "Male",
+        "FEMALE": "Female",
+        "OTHER": "Other"
+      },
+      "grades": "Grades",
+      "all": "All",
+      "any": "Any",
+      "customFieldRules": "Custom Field Rules",
+      "field": "Field",
+      "configuration": "Configuration",
+      "commentsLabel": "Comments",
+      "allowed": "Allowed",
+      "disabled": "Disabled",
+      "required": "Required",
+      "pushNotification": "Push Notification",
+      "sent": "Sent",
+      "notSent": "Not Sent",
+      "expires": "Expires",
+      "deleteComment": "Delete Comment",
+      "deleteCommentMessage": "Are you sure you want to delete this comment? This action cannot be undone.",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "scope": {
+        "global": "Global",
+        "municipalities": "{count} Municipalities",
+        "clubs": "{count} Clubs"
+      },
+      "status": {
+        "PUBLISHED": "Published",
+        "DRAFT": "Draft",
+        "SCHEDULED": "Scheduled",
+        "ARCHIVED": "Archived"
+      },
+      "type": {
+        "TEXT": "Text",
+        "IMAGE": "Image",
+        "VIDEO": "Video"
+      },
+      "toast": {
+        "commentHidden": "Comment hidden",
+        "commentApproved": "Comment approved",
+        "failedToUpdateComment": "Failed to update comment",
+        "commentDeleted": "Comment deleted",
+        "failedToDeleteComment": "Failed to delete comment"
+      }
+    },
     "mobile": {
       "by": "By",
       "unknown": "Unknown",
@@ -5119,7 +5287,31 @@
         "targetAudience": "Target Audience",
         "settings": "Settings",
         "willBePinned": "Will be pinned",
-        "pushNotificationLabel": "Push notification: {title}"
+        "pushNotificationLabel": "Push notification: {title}",
+        "summaries": {
+          "global": "Global (all users)",
+          "municipality": "{count} municipality",
+          "municipalities": "{count} municipalities",
+          "club": "{count} club",
+          "clubs": "{count} clubs",
+          "youthOnly": "Youth only",
+          "guardiansOnly": "Guardians only",
+          "ages": "Ages {min}-{max}",
+          "agesMin": "Ages {min}+",
+          "agesMax": "Ages up to {max}",
+          "grade": "Grade {grades}",
+          "grades": "Grades {grades}",
+          "gradesRange": "Grades {min}-{max}",
+          "group": "{count} group",
+          "groups": "{count} groups",
+          "allMembers": "All members",
+          "commentsOn": "Comments on",
+          "commentsOff": "Comments off",
+          "moderated": "moderated",
+          "pushEnabled": "Push enabled",
+          "pinned": "Pinned",
+          "defaultSettings": "Default settings"
+        }
       },
       "actions": {
         "cancel": "Cancel",
@@ -5645,13 +5837,23 @@
         "registration": {
           "title": "Registration & Capacity",
           "description": "Configure registration settings and capacity limits.",
+          "registrationMode": "Registration Mode",
+          "modes": {
+            "open": "Open Event",
+            "openDescription": "No registration required – anyone can attend without signing up",
+            "firstCome": "First Come First Served",
+            "firstComeDescription": "Spots are automatically assigned based on application order",
+            "manualApproval": "Manual Selection",
+            "manualApprovalDescription": "All applications wait for approval – admin selects who gets a spot"
+          },
           "enableRegistration": "Enable Registration",
-          "regularSeats": "Regular Seats",
+          "regularSeats": "Number of Spots",
           "unlimited": "0 = Unlimited",
           "waitlistSpots": "Waitlist Spots",
           "registrationCloses": "Registration Closes",
           "registrationClosesHint": "Members can apply until this date and time.",
           "registrationClosesDefaultHint": "If no date/time is specified, members can apply until the event starts. Registration opens when the event is published.",
+          "additionalOptions": "Additional Options",
           "approvalRules": "Approval Rules",
           "requiresGuardianApproval": "Requires Guardian Approval",
           "requiresAdminApproval": "Requires Admin Approval (Manual review)",
@@ -9592,7 +9794,7 @@
       "emailBody": "Email Body",
       "richText": "Rich Text",
       "html": "HTML",
-      "htmlHelp": "💡 Use HTML tags to format your email. Variables like {{user.first_name}} will be replaced with actual values.",
+      "htmlHelp": "💡 Use HTML tags to format your email. Variables (e.g. user.first_name) will be replaced with actual values.",
       "plainTextVersion": "Plain Text Version (optional, auto-generated if empty)",
       "plainTextPlaceholder": "Leave empty to auto-generate from HTML...",
       "editorPlaceholder": "Start writing your email content...",
@@ -9647,6 +9849,54 @@
       "previewFailed": "Failed to generate preview",
       "testSent": "Test email sent to {email}",
       "testFailed": "Failed to send test email"
+    },
+    "languages": {
+      "swedish": "Swedish",
+      "english": "English",
+      "arabic": "Arabic",
+      "danish": "Danish",
+      "finnish": "Finnish",
+      "norwegian": "Norwegian",
+      "dariPersian": "Dari/Persian",
+      "somali": "Somali"
+    }
+  },
+  "notificationTemplates": {
+    "title": "Notification Templates",
+    "subtitle": "Manage and customize in-app notifications sent to users",
+    "search": "Search templates...",
+    "noTranslations": "No translations",
+    "disabled": "Disabled",
+    "selectTemplate": {
+      "title": "Select a template",
+      "subtitle": "Choose a notification template from the list to edit its content and translations."
+    },
+    "editor": {
+      "language": "Language:",
+      "availableVariables": "Available variables:",
+      "notificationTitle": "Notification Title",
+      "titlePlaceholder": "Enter notification title...",
+      "notificationBody": "Notification Body",
+      "bodyPlaceholder": "Enter notification text...",
+      "bodyHelp": "💡 Use variables (e.g. event_title) to include dynamic content. See the list above.",
+      "active": "Active",
+      "preview": "Preview",
+      "saveTranslation": "Save Translation"
+    },
+    "previewModal": {
+      "title": "Notification Preview",
+      "subtitle": "This is how the notification will appear to users.",
+      "justNow": "Just now"
+    },
+    "toast": {
+      "loadFailed": "Failed to load notification templates",
+      "loadDetailsFailed": "Failed to load template details",
+      "saveSuccess": "Translation saved",
+      "saveFailed": "Failed to save translation",
+      "templateEnabled": "Template enabled",
+      "templateDisabled": "Template disabled",
+      "updateFailed": "Failed to update template",
+      "previewFailed": "Failed to generate preview"
     },
     "languages": {
       "swedish": "Swedish",
@@ -9858,9 +10108,11 @@
     },
     "step2": {
       "title": "Create Your Login",
-      "subtitle": "Set up your email and a secure password",
+      "subtitle": "Set up your email, phone and a secure password",
       "emailAddress": "Email Address",
       "emailPlaceholder": "your@email.com",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+46 70 123 45 67",
       "checkingAvailability": "Checking availability...",
       "emailAlreadyRegistered": "This email is already registered.",
       "loginInstead": "Log in instead?",
@@ -9916,8 +10168,11 @@
       "termsAndConditions": "Terms & Conditions",
       "clubPolicies": "Club Policies",
       "noTermsAvailable": "No terms available.",
+      "noPoliciesAvailable": "No policies available.",
       "acceptTermsText": "I have read and accept the",
-      "and": "and"
+      "and": "and",
+      "readMore": "Read more...",
+      "close": "Close"
     }
   },
   "youthRegister": {
@@ -10528,6 +10783,100 @@
       "topEvents": "Top Events by Registrations",
       "noEvents": "No events in this period",
       "createEventHint": "Create an event to start tracking analytics"
+    }
+  },
+  "public": {
+    "hero": {
+      "badge": "New activities every day",
+      "defaultTitle": "Find your thing!",
+      "defaultSubtitle": "An app for all young people with collected activities and events.",
+      "searchPlaceholder": "Search activities, events...",
+      "searchButton": "Search activities",
+      "myLocation": "My location",
+      "searching": "Searching...",
+      "locationFound": "Location found",
+      "locationError": {
+        "denied": "Location access denied",
+        "unavailable": "Location information unavailable",
+        "timeout": "Request took too long",
+        "unknown": "An unknown error occurred"
+      },
+      "scrollDown": "Scroll down",
+      "quickTags": {
+        "sport": "Sport",
+        "music": "Music",
+        "gaming": "Gaming",
+        "art": "Art",
+        "dance": "Dance"
+      }
+    },
+    "events": {
+      "sectionLabel": "Happening now",
+      "sectionTitle": "Upcoming activities",
+      "sortedByDistance": "Sorted by distance from you",
+      "viewAll": "See all activities",
+      "exploreMore": "Explore more activities",
+      "noUpcoming": "No upcoming activities",
+      "noUpcomingDescription": "There are no public activities right now. Come back soon!",
+      "free": "Free",
+      "fullyBooked": "Fully booked",
+      "unlimited": "Unlimited",
+      "spotsLeft": "{count} spots left",
+      "openForAll": "Open for all"
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "subtitle": "Create an account today and start exploring all the activities and events waiting for you. It only takes a minute!",
+      "createAccount": "Create account for free",
+      "login": "Log in",
+      "trustBadge": "Already thousands of young people use Ungdomsappen every day",
+      "features": {
+        "free": "Free to use",
+        "findNearby": "Find activities near you",
+        "oneClick": "Sign up with one click",
+        "recommendations": "Get personal recommendations"
+      }
+    },
+    "customers": {
+      "title": "Our customers",
+      "subtitle": "Proud to collaborate with municipalities and organizations across Sweden"
+    },
+    "about": {
+      "title": "What is Ungdomsappen?",
+      "description": "Ungdomsappen is a digital platform that gathers all activities, events and youth centers for young people in one place. Whether you're looking for sports activities, creative workshops or just want to hang out with friends - we have something for everyone.",
+      "features": {
+        "findNearby": "Find activities near you",
+        "signUp": "Sign up for events easily",
+        "discover": "Discover new youth centers",
+        "recommendations": "Get personal recommendations"
+      }
+    },
+    "layout": {
+      "greeting": "Hi",
+      "myDashboard": "My Dashboard",
+      "logout": "Log out",
+      "login": "Log in",
+      "createAccount": "Create account",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "home": "Home",
+      "quickLinks": "Quick links",
+      "prices": "Prices",
+      "contact": "Contact",
+      "contactInfo": {
+        "email": "info@ungdomsappen.se",
+        "location": "Stockholm, Sweden"
+      },
+      "newsletter": {
+        "title": "Stay updated",
+        "subtitle": "Get the latest news and updates.",
+        "placeholder": "Enter your email",
+        "subscribe": "Subscribe"
+      },
+      "footer": {
+        "description": "The platform that gathers activities, events and youth centers for young people. Find your community and explore new opportunities.",
+        "copyright": "All rights reserved"
+      }
     }
   }
 }

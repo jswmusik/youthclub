@@ -42,7 +42,7 @@ export default function AnalyticsSettingsCard({
         className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--dark-700)]/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--dark-600)] to-[var(--dark-500)] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[var(--dark-600)] flex items-center justify-center">
             <Settings className="w-5 h-5 text-[var(--brand-light)]/70" />
           </div>
           <div className="text-left">

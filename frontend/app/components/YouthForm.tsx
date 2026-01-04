@@ -962,12 +962,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 {formData.guardians.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] mb-3">
                     {getSelectedGuardians().map(g => (
-                      <span key={g.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-sm font-medium">
+                      <span key={g.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-primary)] text-[var(--dark-900)] text-sm font-medium">
                         {g.first_name} {g.last_name}
                         <button
                           type="button"
                           onClick={() => removeGuardian(g.id)}
-                          className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                          className="hover:bg-[var(--dark-900)]/20 rounded-full p-0.5 transition-colors"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -1043,12 +1043,12 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
                 {formData.interests.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] mb-3">
                     {getSelectedInterests().map(interest => (
-                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-white text-sm font-medium">
+                      <span key={interest.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-[var(--dark-900)] text-sm font-medium">
                         {interest.name}
                         <button
                           type="button"
                           onClick={() => removeInterest(interest.id)}
-                          className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                          className="hover:bg-[var(--dark-900)]/20 rounded-full p-0.5 transition-colors"
                         >
                           <X className="h-3 w-3" />
                         </button>

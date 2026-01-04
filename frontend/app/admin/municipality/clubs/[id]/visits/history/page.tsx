@@ -1,22 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams, usePathname, useParams } from 'next/navigation';
 import { visits } from '@/lib/api';
 import { useToast } from '../../../../../../../hooks/useToast';
 import Link from 'next/link';
-import { Search, X, Clock, LogIn, LogOut, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Search, X, Clock, LogIn, LogOut, User, History } from 'lucide-react';
 import { getMediaUrl } from '@/app/utils';
 import VisitsTabs from '@/app/components/visits/VisitsTabs';
 import BackButton from '@/app/components/BackButton';
 
 export default function MunicipalityClubVisitHistoryPage() {
+  const t = useTranslations('clubVisits.history');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -106,35 +102,45 @@ export default function MunicipalityClubVisitHistoryPage() {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
-    <>
-      <div className="p-8 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[var(--dark-900)] py-4 sm:py-8 px-0">
+      <div className="sm:max-w-7xl sm:mx-auto sm:px-6 space-y-6">
         {/* Back Link */}
-        <div>
-          <BackButton href={`/admin/municipality/clubs/${clubId}`} label="Back to Club" />
+        <div className="px-4 sm:px-0">
+          <BackButton href={`/admin/municipality/clubs/${clubId}`} label={t('backToClub') || 'Back to Club'} />
         </div>
 
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-4 sm:px-0">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#121213]">Visits & Attendance</h1>
-            <p className="text-gray-500 mt-1">Archive of all check-ins and check-outs for this club.</p>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+                <History className="w-5 h-5 text-[var(--dark-900)]" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">{t('title') || 'Visit History'}</h1>
+                <p className="text-[var(--brand-light)]/50 text-sm mt-1">{t('description') || 'Archive of all check-ins and check-outs'}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <VisitsTabs clubId={clubId} basePath="/admin/municipality/clubs" />
+        <div className="px-4 sm:px-0">
+          <VisitsTabs clubId={clubId} basePath="/admin/municipality/clubs" />
+        </div>
 
         {/* FILTERS */}
-        <Card className="border border-gray-100 shadow-sm bg-white">
-          <div className="px-6 py-4 space-y-4">
+        <div className="px-4 sm:px-0">
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+          <div className="p-6 space-y-4">
             {/* Main Filters Row */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
               {/* Search */}
               <div className="relative md:col-span-4 lg:col-span-3">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input 
-                  placeholder="Search by name or email..." 
-                  className="pl-9 bg-gray-50 border-0"
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
+                <input 
+                  placeholder={t('searchPlaceholder') || 'Search by name or email...'}
+                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] placeholder-[var(--brand-light)]/30 outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
                   value={searchParams.get('search') || ''}
                   onChange={e => updateUrl('search', e.target.value)}
                 />
@@ -142,9 +148,9 @@ export default function MunicipalityClubVisitHistoryPage() {
               
               {/* Start Date */}
               <div className="md:col-span-2 lg:col-span-2">
-                <Input
+                <input
                   type="date"
-                  className="h-9 bg-gray-50 border-0"
+                  className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
                   value={searchParams.get('start_date') || ''}
                   onChange={e => updateUrl('start_date', e.target.value)}
                 />
@@ -152,9 +158,9 @@ export default function MunicipalityClubVisitHistoryPage() {
               
               {/* End Date */}
               <div className="md:col-span-2 lg:col-span-2">
-                <Input
+                <input
                   type="date"
-                  className="h-9 bg-gray-50 border-0"
+                  className="w-full h-11 px-4 rounded-xl bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
                   value={searchParams.get('end_date') || ''}
                   onChange={e => updateUrl('end_date', e.target.value)}
                 />
@@ -163,48 +169,63 @@ export default function MunicipalityClubVisitHistoryPage() {
               {/* Member Type */}
               <div className="md:col-span-2 lg:col-span-2">
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#4D4DA4]"
+                  className="w-full h-11 px-4 rounded-xl appearance-none cursor-pointer bg-[var(--dark-700)] border-2 border-[var(--dark-500)] text-[var(--brand-light)] outline-none transition-all duration-200 hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20"
                   value={searchParams.get('guest_filter') || ''}
                   onChange={e => updateUrl('guest_filter', e.target.value)}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 1rem center',
+                    backgroundSize: '1rem'
+                  }}
                 >
-                  <option value="">All Members</option>
-                  <option value="members">Preferred Members</option>
-                  <option value="guests">Guests</option>
+                  <option value="">{t('allMembers') || 'All Members'}</option>
+                  <option value="members">{t('preferredMembers') || 'Preferred Members'}</option>
+                  <option value="guests">{t('guests') || 'Guests'}</option>
                 </select>
               </div>
               
               {/* Clear Button */}
               <div className="md:col-span-2 lg:col-span-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={() => router.push(pathname)}
-                  className="w-full text-gray-500 hover:text-red-600 hover:bg-red-50 gap-2"
+                  className="w-full h-11 px-4 rounded-xl flex items-center justify-center gap-2 bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 font-medium hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)] transition-all"
                 >
-                  <X className="h-4 w-4" /> Clear
-                </Button>
+                  <X className="h-4 w-4" /> {t('clear') || 'Clear'}
+                </button>
               </div>
             </div>
           </div>
-        </Card>
+          </div>
+        </div>
 
         {/* Table */}
-        {loading ? (
-          <Card className="border border-gray-100 shadow-sm">
-            <div className="py-20 flex justify-center text-gray-400">
-              <div className="animate-pulse">Loading records...</div>
+        <div className="px-4 sm:px-0">
+          {loading ? (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-8">
+            <div className="py-12 text-center">
+              <div className="inline-flex flex-col items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+                  <History className="w-5 h-5 text-[var(--dark-900)]" />
+                </div>
+                <span className="text-[var(--brand-light)]/60 animate-pulse">{t('loading') || 'Loading records...'}</span>
+              </div>
+              </div>
             </div>
-          </Card>
-        ) : data.length === 0 ? (
-          <Card className="border border-gray-100 shadow-sm">
-            <div className="py-20 text-center">
-              <p className="text-gray-500">No records found matching your filters.</p>
+          ) : data.length === 0 ? (
+            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] p-8">
+            <div className="py-12 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-4">
+                <History className="w-8 h-8 text-[var(--brand-light)]/30" />
+              </div>
+              <p className="text-[var(--brand-light)]/50 font-medium">{t('noRecords') || 'No records found'}</p>
+              <p className="text-sm text-[var(--brand-light)]/30 mt-1">{t('tryAdjustingFilters') || 'Try adjusting your filters'}</p>
+              </div>
             </div>
-          </Card>
-        ) : (
-          <>
-            {/* MOBILE: Cards */}
-            <div className="grid grid-cols-1 gap-3 md:hidden">
+          ) : (
+            <>
+              {/* MOBILE: Cards */}
+              <div className="flex flex-col gap-3 md:hidden">
               {data.map((visit: any) => {
                 const start = new Date(visit.check_in_at);
                 const checkOutAt = visit.check_out_at;
@@ -229,93 +250,94 @@ export default function MunicipalityClubVisitHistoryPage() {
                 const userId = visit.user || visit.user_details?.id;
                 
                 return (
-                  <Card key={visit.id} className={`overflow-hidden border-l-4 ${isGuest ? 'border-l-orange-400' : 'border-l-[#4D4DA4]'} shadow-sm`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10 rounded-lg border border-gray-200 flex-shrink-0">
-                          <AvatarImage src={getMediaUrl(visit.user_details?.avatar) || undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
+                  <div key={visit.id} className="bg-[var(--dark-700)] border-y border-[var(--dark-600)] p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-full border-2 border-[var(--dark-500)] bg-[var(--dark-600)] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        {visit.user_details?.avatar ? (
+                          <img src={getMediaUrl(visit.user_details.avatar)} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <span className="text-sm font-bold text-[var(--brand-primary)]">
                             {getInitials(visit.user_details?.first_name, visit.user_details?.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {userId ? (
-                              <Link 
-                                href={`/admin/municipality/youth/${userId}`}
-                                className="font-semibold text-[#121213] hover:text-[#4D4DA4] hover:underline transition-colors truncate"
-                              >
-                                {visit.user_details?.first_name} {visit.user_details?.last_name}
-                              </Link>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {userId ? (
+                            <Link 
+                              href={`/admin/municipality/youth/${userId}`}
+                              className="font-semibold text-[var(--brand-light)] hover:text-[var(--brand-primary)] hover:underline transition-colors truncate"
+                            >
+                              {visit.user_details?.first_name} {visit.user_details?.last_name}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold text-[var(--brand-light)]">{visit.user_details?.first_name} {visit.user_details?.last_name}</span>
+                          )}
+                          {isGuest && (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] rounded">
+                              {t('guest') || 'Guest'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--brand-light)]/40 uppercase font-semibold">{t('date') || 'Date'}</span>
+                            <span className="text-[var(--brand-light)]/70">{start.toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--brand-light)]/40 uppercase font-semibold">{t('checkIn') || 'Check-in'}</span>
+                            <div className="flex items-center gap-1 text-[var(--brand-green)]">
+                              <LogIn className="h-3 w-3" />
+                              <span className="text-sm font-medium">{start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                            </div>
+                          </div>
+                          {end && !isNaN(end.getTime()) && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-[var(--brand-light)]/40 uppercase font-semibold">{t('checkOut') || 'Check-out'}</span>
+                              <div className="flex items-center gap-1 text-[var(--brand-light)]/50">
+                                <LogOut className="h-3 w-3" />
+                                <span className="text-sm">{end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--brand-light)]/40 uppercase font-semibold">{t('duration') || 'Duration'}</span>
+                            {duration !== null ? (
+                              <div className="flex items-center gap-1 text-[var(--brand-light)]/70">
+                                <Clock className="h-3 w-3" />
+                                <span className="text-sm font-medium">{Math.floor(duration/60)}h {duration%60}m</span>
+                              </div>
                             ) : (
-                              <span className="font-semibold text-[#121213]">{visit.user_details?.first_name} {visit.user_details?.last_name}</span>
-                            )}
-                            {isGuest && (
-                              <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-300">
-                                Guest
-                              </Badge>
+                              <span className="px-2 py-0.5 text-xs font-medium bg-[var(--brand-green)]/20 text-[var(--brand-green)] rounded">
+                                {t('active') || 'Active'}
+                              </span>
                             )}
                           </div>
-                          <div className="space-y-1.5 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500 uppercase font-semibold">Date</span>
-                              <span className="text-gray-600">{start.toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500 uppercase font-semibold">Check-in</span>
-                              <div className="flex items-center gap-1 text-[#10B981]">
-                                <LogIn className="h-3 w-3" />
-                                <span className="text-sm font-medium">{start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                              </div>
-                            </div>
-                            {end && !isNaN(end.getTime()) && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500 uppercase font-semibold">Check-out</span>
-                                <div className="flex items-center gap-1 text-gray-500">
-                                  <LogOut className="h-3 w-3" />
-                                  <span className="text-sm">{end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                </div>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500 uppercase font-semibold">Duration</span>
-                              {duration !== null ? (
-                                <div className="flex items-center gap-1 text-gray-600">
-                                  <Clock className="h-3 w-3" />
-                                  <span className="text-sm font-medium">{Math.floor(duration/60)}h {duration%60}m</span>
-                                </div>
-                              ) : (
-                                <Badge variant="outline" className="bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30 text-xs">
-                                  Active
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs text-gray-500 uppercase font-semibold">Method</span>
-                              <span className="text-sm text-gray-600">{getMethodName(visit.method)}</span>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--brand-light)]/40 uppercase font-semibold">{t('method') || 'Method'}</span>
+                            <span className="text-sm text-[var(--brand-light)]/70">{getMethodName(visit.method)}</span>
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    </div>
+                  </div>
+                  );
+                })}
+              </div>
 
-            {/* DESKTOP: Table */}
-            <Card className="hidden md:block border border-gray-100 shadow-sm bg-white overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-gray-100 hover:bg-transparent">
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Member</TableHead>
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Date</TableHead>
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">In / Out</TableHead>
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Duration</TableHead>
-                    <TableHead className="h-12 px-6 text-gray-600 font-semibold">Method</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              {/* DESKTOP: Table */}
+              <div className="hidden md:block bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[var(--dark-600)] bg-[var(--dark-700)]/30">
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('member') || 'Member'}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('date') || 'Date'}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('inOut') || 'In / Out'}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('duration') || 'Duration'}</th>
+                    <th className="h-12 px-6 text-left text-xs font-semibold text-[var(--brand-light)]/50 uppercase tracking-wider">{t('method') || 'Method'}</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {data.map((visit: any) => {
                     const start = new Date(visit.check_in_at);
                     const checkOutAt = visit.check_out_at;
@@ -340,106 +362,106 @@ export default function MunicipalityClubVisitHistoryPage() {
                     const userId = visit.user || visit.user_details?.id;
                     
                     return (
-                      <TableRow 
+                      <tr 
                         key={visit.id} 
-                        className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${isGuest ? 'bg-orange-50/50' : ''}`}
+                        className="border-b border-[var(--dark-600)] hover:bg-[var(--dark-700)]/30 transition-colors"
                       >
-                        <TableCell className="py-4 px-6">
+                        <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-9 w-9 rounded-lg border border-gray-200">
-                              <AvatarImage src={getMediaUrl(visit.user_details?.avatar) || undefined} className="object-cover" />
-                              <AvatarFallback className="rounded-lg font-bold text-xs bg-[#EBEBFE] text-[#4D4DA4]">
-                                {getInitials(visit.user_details?.first_name, visit.user_details?.last_name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="w-10 h-10 rounded-full border-2 border-[var(--dark-500)] bg-[var(--dark-700)] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              {visit.user_details?.avatar ? (
+                                <img src={getMediaUrl(visit.user_details.avatar)} className="w-full h-full object-cover" alt="" />
+                              ) : (
+                                <span className="text-xs font-bold text-[var(--brand-primary)]">
+                                  {getInitials(visit.user_details?.first_name, visit.user_details?.last_name)}
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2">
                               {userId ? (
                                 <Link 
                                   href={`/admin/municipality/youth/${userId}`}
-                                  className="font-semibold text-[#121213] hover:text-[#4D4DA4] hover:underline transition-colors"
+                                  className="font-semibold text-[var(--brand-light)] hover:text-[var(--brand-primary)] hover:underline transition-colors"
                                 >
                                   {visit.user_details?.first_name} {visit.user_details?.last_name}
                                 </Link>
                               ) : (
-                                <span className="font-semibold text-[#121213]">{visit.user_details?.first_name} {visit.user_details?.last_name}</span>
+                                <span className="font-semibold text-[var(--brand-light)]">{visit.user_details?.first_name} {visit.user_details?.last_name}</span>
                               )}
                               {isGuest && (
-                                <Badge variant="outline" className="text-[10px] bg-orange-50 text-orange-700 border-orange-300">
-                                  Guest
-                                </Badge>
+                                <span className="px-2 py-0.5 text-[10px] font-medium bg-[var(--brand-peach)]/20 text-[var(--brand-peach)] rounded">
+                                  {t('guest') || 'Guest'}
+                                </span>
                               )}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4 px-6 text-gray-600">
+                        </td>
+                        <td className="py-4 px-6 text-[var(--brand-light)]/70">
                           {start.toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="py-4 px-6">
+                        </td>
+                        <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 text-[#10B981]">
+                            <div className="flex items-center gap-1 text-[var(--brand-green)]">
                               <LogIn className="h-3 w-3" />
                               <span className="text-sm font-medium">{start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
                             {end && !isNaN(end.getTime()) && (
-                              <div className="flex items-center gap-1 text-gray-500">
+                              <div className="flex items-center gap-1 text-[var(--brand-light)]/50">
                                 <LogOut className="h-3 w-3" />
                                 <span className="text-sm">{end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                               </div>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="py-4 px-6">
+                        </td>
+                        <td className="py-4 px-6">
                           {duration !== null ? (
-                            <div className="flex items-center gap-1 text-gray-600">
+                            <div className="flex items-center gap-1 text-[var(--brand-light)]/70">
                               <Clock className="h-3 w-3" />
                               <span className="text-sm font-medium">{Math.floor(duration/60)}h {duration%60}m</span>
                             </div>
                           ) : (
-                            <Badge variant="outline" className="bg-[#10B981]/10 text-[#10B981] border-[#10B981]/30">
-                              Active
-                            </Badge>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-[var(--brand-green)]/20 text-[var(--brand-green)] rounded">
+                              {t('active') || 'Active'}
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell className="py-4 px-6 text-sm text-gray-600">
+                        </td>
+                        <td className="py-4 px-6 text-sm text-[var(--brand-light)]/70">
                           {getMethodName(visit.method)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </Card>
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 py-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 py-4">
+                <button 
                   disabled={currentPage === 1} 
                   onClick={() => updateUrl('page', (currentPage - 1).toString())}
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Prev
-                </Button>
-                <div className="text-sm text-gray-500">Page {currentPage} of {totalPages}</div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                  {t('prev') || 'Prev'}
+                </button>
+                <div className="text-sm text-[var(--brand-light)]/50">
+                  {t('page') || 'Page'} {currentPage} {t('of') || 'of'} {totalPages}
+                </div>
+                <button 
                   disabled={currentPage >= totalPages} 
                   onClick={() => updateUrl('page', (currentPage + 1).toString())}
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--dark-700)] border border-[var(--dark-500)] text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] hover:bg-[var(--dark-600)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Next
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+                    {t('next') || 'Next'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-
-      {/* Toast Notification */}
-    </>
+    </div>
   );
 }
 

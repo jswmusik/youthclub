@@ -278,7 +278,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
       <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading ${
         darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'
       }`}>
-        <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#FF5485]'}`}></span>
+        <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[var(--brand-primary)]'}`}></span>
         <CalendarDays className="w-5 h-5" />
         {t('eventApplications') || 'Event Applications'}
       </h3>
@@ -381,7 +381,7 @@ export default function GuardianEventList({ user, darkMode = false }: GuardianEv
                           <span className={`text-xs px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5 ${
                             darkMode 
                               ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]' 
-                              : 'bg-[#FF5485]/10 text-[#FF5485]'
+                              : 'bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
                           }`}>
                             <User className="w-3 h-3" />
                             {userData?.first_name || t('child')}

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import api from '../../lib/api';
 import { useToast } from '../../hooks/useToast';
-import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2 } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2, X } from 'lucide-react';
 
 // --- Interfaces ---
 interface Option { id: number; name: string; }
@@ -83,10 +84,21 @@ export default function YouthRegistrationWizard() {
   // --- Password Visibility ---
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // --- Terms Modal State ---
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
+  const [termsModalType, setTermsModalType] = useState<'terms' | 'policies'>('terms');
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted state for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // --- Form Data ---
   const [formData, setFormData] = useState({
     email: '',
+    phone: '',
     password: '',
     confirm_password: '',
     first_name: '',
@@ -235,9 +247,38 @@ export default function YouthRegistrationWizard() {
   };
 
   // --- Step Validation ---
-  const isStep2Valid = () => formData.email && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
+  const isStep2Valid = () => formData.email && formData.phone && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
 
   // --- Helpers ---
+  const stripHtmlTags = (html: string): string => {
+    if (!html) return '';
+    // Replace block elements with newlines to preserve paragraph structure
+    let text = html
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n');
+    // Remove all remaining HTML tags
+    text = text.replace(/<[^>]*>/g, '');
+    // Decode common HTML entities
+    text = text
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    // Clean up excessive whitespace while preserving paragraph breaks
+    text = text.replace(/\n{3,}/g, '\n\n').trim();
+    return text;
+  };
+  
+  const openTermsModal = (type: 'terms' | 'policies') => {
+    setTermsModalType(type);
+    setTermsModalOpen(true);
+  };
+
   const updateCF = (fieldId: number, value: any, isGuardian = false) => {
     const key = isGuardian ? 'guardian_custom_field_values' : 'custom_field_values';
     setFormData(prev => ({
@@ -272,6 +313,7 @@ export default function YouthRegistrationWizard() {
     try {
       const payload: any = {
         email: formData.email,
+        phone_number: formData.phone,
         password: formData.password,
         password_confirm: formData.confirm_password,
         first_name: formData.first_name,
@@ -399,7 +441,7 @@ export default function YouthRegistrationWizard() {
               <div key={s.id} className="flex items-center">
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
                   isActive 
-                    ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
+                    ? 'bg-[var(--brand-purple)]/20 text-[var(--brand-purple)]' 
                     : isCompleted 
                       ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]'
                       : 'bg-[var(--dark-600)] text-[var(--brand-light)]/40'
@@ -498,27 +540,39 @@ export default function YouthRegistrationWizard() {
               <p className="text-[var(--brand-light)]/60 text-sm mt-1">{t('step2.subtitle')}</p>
             </div>
             
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.emailAddress')}</label>
-              <input 
-                type="email" 
-                placeholder={t('step2.emailPlaceholder')}
-                className={`${inputClasses} ${emailTaken ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
-                value={formData.email} 
-                onChange={e => { 
-                  setFormData({...formData, email: e.target.value}); 
-                  setEmailTaken(false);
-                }}
-                onBlur={checkEmailAvailability} 
-              />
-              {checkingEmail && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('step2.checkingAvailability')}</p>}
-              {emailTaken && (
-                <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {t('step2.emailAlreadyRegistered')} <a href="/login" className="underline hover:text-[var(--brand-red)]/80">{t('step2.loginInstead')}</a>
-                </p>
-              )}
+            {/* Email & Phone */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.emailAddress')}</label>
+                <input 
+                  type="email" 
+                  placeholder={t('step2.emailPlaceholder')}
+                  className={`${inputClasses} ${emailTaken ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
+                  value={formData.email} 
+                  onChange={e => { 
+                    setFormData({...formData, email: e.target.value}); 
+                    setEmailTaken(false);
+                  }}
+                  onBlur={checkEmailAvailability} 
+                />
+                {checkingEmail && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('step2.checkingAvailability')}</p>}
+                {emailTaken && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {t('step2.emailAlreadyRegistered')} <a href="/login" className="underline hover:text-[var(--brand-red)]/80">{t('step2.loginInstead')}</a>
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.phone')}</label>
+                <input 
+                  type="tel" 
+                  placeholder={t('step2.phonePlaceholder')}
+                  className={inputClasses}
+                  value={formData.phone} 
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
             </div>
             
             {/* Passwords */}
@@ -818,14 +872,35 @@ export default function YouthRegistrationWizard() {
               )}
             </div>
             
-            {/* Terms */}
-            <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] max-h-40 overflow-y-auto text-sm text-[var(--brand-light)]/70">
+            {/* Terms Preview */}
+            <div className="bg-[var(--dark-700)] p-4 rounded-xl border border-[var(--dark-500)] text-sm text-[var(--brand-light)]/70">
               <strong className="text-[var(--brand-light)]">{t('step5.termsAndConditions')}:</strong>
-              <p className="mt-2">{selectedMuni?.terms_and_conditions || t('step5.noTermsAvailable')}</p>
+              <p className="mt-2 whitespace-pre-line line-clamp-3">
+                {stripHtmlTags(selectedMuni?.terms_and_conditions || '') || t('step5.noTermsAvailable')}
+              </p>
+              {selectedMuni?.terms_and_conditions && (
+                <button 
+                  type="button"
+                  onClick={() => openTermsModal('terms')}
+                  className="text-[var(--brand-primary)] text-xs font-medium mt-2 hover:underline"
+                >
+                  {t('step5.readMore')}
+                </button>
+              )}
+              
               {selectedClub?.club_policies && (
                 <>
                   <strong className="text-[var(--brand-light)] block mt-4">{t('step5.clubPolicies')}:</strong>
-                  <p className="mt-2">{selectedClub.club_policies}</p>
+                  <p className="mt-2 whitespace-pre-line line-clamp-3">
+                    {stripHtmlTags(selectedClub.club_policies)}
+                  </p>
+                  <button 
+                    type="button"
+                    onClick={() => openTermsModal('policies')}
+                    className="text-[var(--brand-primary)] text-xs font-medium mt-2 hover:underline"
+                  >
+                    {t('step5.readMore')}
+                  </button>
                 </>
               )}
             </div>
@@ -839,7 +914,22 @@ export default function YouthRegistrationWizard() {
                 className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
               />
               <span className="text-[var(--brand-light)] text-sm">
-                {t('step5.acceptTermsText')} <span className="text-[var(--brand-primary)] font-medium">{t('step5.termsAndConditions')}</span> {t('step5.and')} <span className="text-[var(--brand-primary)] font-medium">{t('step5.clubPolicies')}</span>
+                {t('step5.acceptTermsText')}{' '}
+                <button 
+                  type="button" 
+                  onClick={(e) => { e.preventDefault(); openTermsModal('terms'); }}
+                  className="text-[var(--brand-primary)] font-medium hover:underline"
+                >
+                  {t('step5.termsAndConditions')}
+                </button>
+                {' '}{t('step5.and')}{' '}
+                <button 
+                  type="button" 
+                  onClick={(e) => { e.preventDefault(); openTermsModal('policies'); }}
+                  className="text-[var(--brand-primary)] font-medium hover:underline"
+                >
+                  {t('step5.clubPolicies')}
+                </button>
               </span>
             </label>
           </div>
@@ -864,7 +954,7 @@ export default function YouthRegistrationWizard() {
             type="button"
             onClick={() => setStep(step + 1)} 
             disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
-            className="flex items-center gap-2 bg-[var(--brand-primary)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-[var(--brand-primary)] text-gray-900 px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95 shadow-md"
           >
             {t('navigation.next')}
             <ChevronRight className="w-5 h-5" />
@@ -874,11 +964,11 @@ export default function YouthRegistrationWizard() {
             type="button"
             onClick={handleSubmit} 
             disabled={loading || !formData.terms_accepted} 
-            className="flex items-center gap-2 bg-[var(--brand-green)] text-[var(--dark-900)] px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-green)]/90 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-[var(--brand-green)] text-white px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-green)]/90 transition-all active:scale-95 shadow-md"
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-[var(--dark-900)]/30 border-t-[var(--dark-900)] rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 {t('navigation.creating')}
               </>
             ) : (
@@ -890,6 +980,67 @@ export default function YouthRegistrationWizard() {
           </button>
         )}
       </div>
+
+      {/* Terms Modal - Using Portal to render outside component hierarchy */}
+      {termsModalOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999]">
+          {/* Full-screen backdrop overlay */}
+          <div 
+            className="absolute inset-0 bg-black/80"
+            onClick={() => setTermsModalOpen(false)}
+          />
+          
+          {/* Modal Container - centered */}
+          <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            {/* Modal Content */}
+            <div 
+              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-xl font-bold text-gray-900 font-heading">
+                  {termsModalType === 'terms' ? t('step5.termsAndConditions') : t('step5.clubPolicies')}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+                <div className="text-gray-700 text-sm leading-relaxed">
+                  {termsModalType === 'terms' ? (
+                    <div className="whitespace-pre-line">
+                      {stripHtmlTags(selectedMuni?.terms_and_conditions || '') || t('step5.noTermsAvailable')}
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-line">
+                      {stripHtmlTags(selectedClub?.club_policies || '') || t('step5.noPoliciesAvailable')}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl bg-[var(--brand-primary)] text-[var(--brand-light)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all shadow-md"
+                >
+                  {t('step5.close')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       </div>
   );

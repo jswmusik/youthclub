@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -322,3 +322,132 @@ class InterestViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         # Only Super Admins can create, update, or delete
         return [IsSuperAdmin()]
+
+
+# =============================================================================
+# PUBLIC CLUB API - For unauthenticated public club pages
+# =============================================================================
+
+from rest_framework.views import APIView
+from .serializers import PublicClubDetailSerializer
+
+class PublicClubDetailView(APIView):
+    """
+    Public API endpoint to get club details by slug.
+    No authentication required.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, municipality_slug, club_slug):
+        """
+        Get public club details by municipality and club slug.
+        """
+        try:
+            club = Club.objects.select_related('municipality').prefetch_related(
+                'regular_hours', 'closures', 'date_overrides'
+            ).get(
+                municipality__slug=municipality_slug,
+                slug=club_slug
+            )
+        except Club.DoesNotExist:
+            return Response(
+                {'error': 'Fritidsgård hittades inte'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = PublicClubDetailSerializer(club)
+        return Response(serializer.data)
+
+
+class PublicMunicipalityClubSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for club listings in municipality view."""
+    is_open_now = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    hero_image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Club
+        fields = [
+            'id', 'name', 'slug', 'description', 'address',
+            'avatar', 'hero_image', 'phone', 'email',
+            'is_open_now', 'allowed_age_groups',
+        ]
+    
+    def get_is_open_now(self, obj):
+        """Check if the club is currently open."""
+        from django.utils import timezone
+        now = timezone.now()
+        current_weekday = now.isoweekday()
+        current_time = now.time()
+        current_week = now.isocalendar()[1]
+        is_odd_week = current_week % 2 == 1
+        
+        # Check for closures
+        if obj.closures.filter(start_date__lte=now.date(), end_date__gte=now.date()).exists():
+            return False
+        
+        # Check regular hours for today
+        for hour in obj.regular_hours.filter(weekday=current_weekday):
+            if hour.week_cycle == 'ODD' and not is_odd_week:
+                continue
+            if hour.week_cycle == 'EVEN' and is_odd_week:
+                continue
+            if hour.open_time <= current_time <= hour.close_time:
+                return True
+        
+        return False
+    
+    def get_avatar(self, obj):
+        return obj.avatar.url if obj.avatar else None
+    
+    def get_hero_image(self, obj):
+        return obj.hero_image.url if obj.hero_image else None
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Truncate description
+        if data.get('description') and len(data['description']) > 200:
+            data['description'] = data['description'][:200] + '...'
+        return data
+
+
+class PublicMunicipalityDetailView(APIView):
+    """
+    Public API endpoint to get municipality details with all its clubs.
+    No authentication required.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, municipality_slug):
+        """
+        Get public municipality details with all clubs.
+        """
+        try:
+            municipality = Municipality.objects.get(slug=municipality_slug)
+        except Municipality.DoesNotExist:
+            return Response(
+                {'error': 'Kommun hittades inte'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get all clubs in this municipality
+        clubs = Club.objects.filter(municipality=municipality).select_related('municipality').prefetch_related(
+            'regular_hours', 'closures', 'date_overrides'
+        ).order_by('name')
+        
+        # Serialize clubs
+        clubs_serializer = PublicMunicipalityClubSerializer(clubs, many=True)
+        
+        return Response({
+            'id': municipality.id,
+            'name': municipality.name,
+            'slug': municipality.slug,
+            'description': municipality.description,
+            'avatar': municipality.avatar.url if municipality.avatar else None,
+            'hero_image': municipality.hero_image.url if municipality.hero_image else None,
+            'email': municipality.email,
+            'phone': municipality.phone,
+            'website_link': municipality.website_link,
+            'clubs': clubs_serializer.data,
+            'club_count': len(clubs_serializer.data),
+        })

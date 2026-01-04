@@ -157,7 +157,7 @@ export default function NewsFeed({ basePath }: NewsFeedProps) {
                 {/* Meta & CTA */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <Link href={`${basePath}/${hero.id}`}>
-                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-purple)] transition-all">
+                    <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--brand-primary)] text-[var(--dark-900)] font-semibold hover:bg-[var(--brand-primary)]/90 transition-all">
                       {t('readArticle')}
                       <ArrowRight className="w-4 h-4" />
                     </button>

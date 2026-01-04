@@ -335,9 +335,9 @@ export default function GroupDetailView({ groupId, basePath }: GroupDetailProps)
                   </div>
 
                   {/* Gender Distribution */}
-                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-pink)]/30 hover:border-[var(--brand-pink)]/50 transition-all col-span-2">
+                  <div className="p-4 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--brand-purple)]/30 hover:border-[var(--brand-purple)]/50 transition-all col-span-2">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-pink)] flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-[var(--brand-purple)] flex items-center justify-center">
                         <Users className="h-5 w-5 text-[var(--dark-900)]" />
                       </div>
                       <span className="text-sm font-medium text-[var(--brand-light)]/70">{t('analytics.genderDistribution')}</span>

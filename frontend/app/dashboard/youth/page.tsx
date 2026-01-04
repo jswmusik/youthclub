@@ -364,7 +364,7 @@ export default function YouthDashboard() {
                                             darkMode ? 'bg-[var(--brand-primary)] opacity-10' : 'bg-[#4D4DA4] opacity-20'
                                         }`} />
                                         <div className={`absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl ${
-                                            darkMode ? 'bg-[var(--brand-purple)] opacity-10' : 'bg-[#FF5485] opacity-15'
+                                            darkMode ? 'bg-[var(--brand-purple)] opacity-10' : 'bg-[var(--brand-primary)] opacity-15'
                                         }`} />
                                                 <h1 className={`text-2xl font-bold mb-2 relative z-10 ${
                                                     darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
@@ -417,14 +417,14 @@ export default function YouthDashboard() {
                                     <div className={`relative rounded-none sm:rounded-xl p-6 overflow-hidden border-y sm:border ${
                                         darkMode 
                                             ? 'bg-[var(--dark-600)] border-[var(--dark-400)]' 
-                                            : 'bg-white border-[#FF5485]/15 shadow-sm'
+                                            : 'bg-white border-[var(--brand-primary)]/15 shadow-sm'
                                     }`}>
                                         {/* Gradient accent */}
                                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--brand-third)] via-[var(--brand-primary)] to-[var(--brand-purple)]" />
                                         <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-lg text-xs font-bold ${
                                             darkMode 
                                                 ? 'bg-[var(--brand-third)] text-[var(--dark-900)]' 
-                                                : 'bg-[#FF5485] text-white'
+                                                : 'bg-[var(--brand-primary)] text-gray-900'
                                         }`}>
                                             {t('newReward')}
                                         </div>
@@ -432,7 +432,7 @@ export default function YouthDashboard() {
                                             <div className={`h-16 w-16 rounded-lg flex items-center justify-center text-3xl border ${
                                                 darkMode 
                                                     ? 'bg-[var(--dark-500)] border-[var(--brand-third)]/30' 
-                                                    : 'bg-white border-[#FF5485]/20 shadow-sm'
+                                                    : 'bg-white border-[var(--brand-primary)]/20 shadow-sm'
                                             }`}>
                                                 🎁
                                             </div>
@@ -455,7 +455,7 @@ export default function YouthDashboard() {
                                             className={`mt-4 w-full font-bold py-2 rounded-lg transition-colors ${
                                                 darkMode 
                                                     ? 'bg-[var(--brand-primary)] text-[var(--dark-900)] hover:bg-[var(--brand-primary)]/80' 
-                                                    : 'bg-[#FF5485] text-white hover:bg-[#FF6595] shadow-lg shadow-[#FF5485]/20'
+                                                    : 'bg-[var(--brand-primary)] text-gray-900 hover:bg-[var(--brand-primary)]/90 shadow-lg shadow-[var(--brand-primary)]/20'
                                             }`}
                                         >
                                             {t('claimInWallet')}

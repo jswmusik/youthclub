@@ -105,8 +105,8 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary)]/20 animate-pulse-slow">
-              <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary)]/20 animate-pulse-slow">
+              <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--brand-light)]">

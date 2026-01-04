@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import GuardianNavBar from '../../../components/guardian/GuardianNavBar';
 import GuardianSidebar from '../../../components/guardian/GuardianSidebar';
 import NotificationItem from '../../../components/notifications/NotificationItem';
@@ -34,12 +35,20 @@ export default function GuardianNotificationsPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [minLoadingComplete, setMinLoadingComplete] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const pathname = usePathname();
     const t = useTranslations('notifications');
     const tSidebar = useTranslations('sidebar');
     const tCommon = useTranslations('common');
+    const { theme } = useTheme();
+    
+    // Theme detection
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const darkMode = !mounted || theme === 'dark';
 
     // Minimum loading time for skeleton display
     useEffect(() => {
@@ -178,11 +187,10 @@ export default function GuardianNotificationsPage() {
     const showSkeleton = loading || !minLoadingComplete;
 
     return (
-        <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+        <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
             <div className="flex-1">
                 <GuardianNavBar 
                     onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-                    darkMode={true}
                 />
                 
                 {/* Mobile Sidebar Overlay */}
@@ -195,21 +203,21 @@ export default function GuardianNotificationsPage() {
                 
                 {/* Mobile Sidebar */}
                 <aside 
-                    className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] transform transition-transform duration-300 md:hidden ${
+                    className={`fixed top-0 left-0 h-screen w-64 z-50 transform transition-transform duration-300 md:hidden ${
                         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
+                    } ${darkMode ? 'bg-[var(--dark-800)]' : 'bg-white'}`}
                 >
-                    <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
+                    <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
                         <h1 className="text-xl font-bold text-[var(--brand-primary)]">{tSidebar('menu')}</h1>
                         <button
                             onClick={() => setIsSidebarOpen(false)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]"
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)]' : 'text-gray-500 hover:bg-gray-100'}`}
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                     <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-                        <GuardianSidebar darkMode={true} />
+                        <GuardianSidebar />
                     </div>
                 </aside>
                 
@@ -218,7 +226,7 @@ export default function GuardianNotificationsPage() {
                     <div className="max-w-7xl mx-auto px-0 sm:px-4 md:px-6 relative">
                         {/* Desktop Sidebar */}
                         <aside className="hidden md:block fixed top-16 w-56 h-[calc(100vh-4rem)] overflow-y-auto py-4 z-30" style={{ left: 'max(1rem, calc((100vw - 80rem) / 2 + 1.5rem))' }}>
-                            <GuardianSidebar darkMode={true} />
+                            <GuardianSidebar />
                         </aside>
                         
                         {/* Content wrapper with left margin for sidebar */}
@@ -233,12 +241,12 @@ export default function GuardianNotificationsPage() {
                                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                                                 <div>
                                                     <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                                                        <Bell className="w-6 h-6 sm:w-7 sm:h-7 text-[var(--brand-primary)]" />
-                                                        <h1 className="text-2xl sm:text-3xl md:text-4xl text-[var(--brand-light)] font-heading font-bold">
+                                                        <Bell className={`w-6 h-6 sm:w-7 sm:h-7 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`} />
+                                                        <h1 className={`text-2xl sm:text-3xl md:text-4xl font-heading font-bold ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>
                                                             {t('notifications')}
                                                         </h1>
                                                     </div>
-                                                    <p className="text-[var(--brand-light)]/60 text-sm pl-9">
+                                                    <p className={`text-sm pl-9 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
                                                         {`${notifications.length} ${notifications.length !== 1 ? t('notificationsPlural') : t('notification')}${unreadCount > 0 ? ` • ${unreadCount} ${t('unread')}` : ''}`}
                                                     </p>
                                                 </div>
@@ -254,7 +262,9 @@ export default function GuardianNotificationsPage() {
                                             </div>
 
                                             {/* Filter Chips */}
-                                            <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] px-4 py-3 sm:p-4">
+                                            <div className={`rounded-none sm:rounded-2xl border-y sm:border px-4 py-3 sm:p-4 ${
+                                                darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/15 shadow-sm'
+                                            }`}>
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     {filterOptions.map((opt) => {
                                                         const Icon = opt.icon;
@@ -266,7 +276,9 @@ export default function GuardianNotificationsPage() {
                                                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                                                     isActive
                                                                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
-                                                                        : 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                                        : darkMode 
+                                                                            ? 'bg-[var(--dark-700)] text-[var(--brand-light)]/70 hover:bg-[var(--dark-600)] hover:text-[var(--brand-light)]'
+                                                                            : 'bg-[#EBEBFE] text-gray-600 hover:bg-[#4D4DA4]/20'
                                                                 }`}
                                                             >
                                                                 <Icon className="w-3.5 h-3.5" />
@@ -291,13 +303,15 @@ export default function GuardianNotificationsPage() {
                                         {/* Notifications List */}
                                         <div className="space-y-3">
                                             {notifications.length === 0 ? (
-                                                <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-dashed border-[var(--dark-500)]">
+                                                <div className={`text-center py-16 rounded-none sm:rounded-2xl border-y sm:border border-dashed ${
+                                                    darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' : 'bg-white border-[#4D4DA4]/30 shadow-sm'
+                                                }`}>
                                                     <div className="max-w-sm mx-auto">
-                                                        <div className="w-16 h-16 bg-[var(--dark-700)] rounded-full flex items-center justify-center mx-auto mb-4">
-                                                            <Bell className="w-8 h-8 text-[var(--brand-light)]/40" />
+                                                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-[var(--dark-700)]' : 'bg-[#EBEBFE]'}`}>
+                                                            <Bell className={`w-8 h-8 ${darkMode ? 'text-[var(--brand-light)]/40' : 'text-[#4D4DA4]/40'}`} />
                                                         </div>
-                                                        <h3 className="text-lg font-semibold text-[var(--brand-light)] mb-2">{t('noNotifications')}</h3>
-                                                        <p className="text-sm text-[var(--brand-light)]/60 mb-4">
+                                                        <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{t('noNotifications')}</h3>
+                                                        <p className={`text-sm mb-4 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                             {filter !== 'ALL' 
                                                                 ? t('noNotificationsMatchFilter')
                                                                 : t('allCaughtUp')}
@@ -305,7 +319,7 @@ export default function GuardianNotificationsPage() {
                                                         {filter !== 'ALL' && (
                                                             <button
                                                                 onClick={() => setFilter('ALL')}
-                                                                className="inline-flex items-center gap-2 text-[var(--brand-primary)] font-semibold hover:underline"
+                                                                className={`inline-flex items-center gap-2 font-semibold hover:underline ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#4D4DA4]'}`}
                                                             >
                                                                 {t('showAllNotifications')}
                                                                 <span>→</span>
@@ -321,14 +335,14 @@ export default function GuardianNotificationsPage() {
                                                             notification={notif}
                                                             onClick={handleItemClick}
                                                             onDelete={handleDeleteClick}
-                                                            darkMode={true}
+                                                            darkMode={darkMode}
                                                         />
                                                     ))}
                                                     
                                                     {/* Infinite Scroll Trigger */}
                                                     <div ref={observerTarget} className="h-10 flex items-center justify-center">
                                                         {loadingMore && (
-                                                            <div className="flex items-center gap-2 text-[var(--brand-light)]/60">
+                                                            <div className={`flex items-center gap-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-500'}`}>
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
                                                                 <span className="text-sm">{t('loadingMore')}</span>
                                                             </div>

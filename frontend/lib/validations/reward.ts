@@ -25,3 +25,5 @@ export const createRewardSchema = (t: (key: string) => string) => {
 export type RewardFormData = z.infer<ReturnType<typeof createRewardSchema>>;
 
 
+
+

@@ -24,9 +24,10 @@ const localeMap: Record<string, Locale> = {
 interface EventCardProps {
     event: Event;
     darkMode?: boolean;
+    basePath?: 'youth' | 'guardian';
 }
 
-export default function EventCard({ event, darkMode = false }: EventCardProps) {
+export default function EventCard({ event, darkMode = false, basePath = 'youth' }: EventCardProps) {
     const t = useTranslations('eventCard');
     const locale = useLocale();
     const dateLocale = localeMap[locale] || enUS;
@@ -63,7 +64,7 @@ export default function EventCard({ event, darkMode = false }: EventCardProps) {
     
     return (
         <>
-            <Link href={`/dashboard/youth/events/${event.id}`} className="group block">
+            <Link href={`/dashboard/${basePath}/events/${event.id}`} className="group block">
                 <div className={`overflow-hidden transition-all duration-200 ${
                     darkMode 
                         ? 'bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] hover:border-[var(--brand-primary)]/30' 

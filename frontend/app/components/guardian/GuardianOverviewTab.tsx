@@ -58,7 +58,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
                   ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
                   : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
               }`}>
-                <Phone className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+                <Phone className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'}`} />
                 <span>{user.phone_number}</span>
               </div>
             )}
@@ -81,7 +81,7 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
                 ? 'text-[var(--brand-light)]/80 bg-[var(--dark-700)] border-[var(--dark-500)]' 
                 : 'text-gray-700 bg-white border-[#4D4DA4]/15 shadow-sm'
             }`}>
-              <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />
+              <CalendarDays className={`w-5 h-5 mr-3 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'}`} />
               <span>{t('joined') || 'Joined'} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{new Date(user.date_joined).toLocaleDateString()}</strong></span>
             </div>
           </div>
@@ -174,9 +174,9 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
             : 'bg-gradient-to-br from-white to-[#EBEBFE]/30 shadow-md border-2 border-[#4D4DA4]/10'
         }`}>
           <h3 className={`text-xl font-bold mb-5 flex items-center gap-3 font-heading ${
-            darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'
+            darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'
           }`}>
-            <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[#FF5485]'}`}></span>
+            <span className={`w-1 h-6 rounded-full ${darkMode ? 'bg-[var(--brand-primary)]' : 'bg-[var(--brand-primary)]'}`}></span>
             {t('quickActions') || 'Quick Actions'}
           </h3>
           
@@ -227,6 +227,8 @@ export default function GuardianOverviewTab({ user, darkMode = false, onSwitchTa
     </div>
   );
 }
+
+
 
 
 

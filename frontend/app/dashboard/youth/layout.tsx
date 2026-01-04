@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslations } from 'next-intl';
 import { ShieldAlert } from 'lucide-react';
@@ -21,10 +21,44 @@ const getAdminDashboardUrl = (role: string): string | null => {
     }
 };
 
+// List of public/auth paths that authenticated users should not navigate back to
+const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/'];
+
 export default function YouthLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
     const t = useTranslations('errors');
+    const historyCleared = useRef(false);
+
+    // Clear browser history to prevent back navigation to public pages
+    useEffect(() => {
+        if (!loading && user && user.role === 'YOUTH_MEMBER' && !historyCleared.current) {
+            // Replace the current history state to prevent going back to public pages
+            // This effectively makes the dashboard the "start" of the navigation history
+            if (typeof window !== 'undefined') {
+                // Clear the history by replacing state
+                window.history.replaceState(null, '', pathname);
+                historyCleared.current = true;
+            }
+        }
+    }, [loading, user, pathname]);
+
+    // Handle popstate (back button) to prevent navigation to public pages
+    useEffect(() => {
+        if (!loading && user && user.role === 'YOUTH_MEMBER') {
+            const handlePopState = () => {
+                // If user tries to navigate back to a public page, redirect to dashboard
+                const currentPath = window.location.pathname;
+                if (publicPaths.some(p => currentPath === p || currentPath.startsWith(p + '/'))) {
+                    router.replace('/dashboard/youth');
+                }
+            };
+
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }
+    }, [loading, user, router]);
 
     useEffect(() => {
         if (!loading) {

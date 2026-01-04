@@ -90,8 +90,11 @@ function MetricCard({
     >
       <div className="flex items-center gap-3 mb-3">
         <div 
-          className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradientFrom} ${gradientTo} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
-          style={{ boxShadow: `0 4px 14px ${accentColor}33` }}
+          className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+          style={{ 
+            backgroundColor: accentColor,
+            boxShadow: `0 4px 14px ${accentColor}33` 
+          }}
         >
           {icon}
         </div>
@@ -122,7 +125,7 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
       
       {/* 1. Total Members */}
       <MetricCard
-        icon={<UsersRound className="w-5 h-5 text-white" />}
+        icon={<UsersRound className="w-5 h-5 text-[var(--dark-900)]" />}
         label={t('members')}
         value={totalMembers}
         subtitle={t('basedOnFilters')}
@@ -134,7 +137,7 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
 
       {/* 2. Total Traffic */}
       <MetricCard
-        icon={<Users className="w-5 h-5 text-white" />}
+        icon={<Users className="w-5 h-5 text-[var(--dark-900)]" />}
         label={t('visits')}
         value={traffic.total_visits}
         subtitle={t('uniqueYouths', { count: traffic.unique_visitors })}
@@ -159,7 +162,7 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
 
       {/* 4. Retention Rate */}
       <MetricCard
-        icon={<UserCheck className="w-5 h-5 text-white" />}
+        icon={<UserCheck className="w-5 h-5 text-[var(--dark-900)]" />}
         label={t('retention')}
         value={traffic.retention_rate}
         suffix="%"
@@ -172,7 +175,7 @@ export default function MetricsGrid({ totalMembers, traffic, inventory, network 
 
       {/* 5. Inventory or Nomad Metric */}
       <MetricCard
-        icon={network ? <ArrowRightLeft className="w-5 h-5 text-white" /> : <Package className="w-5 h-5 text-white" />}
+        icon={network ? <ArrowRightLeft className="w-5 h-5 text-[var(--dark-900)]" /> : <Package className="w-5 h-5 text-[var(--dark-900)]" />}
         label={network ? t('nomads') : t('loans')}
         value={network ? network.nomad_percentage : inventory.total_loans}
         suffix={network ? '%' : ''}

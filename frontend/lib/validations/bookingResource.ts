@@ -30,3 +30,5 @@ export const createBookingResourceSchema = (t: (key: string) => string) => {
 export type BookingResourceFormData = z.infer<ReturnType<typeof createBookingResourceSchema>>;
 
 
+
+

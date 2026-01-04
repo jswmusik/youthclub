@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'analytics',
     'licensing',
     'emails',
+    'seo',
 ]
 
 MIDDLEWARE = [

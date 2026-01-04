@@ -18,7 +18,7 @@ function ClubBookingCalendarPageContent() {
         <div className="px-4 sm:px-0 space-y-4">
           {/* Top row: Back button and New Booking button */}
           <div className="flex items-center justify-between">
-            <BackButton href="/admin/club/bookings" translationKey="backToDashboard" />
+            <BackButton href="/admin/club/bookings" translationKey="navigation.backToDashboard" />
             <button 
               onClick={() => calendarRef.current?.openCreateModal()}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[var(--dark-900)] bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 rounded-xl transition-colors shadow-lg shadow-[var(--brand-primary)]/20"
@@ -30,8 +30,8 @@ function ClubBookingCalendarPageContent() {
           
           {/* Title and description */}
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center">
-              <CalendarDays className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center">
+              <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-[var(--brand-light)]">{t('title')}</h1>
@@ -52,8 +52,8 @@ function LoadingFallback() {
   const t = useTranslations('bookingsAdmin.calendar');
   return (
     <div className="min-h-screen bg-[var(--dark-900)] flex flex-col justify-center items-center py-20 gap-4">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-purple)] flex items-center justify-center animate-pulse">
-        <CalendarDays className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-xl bg-[var(--brand-primary)] flex items-center justify-center animate-pulse">
+        <CalendarDays className="w-6 h-6 text-[var(--dark-900)]" />
       </div>
       <div className="text-[var(--brand-light)]/60 animate-pulse">{t('loading')}</div>
     </div>

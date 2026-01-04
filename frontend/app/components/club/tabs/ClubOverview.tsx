@@ -7,9 +7,10 @@ interface ClubOverviewProps {
   club: Club;
   onChangeTab: (tab: 'overview' | 'groups' | 'hours' | 'events' | 'policies' | 'contact') => void;
   darkMode?: boolean;
+  basePath?: 'youth' | 'guardian';
 }
 
-export default function ClubOverview({ club, onChangeTab, darkMode = false }: ClubOverviewProps) {
+export default function ClubOverview({ club, onChangeTab, darkMode = false, basePath }: ClubOverviewProps) {
   const t = useTranslations('club.overview');
   
   // --- Open Now Logic ---
@@ -140,7 +141,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
           <p className={`text-sm leading-relaxed line-clamp-6 ${
             darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-600'
           }`}>
-            {club.description}
+            {club.description?.replace(/<[^>]+>/g, '') || ''}
           </p>
         </div>
 
@@ -159,7 +160,7 @@ export default function ClubOverview({ club, onChangeTab, darkMode = false }: Cl
            {/* Future: Add 'Filter' dropdown here if needed */}
         </div>
         
-        <ClubFeed clubId={club.id} darkMode={darkMode} />
+        <ClubFeed clubId={club.id} darkMode={darkMode} basePath={basePath} />
       </div>
 
     </div>

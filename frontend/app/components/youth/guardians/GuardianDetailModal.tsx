@@ -48,7 +48,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                 <div className={`p-8 text-center relative ${
                     darkMode 
                         ? 'bg-gradient-to-br from-[var(--brand-secondary)] via-[var(--brand-purple)] to-[var(--brand-primary)]' 
-                        : 'bg-gradient-to-br from-[#4D4DA4] via-[#6D6DD4] to-[#FF5485]'
+                        : 'bg-gradient-to-br from-[#4D4DA4] via-[#6D6DD4] to-[var(--brand-primary)]'
                 }`}>
                     <button 
                         onClick={onClose} 
@@ -69,7 +69,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                             <div className={`w-full h-full rounded-xl flex items-center justify-center font-bold text-3xl ${
                                 darkMode 
                                     ? 'bg-[var(--dark-600)] text-[var(--brand-purple)]' 
-                                    : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[#FF5485]/10 text-[#4D4DA4]'
+                                    : 'bg-gradient-to-br from-[#4D4DA4]/10 to-[var(--brand-primary)]/10 text-[#4D4DA4]'
                             }`}>
                                 {guardian.first_name?.[0] || ''}{guardian.last_name?.[0] || ''}
                             </div>
@@ -118,7 +118,7 @@ export default function GuardianDetailModal({ link, isOpen, onClose, darkMode = 
                         {isVerified ? (
                             <>
                                 <InfoRow 
-                                    icon={<Phone className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[#FF5485]'}`} />} 
+                                    icon={<Phone className={`w-5 h-5 ${darkMode ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-primary)]'}`} />} 
                                     label={t('phone')} 
                                     value={guardian.phone_number || t('notProvided')} 
                                     darkMode={darkMode}

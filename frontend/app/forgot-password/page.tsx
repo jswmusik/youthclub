@@ -3,11 +3,17 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import { useAuth } from '@/context/AuthContext';
 import { AlertCircle, ArrowLeft, Mail, CheckCircle, Loader2, KeyRound } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function ForgotPasswordPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const { theme } = useTheme();
   const t = useTranslations('auth');
   const tCommon = useTranslations('common');
   const tLanding = useTranslations('landing');
@@ -20,6 +26,42 @@ export default function ForgotPasswordPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  const darkMode = !mounted || theme === 'dark';
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      switch (user.role) {
+        case 'SUPER_ADMIN':
+          router.replace('/admin/super');
+          break;
+        case 'MUNICIPALITY_ADMIN':
+          router.replace('/admin/municipality');
+          break;
+        case 'CLUB_ADMIN':
+          router.replace('/admin/club');
+          break;
+        case 'GUARDIAN':
+          router.replace('/dashboard/guardian');
+          break;
+        case 'YOUTH_MEMBER':
+          router.replace('/dashboard/youth');
+          break;
+        default:
+          router.replace('/');
+      }
+    }
+  }, [loading, user, router]);
+
+  // Show loading spinner while checking authentication status
+  if (loading || (!loading && user)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--dark-900)]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--brand-primary)]"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,9 +102,9 @@ export default function ForgotPasswordPage() {
             className="object-cover"
             priority
           />
-          {/* Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[var(--dark-900)] via-[var(--dark-900)]/70 to-[var(--dark-900)]/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[var(--dark-900)]/80 to-transparent" />
+          {/* Dark Gradient Overlay - Fixed dark colors for consistent look in both light/dark mode */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a12] via-[rgba(5,2,17,0.7)] to-[rgba(5,2,17,0.4)]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[rgba(5,2,17,0.8)] to-transparent" />
         </div>
         
         {/* Content */}
@@ -177,7 +219,9 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={isLoading || !email}
-                  className="w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/25"
+                  className={`w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-lg shadow-[var(--brand-primary)]/25 ${
+                    darkMode ? 'text-[var(--dark-900)]' : 'text-gray-900'
+                  }`}
                 >
                   {isLoading ? (
                     <>
@@ -223,7 +267,9 @@ export default function ForgotPasswordPage() {
               <div className="space-y-3">
                 <Link
                   href="/login"
-                  className="w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group"
+                  className={`w-full h-14 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group ${
+                    darkMode ? 'text-[var(--dark-900)]' : 'text-gray-900'
+                  }`}
                 >
                   <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                   <span>{t('backToLogin')}</span>

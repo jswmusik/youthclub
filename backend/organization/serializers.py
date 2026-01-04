@@ -487,3 +487,117 @@ class ClubManagementSerializer(serializers.ModelSerializer):
                 pass
                 
         return instance
+
+
+# =============================================================================
+# PUBLIC CLUB SERIALIZER - For unauthenticated public pages
+# =============================================================================
+
+class PublicClubDetailSerializer(serializers.ModelSerializer):
+    """
+    Full public club serializer for landing pages.
+    No sensitive data - just public info.
+    """
+    municipality_name = serializers.CharField(source='municipality.name', read_only=True)
+    municipality_slug = serializers.CharField(source='municipality.slug', read_only=True)
+    municipality_description = serializers.CharField(source='municipality.description', read_only=True)
+    municipality_avatar = serializers.FileField(source='municipality.avatar', read_only=True)
+    
+    # Opening hours
+    regular_hours = RegularOpeningHourSerializer(many=True, read_only=True)
+    
+    # Is the club open right now?
+    is_open_now = serializers.SerializerMethodField()
+    todays_hours = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Club
+        fields = [
+            'id', 'name', 'slug', 
+            'municipality_name', 'municipality_slug', 'municipality_description', 'municipality_avatar',
+            'description', 
+            'avatar', 'hero_image', 
+            'address', 'latitude', 'longitude',
+            'email', 'phone',
+            'allowed_age_groups', 'club_categories',
+            'regular_hours',
+            'is_open_now', 'todays_hours',
+            'created_at',
+        ]
+    
+    def get_is_open_now(self, obj):
+        """Check if the club is currently open."""
+        now = timezone.now()
+        current_weekday = now.isoweekday()  # 1=Monday, 7=Sunday
+        current_time = now.time()
+        current_week = now.isocalendar()[1]
+        is_odd_week = current_week % 2 == 1
+        
+        # Check for closures
+        closures = obj.closures.filter(
+            start_date__lte=now.date(),
+            end_date__gte=now.date()
+        )
+        if closures.exists():
+            return False
+        
+        # Check regular hours for today
+        for hour in obj.regular_hours.filter(weekday=current_weekday):
+            # Check week cycle
+            if hour.week_cycle == 'ODD' and not is_odd_week:
+                continue
+            if hour.week_cycle == 'EVEN' and is_odd_week:
+                continue
+            
+            if hour.open_time <= current_time <= hour.close_time:
+                return True
+        
+        return False
+    
+    def get_todays_hours(self, obj):
+        """Get today's opening hours."""
+        now = timezone.now()
+        current_weekday = now.isoweekday()
+        current_week = now.isocalendar()[1]
+        is_odd_week = current_week % 2 == 1
+        
+        # Check for closures
+        closures = obj.closures.filter(
+            start_date__lte=now.date(),
+            end_date__gte=now.date()
+        )
+        if closures.exists():
+            closure = closures.first()
+            return {'closed': True, 'reason': closure.description or 'Stängt'}
+        
+        # Check for date overrides
+        overrides = obj.date_overrides.filter(date=now.date())
+        if overrides.exists():
+            override = overrides.first()
+            return {
+                'closed': False,
+                'open_time': override.open_time.strftime('%H:%M'),
+                'close_time': override.close_time.strftime('%H:%M'),
+                'title': override.title or 'Specialöppet'
+            }
+        
+        # Get regular hours
+        hours = []
+        for hour in obj.regular_hours.filter(weekday=current_weekday):
+            # Check week cycle
+            if hour.week_cycle == 'ODD' and not is_odd_week:
+                continue
+            if hour.week_cycle == 'EVEN' and is_odd_week:
+                continue
+            
+            hours.append({
+                'open_time': hour.open_time.strftime('%H:%M'),
+                'close_time': hour.close_time.strftime('%H:%M'),
+                'title': hour.title or '',
+                'gender_restriction': hour.gender_restriction,
+            })
+        
+        if not hours:
+            return {'closed': True, 'reason': 'Ingen öppettid idag'}
+        
+        return {'closed': False, 'hours': hours}

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 import api from '@/lib/api';
 import { Club } from '@/types/organization';
 import ClubHeader from '@/app/components/club/ClubHeader';
@@ -24,6 +25,8 @@ export default function GuardianClubDetailsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const t = useTranslations('club.errors');
   const tNav = useTranslations('nav');
   const id = params?.id;
@@ -35,6 +38,12 @@ export default function GuardianClubDetailsPage() {
   const [isTabsSticky, setIsTabsSticky] = useState(false);
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabsInitialTopRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  const darkMode = !mounted || theme === 'dark';
   
   // Get initial tab from URL, default to 'overview'
   // Note: 'groups' tab is excluded for guardians - it's a youth-only feature
@@ -125,8 +134,8 @@ export default function GuardianClubDetailsPage() {
   }, [club]);
 
   if (loading) return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
-      <GuardianNavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+      <GuardianNavBar darkMode={darkMode} onMenuToggle={() => setIsSidebarOpen(true)} />
       <div className="pt-14 sm:pt-16 flex justify-center py-12">
         <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin" />
       </div>
@@ -134,18 +143,18 @@ export default function GuardianClubDetailsPage() {
   );
 
   if (error || !club) return (
-    <div className="min-h-screen bg-[var(--dark-900)]">
-      <GuardianNavBar darkMode={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+    <div className={`min-h-screen ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
+      <GuardianNavBar darkMode={darkMode} onMenuToggle={() => setIsSidebarOpen(true)} />
       <div className="pt-14 sm:pt-16 text-center py-12 text-[var(--brand-red)]">{error || t('clubNotFound')}</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--dark-900)]">
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'}`}>
       <div className="flex-1 pb-24 md:pb-12">
         {/* Fixed NavBar with hamburger menu */}
         <GuardianNavBar 
-          darkMode={true} 
+          darkMode={darkMode} 
           onMenuToggle={() => setIsSidebarOpen(true)} 
         />
         
@@ -159,21 +168,21 @@ export default function GuardianClubDetailsPage() {
         
         {/* Mobile Sidebar */}
         <aside 
-          className={`fixed top-0 left-0 h-screen w-64 z-50 bg-[var(--dark-800)] border-r border-[var(--dark-600)] transform transition-transform duration-300 md:hidden ${
+          className={`fixed top-0 left-0 h-screen w-64 z-50 border-r transform transition-transform duration-300 md:hidden ${
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+          } ${darkMode ? 'bg-[var(--dark-800)] border-[var(--dark-600)]' : 'bg-white border-[#4D4DA4]/10'}`}
         >
-          <div className="flex items-center justify-between p-4 border-b border-[var(--dark-600)]">
-            <h1 className="text-xl font-bold text-[var(--brand-light)] font-heading">{tNav('menu')}</h1>
+          <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-[var(--dark-600)]' : 'border-[#4D4DA4]/10'}`}>
+            <h1 className={`text-xl font-bold font-heading ${darkMode ? 'text-[var(--brand-light)]' : 'text-gray-900'}`}>{tNav('menu')}</h1>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]"
+              className={`w-8 h-8 flex items-center justify-center rounded-lg ${darkMode ? 'text-[var(--brand-light)]/60 hover:bg-[var(--dark-700)] hover:text-[var(--brand-light)]' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
           <div className="p-4 overflow-y-auto h-[calc(100vh-64px)]">
-            <GuardianSidebar darkMode={true} />
+            <GuardianSidebar />
           </div>
         </aside>
         
@@ -181,7 +190,7 @@ export default function GuardianClubDetailsPage() {
         <div className="pt-14 sm:pt-16">
           {/* Club Header */}
           <div className="max-w-6xl mx-auto md:pt-6 px-0 md:px-6">
-            <ClubHeader club={club} darkMode={true} />
+            <ClubHeader club={club} darkMode={darkMode} />
           </div>
 
           {/* Tabs Navigation - becomes sticky on scroll */}
@@ -190,7 +199,7 @@ export default function GuardianClubDetailsPage() {
               activeTab={activeTab} 
               onChange={handleTabChange} 
               excludeTabs={['visits', 'groups']} 
-              darkMode={true}
+              darkMode={darkMode}
               isCheckedIn={false}
               isSticky={isTabsSticky}
             />
@@ -202,23 +211,23 @@ export default function GuardianClubDetailsPage() {
           {/* Tab Content */}
           <div className="max-w-6xl mx-auto px-0 sm:px-4 md:px-6 py-6">
             {activeTab === 'overview' && club && (
-              <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={true} />
+              <ClubOverview club={club} onChangeTab={handleTabChange} darkMode={darkMode} basePath="guardian" />
             )}
             
             {activeTab === 'hours' && club && (
-              <ClubHours club={club} darkMode={true} />
+              <ClubHours club={club} darkMode={darkMode} />
             )}
 
             {activeTab === 'events' && club && (
-              <ClubEvents clubId={club.id} darkMode={true} />
+              <ClubEvents clubId={club.id} darkMode={darkMode} />
             )}
             
             {activeTab === 'policies' && club && (
-              <ClubPolicies club={club} darkMode={true} />
+              <ClubPolicies club={club} darkMode={darkMode} />
             )}
 
             {activeTab === 'contact' && club && (
-              <ClubContact club={club} darkMode={true} />
+              <ClubContact club={club} darkMode={darkMode} />
             )}
           </div>
         </div>
