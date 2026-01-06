@@ -1,7 +1,9 @@
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q, Count
+from rest_framework.exceptions import NotFound
+from django.db.models import Q, Count, Prefetch
+from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta, date
 import json
@@ -14,6 +16,7 @@ from users.models import User
 from users.serializers import CustomUserSerializer
 from custom_fields.models import CustomFieldValue
 from core.permissions import HasLicenseFeature
+
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
@@ -35,7 +38,9 @@ class GroupViewSet(viewsets.ModelViewSet):
                 if action_permission_classes:
                     # Use action-specific permissions + license check
                     permissions_list = [perm() for perm in action_permission_classes]
-                    permissions_list.append(HasLicenseFeature('groups')()())
+                    # HasLicenseFeature('groups')() returns a class, so we need to instantiate it
+                    license_permission_class = HasLicenseFeature('groups')()
+                    permissions_list.append(license_permission_class())
                     return permissions_list
         
         # Default permissions for other actions
@@ -48,6 +53,9 @@ class GroupViewSet(viewsets.ModelViewSet):
         Override to allow access to groups by ID even if they're not in the queryset.
         This ensures users can access groups they're eligible for, even if scope filtering
         would normally exclude them from the list view.
+        
+        Fix #4: Simplified logic - check membership first for all group types,
+        then only allow OPEN/APPLICATION for non-members.
         """
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
         lookup_value = self.kwargs[lookup_url_kwarg]
@@ -63,48 +71,68 @@ class GroupViewSet(viewsets.ModelViewSet):
             if user.role in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
                 return group
             
-            # For youth/guardians, check if they're a member OR if the group is visible to them
-            # (OPEN/APPLICATION and matches their scope)
-            is_member = GroupMembership.objects.filter(group=group, user=user).exists()
+            # Check membership FIRST - approved members can always access their groups
+            # This includes CLOSED groups that the user was added to
+            is_member = GroupMembership.objects.filter(
+                group=group, 
+                user=user,
+                status=GroupMembership.Status.APPROVED
+            ).exists()
             
             if is_member:
                 return group
             
+            # Also allow access if user has a pending application
+            has_pending = GroupMembership.objects.filter(
+                group=group,
+                user=user,
+                status=GroupMembership.Status.PENDING
+            ).exists()
+            
+            if has_pending:
+                return group
+            
+            # For non-members, only OPEN/APPLICATION groups are accessible
+            if group.group_type == 'CLOSED':
+                raise NotFound("Group not found")
+            
             # Check if group is visible (OPEN/APPLICATION and in scope)
-            if group.group_type in ['OPEN', 'APPLICATION']:
-                # Check scope
-                scope_match = False
-                
-                # Global groups
-                if not group.municipality and not group.club:
-                    scope_match = True
-                
-                # User's municipality
-                if not scope_match and user.assigned_municipality and group.municipality == user.assigned_municipality:
-                    scope_match = True
-                
-                # User's preferred club
-                if not scope_match and user.preferred_club and group.club == user.preferred_club:
-                    scope_match = True
-                
-                # Followed clubs
-                if not scope_match and hasattr(user, 'followed_clubs') and group.club in user.followed_clubs.all():
-                    scope_match = True
-                
-                if scope_match:
-                    return group
+            scope_match = False
+            
+            # Global groups
+            if not group.municipality and not group.club:
+                scope_match = True
+            
+            # User's municipality
+            if not scope_match and user.assigned_municipality and group.municipality == user.assigned_municipality:
+                scope_match = True
+            
+            # User's preferred club's municipality (for municipality-level groups)
+            if not scope_match and user.preferred_club and user.preferred_club.municipality and group.municipality == user.preferred_club.municipality and not group.club:
+                scope_match = True
+            
+            # User's preferred club
+            if not scope_match and user.preferred_club and group.club == user.preferred_club:
+                scope_match = True
+            
+            # Followed clubs
+            if not scope_match and hasattr(user, 'followed_clubs') and group.club in user.followed_clubs.all():
+                scope_match = True
+            
+            if scope_match:
+                return group
             
             # If none of the above, raise 404
-            from rest_framework.exceptions import NotFound
             raise NotFound("Group not found")
             
         except Group.DoesNotExist:
-            from rest_framework.exceptions import NotFound
             raise NotFound("Group not found")
 
     def get_queryset(self):
         """
         Filter groups based on visibility scope.
+        
+        Optimization: Prefetches user's memberships to avoid N+1 queries in serializer.
         """
         user = self.request.user
         
@@ -132,15 +160,22 @@ class GroupViewSet(viewsets.ModelViewSet):
             # 2. Youth / Guardians (The Search Logic)
             
             # Start with groups the user is ALREADY in (so they don't disappear)
-            base_query = Q(memberships__user=user)
+            # This includes CLOSED groups they were added to
+            base_query = Q(memberships__user=user, memberships__status='APPROVED')
 
             # Add PUBLICLY visible groups based on Scope
             # Scope A: Global Groups
             scope_query = Q(municipality__isnull=True, club__isnull=True)
             
             # Scope B: My Municipality (Groups created directly by Muni)
+            # Check both assigned_municipality AND the municipality of user's preferred_club
             if user.assigned_municipality:
                 scope_query |= Q(municipality=user.assigned_municipality, club__isnull=True)
+            
+            # Scope B2: User's preferred club's municipality (for youth members who belong to a club)
+            # This ensures youth can see municipality-level groups even if they don't have assigned_municipality set
+            if user.preferred_club and user.preferred_club.municipality:
+                scope_query |= Q(municipality=user.preferred_club.municipality, club__isnull=True)
 
             # Scope C: My Primary Club (use preferred_club for youth members)
             if user.preferred_club:
@@ -162,6 +197,16 @@ class GroupViewSet(viewsets.ModelViewSet):
         if club_param:
             queryset = queryset.filter(club_id=club_param)
 
+        # Optimization: Prefetch the current user's membership to avoid N+1 queries
+        # in the serializer's get_membership_status method
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                'memberships',
+                queryset=GroupMembership.objects.filter(user=user),
+                to_attr='user_memberships'
+            )
+        )
+
         return queryset.distinct()
 
     def perform_create(self, serializer):
@@ -173,58 +218,142 @@ class GroupViewSet(viewsets.ModelViewSet):
         else:
             serializer.save()
 
+    # --- Helper Methods ---
+    
+    def _check_user_eligibility(self, user, group):
+        """
+        Fix #10: Check if user meets all eligibility criteria for the group.
+        This is enforced on the backend to prevent API bypass.
+        """
+        # Member type check
+        if group.target_member_type == 'YOUTH' and user.role != 'YOUTH_MEMBER':
+            return False
+        if group.target_member_type == 'GUARDIAN' and user.role != 'GUARDIAN':
+            return False
+        
+        # Age check
+        user_age = user.age if hasattr(user, 'age') else None
+        if user_age is not None:
+            if group.min_age is not None and user_age < group.min_age:
+                return False
+            if group.max_age is not None and user_age > group.max_age:
+                return False
+        elif group.min_age is not None or group.max_age is not None:
+            # Group has age restrictions but user has no age set
+            # Depending on policy, you might want to return False here
+            pass
+        
+        # Gender check
+        if group.genders and len(group.genders) > 0:
+            if not user.legal_gender or user.legal_gender not in group.genders:
+                return False
+        
+        # Grade check
+        if group.grades and len(group.grades) > 0:
+            if user.grade is None or user.grade not in group.grades:
+                return False
+        
+        # Interest check
+        if group.interests.exists():
+            group_interest_ids = set(group.interests.values_list('id', flat=True))
+            user_interest_ids = set(user.interests.values_list('id', flat=True))
+            if not group_interest_ids.intersection(user_interest_ids):
+                return False
+        
+        # Custom field rules check
+        if group.custom_field_rules:
+            user_custom_fields = CustomFieldValue.objects.filter(user=user)
+            user_cf_dict = {cfv.field_id: cfv.value for cfv in user_custom_fields}
+            
+            for field_id_str, required_value in group.custom_field_rules.items():
+                try:
+                    field_id = int(field_id_str)
+                    user_value = user_cf_dict.get(field_id)
+                    if user_value is None or user_value != required_value:
+                        return False
+                except (ValueError, TypeError):
+                    continue
+        
+        return True
+    
+    def _safe_date_for_age(self, base_date, years_ago):
+        """
+        Fix #8: Calculate date X years ago, handling leap year edge cases.
+        """
+        try:
+            return base_date.replace(year=base_date.year - years_ago)
+        except ValueError:
+            # Handle Feb 29 -> Feb 28 for non-leap years
+            return base_date.replace(year=base_date.year - years_ago, day=28)
+
     # --- Actions for Members ---
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def join(self, request, pk=None):
+        """
+        Join or apply to join a group.
+        
+        Fix #7: Uses transaction and select_for_update to prevent race conditions.
+        Fix #10: Enforces eligibility on the backend.
+        """
         group = self.get_object()
         user = request.user
 
-        # Check for existing membership
-        existing_membership = GroupMembership.objects.filter(group=group, user=user).first()
-        
-        if existing_membership:
-            # If approved, they're already a member
-            if existing_membership.status == GroupMembership.Status.APPROVED:
-                return Response({"message": "Already a member."}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # If pending, they already have an application
-            if existing_membership.status == GroupMembership.Status.PENDING:
-                return Response({"message": "Application pending."}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # If rejected, check if they can re-apply (max 3 rejections)
-            if existing_membership.status == GroupMembership.Status.REJECTED:
-                if existing_membership.rejection_count >= 3:
-                    return Response({
-                        "message": "Maximum application attempts reached. You cannot apply again.",
-                        "rejection_count": existing_membership.rejection_count
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Allow re-applying: reset status to PENDING (keep rejection_count)
-                membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
-                existing_membership.status = membership_status
-                existing_membership.save(update_fields=['status', 'updated_at'])
-                
-                msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
-                return Response({
-                    "message": msg,
-                    "status": membership_status,
-                    "rejection_count": existing_membership.rejection_count
-                })
+        # Fix #10: Backend eligibility enforcement
+        if not self._check_user_eligibility(user, group):
+            return Response({
+                "message": "You do not meet the eligibility requirements for this group."
+            }, status=status.HTTP_403_FORBIDDEN)
 
         if group.group_type == 'CLOSED':
             return Response({"message": "Cannot join a closed group."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Create new membership
-        membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
-        
-        GroupMembership.objects.create(
-            group=group,
-            user=user,
-            status=membership_status,
-            role='MEMBER',
-            rejection_count=0
-        )
+        # Fix #7: Use transaction to prevent race conditions
+        with transaction.atomic():
+            # Use select_for_update to lock any existing membership row
+            existing_membership = GroupMembership.objects.select_for_update().filter(
+                group=group, user=user
+            ).first()
+            
+            if existing_membership:
+                # If approved, they're already a member
+                if existing_membership.status == GroupMembership.Status.APPROVED:
+                    return Response({"message": "Already a member."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # If pending, they already have an application
+                if existing_membership.status == GroupMembership.Status.PENDING:
+                    return Response({"message": "Application pending."}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # If rejected, check if they can re-apply (max 3 rejections)
+                if existing_membership.status == GroupMembership.Status.REJECTED:
+                    if existing_membership.rejection_count >= 3:
+                        return Response({
+                            "message": "Maximum application attempts reached. You cannot apply again.",
+                            "rejection_count": existing_membership.rejection_count
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    # Allow re-applying: reset status to PENDING (keep rejection_count)
+                    membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
+                    existing_membership.status = membership_status
+                    existing_membership.save(update_fields=['status', 'updated_at'])
+                    
+                    msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
+                    return Response({
+                        "message": msg,
+                        "status": membership_status,
+                        "rejection_count": existing_membership.rejection_count
+                    })
+
+            # Create new membership
+            membership_status = 'APPROVED' if group.group_type == 'OPEN' else 'PENDING'
+            
+            GroupMembership.objects.create(
+                group=group,
+                user=user,
+                status=membership_status,
+                role='MEMBER',
+                rejection_count=0
+            )
         
         msg = "Joined successfully" if membership_status == 'APPROVED' else "Application sent"
         return Response({"message": msg, "status": membership_status})
@@ -247,7 +376,16 @@ class GroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='duplicate')
     def duplicate(self, request, pk=None):
+        """
+        Duplicate a group.
+        
+        Fix #2: Store interests before modifying the object to avoid
+        self.get_object() returning the new object after save.
+        """
         original = self.get_object()
+        
+        # Fix #2: Store M2M relationships BEFORE modifying the object
+        original_interests = list(original.interests.all())
         
         original.pk = None
         original.id = None
@@ -255,9 +393,10 @@ class GroupViewSet(viewsets.ModelViewSet):
         original.is_system_group = False 
         original.save()
         
-        original.interests.set(self.get_object().interests.all())
+        # Set M2M relationships from stored values
+        original.interests.set(original_interests)
         
-        return Response(GroupSerializer(original).data)
+        return Response(GroupSerializer(original, context={'request': request}).data)
 
     @action(detail=True, methods=['get'])
     def members(self, request, pk=None):
@@ -320,7 +459,13 @@ class GroupViewSet(viewsets.ModelViewSet):
     def approve_member(self, request, pk=None):
         """
         Approve a pending member. Payload: { "membership_id": 123 }
+        
+        Fix #3: Added explicit permission check.
         """
+        # Fix #3: Add permission check
+        if request.user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+        
         membership_id = request.data.get('membership_id')
         try:
             membership = GroupMembership.objects.get(id=membership_id, group_id=pk)
@@ -334,7 +479,13 @@ class GroupViewSet(viewsets.ModelViewSet):
     def remove_member(self, request, pk=None):
         """
         Remove/Deny a member. Payload: { "membership_id": 123 }
+        
+        Fix #3: Added explicit permission check.
         """
+        # Fix #3: Add permission check
+        if request.user.role not in ['SUPER_ADMIN', 'MUNICIPALITY_ADMIN', 'CLUB_ADMIN']:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+        
         membership_id = request.data.get('membership_id')
         try:
             GroupMembership.objects.get(id=membership_id, group_id=pk).delete()
@@ -347,6 +498,8 @@ class GroupViewSet(viewsets.ModelViewSet):
         """
         Returns users who MATCH the provided criteria (age, grade, custom fields)
         AND fall within the Admin's scope.
+        
+        Fix #8: Uses safe date calculation for age filtering.
         """
         user = request.user
         
@@ -395,16 +548,16 @@ class GroupViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
 
-        # 6. Filter by Age Range
+        # 6. Filter by Age Range - Fix #8: Safe date calculation
         min_age = request.query_params.get('min_age')
         max_age = request.query_params.get('max_age')
         if min_age or max_age:
             today = date.today()
             if min_age:
-                max_dob = today.replace(year=today.year - int(min_age))
+                max_dob = self._safe_date_for_age(today, int(min_age))
                 queryset = queryset.filter(date_of_birth__lte=max_dob)
             if max_age:
-                min_dob = today.replace(year=today.year - int(max_age) - 1)
+                min_dob = self._safe_date_for_age(today, int(max_age) + 1)
                 queryset = queryset.filter(date_of_birth__gt=min_dob)
 
         # 7. Text Search
@@ -463,6 +616,8 @@ class GroupViewSet(viewsets.ModelViewSet):
         1. Scope: Global, My Muni, My Club, Followed Clubs.
         2. Status: Not 'CLOSED', Not already a member.
         3. Eligibility: Strict checks on Age, Grade, Gender, Interests, Custom Fields.
+        
+        Fix #12: Optimized N+1 queries with prefetch_related.
         """
         user = request.user
         if not user.is_authenticated:
@@ -476,11 +631,18 @@ class GroupViewSet(viewsets.ModelViewSet):
         # Filter for OPEN or APPLICATION types only (Closed groups are invite-only)
         queryset = queryset.filter(group_type__in=['OPEN', 'APPLICATION'])
         
+        # Exclude system groups
+        queryset = queryset.exclude(is_system_group=True)
+        
         # Build Scope Query
         scope_query = Q(municipality__isnull=True, club__isnull=True) # Global
         
         if user.assigned_municipality:
             scope_query |= Q(municipality=user.assigned_municipality)
+        
+        # Also check user's preferred club's municipality (for municipality-level groups)
+        if user.preferred_club and user.preferred_club.municipality:
+            scope_query |= Q(municipality=user.preferred_club.municipality, club__isnull=True)
             
         if user.preferred_club:
             scope_query |= Q(club=user.preferred_club)
@@ -488,25 +650,29 @@ class GroupViewSet(viewsets.ModelViewSet):
         # Add Followed Clubs (Both Open and Application groups as requested)
         if hasattr(user, 'followed_clubs'):
             scope_query |= Q(club__in=user.followed_clubs.all())
-            
-        queryset = queryset.filter(scope_query).distinct().prefetch_related('interests')
+        
+        # Fix #12: Prefetch interests to avoid N+1 queries
+        queryset = queryset.filter(scope_query).distinct().prefetch_related(
+            Prefetch('interests')
+        ).select_related('municipality', 'club')
 
         # --- 2. Python-Side Eligibility Filtering (Strict) ---
         # We process this in Python to handle JSON fields (grades, genders, custom rules) 
         # consistent with PostEngine and SQLite limitations.
 
-        # Pre-fetch user data for comparisons
+        # Pre-fetch user data for comparisons (single query each)
         user_grade = user.grade
         user_gender = user.legal_gender
-        user_age = user.age
+        user_age = user.age if hasattr(user, 'age') else None
         user_interest_ids = set(user.interests.values_list('id', flat=True))
         
-        # Get user custom fields for rule matching
+        # Get user custom fields for rule matching (single query)
         user_custom_fields = CustomFieldValue.objects.filter(user=user).select_related('field')
         user_cf_dict = {cfv.field_id: cfv.value for cfv in user_custom_fields}
 
         valid_group_ids = []
 
+        # Fix #12: interests are now prefetched, so this loop doesn't cause N+1
         for group in queryset:
             # A. Member Type Check
             if group.target_member_type == 'YOUTH' and user.role != 'YOUTH_MEMBER':
@@ -532,9 +698,9 @@ class GroupViewSet(viewsets.ModelViewSet):
                 if user_grade is None or user_grade not in group.grades:
                     continue
 
-            # E. Interest Check (Strict)
+            # E. Interest Check (Strict) - Uses prefetched data
             # If group requires interests, user MUST have at least one of them
-            group_interest_ids = set(group.interests.values_list('id', flat=True))
+            group_interest_ids = set(interest.id for interest in group.interests.all())
             if group_interest_ids:
                 if not user_interest_ids.intersection(group_interest_ids):
                     continue
@@ -571,7 +737,9 @@ class GroupViewSet(viewsets.ModelViewSet):
         
         # We fetch the full objects again to serialize them properly
         # We limit to 10 candidates to allow the frontend to scroll through a few
-        final_groups = Group.objects.filter(id__in=valid_group_ids[:10])
+        final_groups = Group.objects.filter(id__in=valid_group_ids[:10]).select_related(
+            'municipality', 'club'
+        ).prefetch_related('interests')
         
         serializer = GroupSerializer(final_groups, many=True, context={'request': request})
         return Response(serializer.data)
@@ -621,7 +789,7 @@ class GroupMembershipViewSet(viewsets.ModelViewSet):
     def approve(self, request, pk=None):
         membership = self.get_object()
         membership.status = 'APPROVED'
-        membership.save()
+        membership.save(update_fields=['status', 'updated_at'])
         return Response({'status': 'approved', 'message': 'Request approved successfully.'})
 
     @action(detail=True, methods=['post'])

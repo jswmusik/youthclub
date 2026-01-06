@@ -273,6 +273,21 @@ export default function ClubForm({ initialData, redirectPath, scope }: ClubFormP
 
   const addHour = () => {
     setHourError('');
+    
+    // Validate min/max values when restriction mode is selected
+    if (newHour.restriction_mode !== 'NONE') {
+      const minVal = newHour.min_value?.trim();
+      const maxVal = newHour.max_value?.trim();
+      if (!minVal || !maxVal) {
+        if (newHour.restriction_mode === 'AGE') {
+          setHourError(t('openingHours.minMaxRequiredAge'));
+        } else {
+          setHourError(t('openingHours.minMaxRequiredGrade'));
+        }
+        return;
+      }
+    }
+    
     const error = checkOverlap(newHour);
     if (error) {
       setHourError(error);

@@ -1,6 +1,7 @@
 # backend/marketing/models.py
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from core.languages import LANGUAGE_CHOICES, DEFAULT_LANGUAGE
 
 # Define allowed file types for images
 image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
@@ -11,8 +12,19 @@ video_validator = FileExtensionValidator(allowed_extensions=['mp4', 'webm', 'mov
 
 class SiteSEOSettings(models.Model):
     """
-    Singleton model to manage Frontpage SEO and Hero content.
+    Per-language model to manage Frontpage SEO and Hero content.
+    One instance per language (e.g., Swedish, Danish, Norwegian).
     """
+    # --- Language ---
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        unique=True,
+        db_index=True,
+        help_text="Language for this content"
+    )
+    
     # --- SEO Fields ---
     page_title = models.CharField(max_length=255, default="Ungdomsappen - Hitta aktiviteter nära dig")
     meta_description = models.TextField(
@@ -66,21 +78,36 @@ class SiteSEOSettings(models.Model):
         verbose_name_plural = "Startpage SEO Settings"
 
     def __str__(self):
-        return "Site SEO & Hero Settings"
+        return f"Site SEO & Hero Settings ({self.get_language_display()})"
 
     def save(self, *args, **kwargs):
-        # Ensure only one instance exists (singleton pattern)
-        if not self.pk and SiteSEOSettings.objects.exists():
-            # Update existing instead of creating new
-            existing = SiteSEOSettings.objects.first()
-            self.pk = existing.pk
+        # Ensure only one instance per language (per-language singleton pattern)
+        if not self.pk:
+            existing = SiteSEOSettings.objects.filter(language=self.language).first()
+            if existing:
+                self.pk = existing.pk
         super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_for_language(cls, language=DEFAULT_LANGUAGE):
+        """Get or create settings for a specific language."""
+        instance, _ = cls.objects.get_or_create(language=language)
+        return instance
 
 
 class Testimonial(models.Model):
     """
     Quotes from members, managed by Super Admin.
+    Each testimonial belongs to a specific language.
     """
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this testimonial"
+    )
+    
     author_name = models.CharField(max_length=100)
     author_role = models.CharField(
         max_length=100, 
@@ -107,14 +134,25 @@ class Testimonial(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.author_name} - {self.rating}★"
+        return f"{self.author_name} - {self.rating}★ ({self.get_language_display()})"
 
 
 class Customer(models.Model):
     """
     Customer/Partner logos for the homepage carousel.
     Managed by Super Admin.
+    Can be language-specific (e.g., Swedish municipalities vs Danish municipalities)
+    or shared across all languages (language=None means show for all).
     """
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Language for this customer (leave empty to show for all languages)"
+    )
+    
     name = models.CharField(max_length=100, help_text="Customer/Partner name")
     logo = models.FileField(
         upload_to='marketing/customers/',
@@ -140,7 +178,8 @@ class Customer(models.Model):
         verbose_name_plural = "Customers"
 
     def __str__(self):
-        return self.name
+        lang = f" ({self.get_language_display()})" if self.language else " (All languages)"
+        return f"{self.name}{lang}"
 
 
 class NewsletterSubscriber(models.Model):

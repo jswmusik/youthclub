@@ -74,6 +74,11 @@ class KeywordViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         
+        # Filter by language
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
+        
         # Filter by status
         status_filter = self.request.query_params.get('status')
         if status_filter:
@@ -389,6 +394,20 @@ class SwedishLocationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         
+        # Filter by language (via country->language mapping)
+        lang = self.request.query_params.get('lang')
+        if lang:
+            from core.languages import COUNTRY_TO_LANGUAGE
+            # Find countries that map to this language
+            countries = [c for c, l in COUNTRY_TO_LANGUAGE.items() if l == lang]
+            if countries:
+                qs = qs.filter(country__in=countries)
+        
+        # Filter by country
+        country = self.request.query_params.get('country')
+        if country:
+            qs = qs.filter(country=country)
+        
         # Filter by type
         location_type = self.request.query_params.get('type')
         if location_type:
@@ -469,6 +488,11 @@ class LocalLandingPageViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         qs = super().get_queryset().select_related('location', 'primary_keyword')
+        
+        # Filter by language
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
         
         # Filter by status
         status_filter = self.request.query_params.get('status')
@@ -871,6 +895,11 @@ class SEOArticleViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         qs = super().get_queryset().select_related('target_keyword')
+        
+        # Filter by language
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
         
         # Filter by status
         status_filter = self.request.query_params.get('status')

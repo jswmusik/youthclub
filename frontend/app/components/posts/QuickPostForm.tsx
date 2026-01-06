@@ -33,6 +33,7 @@ interface PostTemplate {
     default_post_type: string;
     is_global: boolean;
     is_pinned_default: boolean;
+    is_active: boolean;
     send_push_notification: boolean;
     default_push_title: string;
     default_push_message: string;
@@ -45,6 +46,7 @@ interface PostTemplate {
     target_clubs: number[];
     target_groups: number[];
     target_interests: number[];
+    target_custom_fields: Record<string, any>;
     allow_comments: boolean;
     require_moderation: boolean;
     allow_replies: boolean;
@@ -92,6 +94,27 @@ const getTranslatedTargetSummary = (template: PostTemplate, t: (key: string, par
         parts.push(t('templateSettings.summaries.guardiansOnly'));
     }
     
+    // Gender targeting
+    if (template.target_genders && template.target_genders.length > 0) {
+        if (template.target_genders.length === 1) {
+            if (template.target_genders[0] === 'MALE') {
+                parts.push(t('templateSettings.summaries.maleOnly'));
+            } else if (template.target_genders[0] === 'FEMALE') {
+                parts.push(t('templateSettings.summaries.femaleOnly'));
+            } else if (template.target_genders[0] === 'OTHER') {
+                parts.push(t('templateSettings.summaries.otherGenderOnly'));
+            }
+        } else if (template.target_genders.length === 2) {
+            // Show which genders are included
+            const genderLabels = template.target_genders.map(g => {
+                if (g === 'MALE') return t('templateSettings.summaries.male');
+                if (g === 'FEMALE') return t('templateSettings.summaries.female');
+                return t('templateSettings.summaries.otherGender');
+            });
+            parts.push(genderLabels.join(' & '));
+        }
+    }
+    
     // Age range
     if (template.target_min_age || template.target_max_age) {
         if (template.target_min_age && template.target_max_age) {
@@ -117,6 +140,12 @@ const getTranslatedTargetSummary = (template: PostTemplate, t: (key: string, par
     if (template.target_groups && template.target_groups.length > 0) {
         const count = template.target_groups.length;
         parts.push(t(count > 1 ? 'templateSettings.summaries.groups' : 'templateSettings.summaries.group', { count }));
+    }
+    
+    // Interests
+    if (template.target_interests && template.target_interests.length > 0) {
+        const count = template.target_interests.length;
+        parts.push(t(count > 1 ? 'templateSettings.summaries.interests' : 'templateSettings.summaries.interest', { count }));
     }
     
     return parts.length > 0 ? parts.join(', ') : t('templateSettings.summaries.allMembers');
@@ -197,6 +226,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
     const [sendPush, setSendPush] = useState(false);
     const [pushTitle, setPushTitle] = useState('');
     const [pushMessage, setPushMessage] = useState('');
+    const [isPinned, setIsPinned] = useState(false);
 
     // Track component mount for portal
     useEffect(() => {
@@ -229,6 +259,8 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
             setSendPush(selectedTemplate.send_push_notification || false);
             setPushTitle(selectedTemplate.default_push_title || '');
             setPushMessage(selectedTemplate.default_push_message || '');
+            // Set pinned default from template (user can override)
+            setIsPinned(selectedTemplate.is_pinned_default || false);
         }
     }, [selectedTemplate, setValue]);
 
@@ -304,8 +336,10 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
         if (status === 'SCHEDULED' && publishedAt) {
             formData.append('published_at', new Date(publishedAt).toISOString());
         }
-        formData.append('is_pinned', selectedTemplate.is_pinned_default ? 'true' : 'false');
+        // Use the local isPinned state (user can override template default)
+        formData.append('is_pinned', isPinned ? 'true' : 'false');
 
+        // Targeting fields from template
         formData.append('target_member_type', selectedTemplate.target_member_type || 'BOTH');
         (selectedTemplate.target_groups || []).forEach(item => {
             const id = extractId(item);
@@ -319,7 +353,12 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
             const id = extractId(item);
             if (id) formData.append('target_interests', id.toString());
         });
+        // Custom fields targeting from template
+        if (selectedTemplate.target_custom_fields && Object.keys(selectedTemplate.target_custom_fields).length > 0) {
+            formData.append('target_custom_fields', JSON.stringify(selectedTemplate.target_custom_fields));
+        }
 
+        // Comment settings from template
         formData.append('allow_comments', selectedTemplate.allow_comments ? 'true' : 'false');
         formData.append('require_moderation', selectedTemplate.require_moderation ? 'true' : 'false');
         formData.append('allow_replies', selectedTemplate.allow_replies ? 'true' : 'false');
@@ -882,6 +921,28 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                     />
                                 </div>
                             )}
+
+                            {/* Pin this post toggle */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
+                                <div className="flex items-center gap-3">
+                                    <Pin className={`w-5 h-5 ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/50'}`} />
+                                    <div>
+                                        <p className="font-medium text-[var(--brand-light)]">{t('publish.pinPost')}</p>
+                                        <p className="text-sm text-[var(--brand-light)]/50">{t('publish.pinPostHint')}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsPinned(!isPinned)}
+                                    className={`w-14 h-8 rounded-full transition-all flex items-center px-1 ${
+                                        isPinned ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'
+                                    }`}
+                                >
+                                    <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${
+                                        isPinned ? 'translate-x-6' : 'translate-x-0'
+                                    }`} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -910,7 +971,7 @@ export default function QuickPostForm({ role, onSuccess }: QuickPostFormProps) {
                                         <p className="text-xs text-[var(--brand-light)]/50 mb-1">{t('templateSettings.settings')}</p>
                                         <p className="text-sm text-[var(--brand-light)]">{getTranslatedSettingsSummary(selectedTemplate, t)}</p>
                                     </div>
-                                    {selectedTemplate.is_pinned_default && (
+                                    {isPinned && (
                                         <div className="p-3 rounded-xl bg-[var(--brand-peach)]/10 border border-[var(--brand-peach)]/30">
                                             <div className="flex items-center gap-2 text-[var(--brand-peach)]">
                                                 <Pin className="w-4 h-4" />

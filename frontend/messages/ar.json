@@ -494,6 +494,7 @@
     "price": "السعر",
     "goingStatus": "ذاهب",
     "noRegistration": "بدون تسجيل",
+    "openEvent": "حدث مفتوح - احضر فقط!",
     "closed": "مغلق",
     "cancelRegistrationTitle": "إلغاء التسجيل؟",
     "cancelRegistrationConfirm": "هل أنت متأكد من إلغاء التسجيل لـ",
@@ -2103,6 +2104,8 @@
         "useFormAbove": "استخدم النموذج أعلاه لإضافة أوقات",
         "closeTimeAfterOpen": "يجب أن يكون وقت الإغلاق بعد وقت الفتح.",
         "overlapDetected": "تم اكتشاف تداخل مع ساعة موجودة: {time} ({cycle})",
+        "minMaxRequiredAge": "كلا الحد الأدنى والأقصى للعمر مطلوبان عند اختيار تقييد العمر",
+        "minMaxRequiredGrade": "كلا الحد الأدنى والأقصى للصف مطلوبان عند اختيار تقييد الصف",
         "weekdays": {
           "monday": "الاثنين",
           "tuesday": "الثلاثاء",

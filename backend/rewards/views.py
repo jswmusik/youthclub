@@ -208,6 +208,10 @@ class RewardViewSet(viewsets.ModelViewSet):
         reward = self.get_object()
         user = request.user
 
+        # Check if reward has expired - cannot redeem expired rewards
+        if reward.expiration_date and reward.expiration_date < timezone.now().date():
+            return Response({"error": "This reward has expired and can no longer be redeemed."}, status=400)
+
         # 1. Check if they have a granted (unredeemed) copy
         usage = RewardUsage.objects.filter(
             user=user, 

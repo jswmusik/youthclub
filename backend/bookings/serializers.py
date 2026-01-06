@@ -1,12 +1,14 @@
 from rest_framework import serializers
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 from .models import BookingResource, Booking, BookingParticipant, BookingSchedule
 from .services import get_week_cycle_type
 from users.serializers import UserListSerializer
 from django.contrib.auth import get_user_model
 from datetime import timedelta, datetime, date
 from groups.models import GroupMembership
+from organization.models import ClubClosure
 
 User = get_user_model()
 
@@ -151,6 +153,47 @@ class CreateBookingSerializer(serializers.ModelSerializer):
         resource = validated_data['resource']
         start_time = validated_data['start_time']
         end_time = validated_data['end_time']
+        
+        # ===== VALIDATION: Cannot book in the past =====
+        if start_time < timezone.now():
+            raise serializers.ValidationError({
+                'start_time': 'Cannot create bookings in the past.'
+            })
+        
+        # ===== VALIDATION: End time must be after start time =====
+        if end_time <= start_time:
+            raise serializers.ValidationError({
+                'end_time': 'End time must be after start time.'
+            })
+        
+        # ===== VALIDATION: Booking window weeks limit =====
+        max_booking_date = timezone.now().date() + timedelta(weeks=resource.booking_window_weeks)
+        if start_time.date() > max_booking_date:
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    f'You can only book up to {resource.booking_window_weeks} weeks in advance. '
+                    f'The maximum booking date for this resource is {max_booking_date.strftime("%B %d, %Y")}.'
+                ]
+            })
+        
+        # ===== VALIDATION: Participant count =====
+        if len(participants_data) + 1 > resource.max_participants:
+            raise serializers.ValidationError({
+                'participants': f'Maximum {resource.max_participants} participant(s) allowed (including yourself). '
+                               f'You have added {len(participants_data)} extra participant(s).'
+            })
+        
+        # ===== VALIDATION: Club closure check =====
+        closure_exists = ClubClosure.objects.filter(
+            club=resource.club,
+            start_date__lte=start_time.date(),
+            end_date__gte=start_time.date()
+        ).exists()
+        
+        if closure_exists:
+            raise serializers.ValidationError({
+                'non_field_errors': ['Cannot book during club closure period. Please select a different date.']
+            })
         
         # Check if resource is restricted to a specific group
         if resource.allowed_user_scope == BookingResource.UserScope.GROUP and resource.allowed_group:

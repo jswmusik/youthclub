@@ -10,12 +10,14 @@ import CookieForm from './components/CookieForm';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import Skeleton from '@/app/components/ui/Skeleton';
+import LanguageSelector, { LanguageBadge, type LanguageCode, LANGUAGES } from '../../../components/LanguageSelector';
 
 export default function CookieManager() {
   const t = useTranslations('cmsAdmin.cookies');
   const [cookies, setCookies] = useState<CookieConsent[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewingCookie, setViewingCookie] = useState<CookieConsent | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('sv');
   
   const fetchCookies = async () => {
     try {
@@ -32,8 +34,10 @@ export default function CookieManager() {
     fetchCookies();
   }, []);
 
-  const activePolicy = cookies.find(c => c.is_active);
-  const inactiveCount = cookies.filter(c => !c.is_active).length;
+  // Filter cookies by language
+  const filteredCookies = cookies.filter(c => c.language === selectedLanguage);
+  const activePolicy = filteredCookies.find(c => c.is_active);
+  const inactiveCount = filteredCookies.filter(c => !c.is_active).length;
 
   if (loading) {
     return (
@@ -72,6 +76,16 @@ export default function CookieManager() {
           </div>
         </div>
 
+        {/* Language Selector */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4 mb-6">
+          <LanguageSelector
+            value={selectedLanguage}
+            onChange={(lang) => setSelectedLanguage(lang)}
+            label="Select language to manage cookie consent for"
+            variant="pills"
+          />
+        </div>
+
         {/* Stats Cards */}
         <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
           <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
@@ -92,7 +106,7 @@ export default function CookieManager() {
                   <Cookie className="h-4 w-4 text-[var(--brand-primary)]" />
                   <span className="text-xs font-medium text-[var(--brand-light)]/60">{t('stats.totalPolicies')}</span>
                 </div>
-                <div className="text-2xl font-bold text-[var(--brand-primary)]">{cookies.length}</div>
+                <div className="text-2xl font-bold text-[var(--brand-primary)]">{filteredCookies.length}</div>
               </div>
 
               <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-600)]">
@@ -137,7 +151,7 @@ export default function CookieManager() {
               </div>
             </div>
           </div>
-          <CookieForm onSuccess={fetchCookies} />
+          <CookieForm onSuccess={fetchCookies} language={selectedLanguage} />
         </div>
 
         {/* Version History Card */}
@@ -155,14 +169,14 @@ export default function CookieManager() {
           </div>
           
           <div className="p-6">
-            {cookies.length === 0 ? (
+            {filteredCookies.length === 0 ? (
               <div className="text-center py-12">
                 <Cookie className="w-12 h-12 text-[var(--brand-light)]/30 mx-auto mb-4" />
                 <p className="text-[var(--brand-light)]/60">{t('emptyState')}</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {cookies.map((cookie) => (
+                {filteredCookies.map((cookie) => (
                   <div 
                     key={cookie.id} 
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all ${

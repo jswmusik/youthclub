@@ -186,6 +186,14 @@ class PostSerializer(serializers.ModelSerializer):
             if not isinstance(data['target_custom_fields'], dict):
                 raise serializers.ValidationError({"target_custom_fields": "Must be a dictionary."})
         
+        # Prevent pinning posts that are targeted to groups
+        is_pinned = data.get('is_pinned', False)
+        target_groups = data.get('target_groups', [])
+        if is_pinned and target_groups:
+            raise serializers.ValidationError({
+                "is_pinned": "Posts cannot be pinned when targeted to specific groups."
+            })
+        
         return data
 
     def create(self, validated_data):
@@ -229,6 +237,10 @@ class PostSerializer(serializers.ModelSerializer):
         # Handle Image Uploads
         for index, image in enumerate(uploaded_images):
             PostImage.objects.create(post=post, image=image, order=index)
+        
+        # If this post is pinned, unpin other posts in the same scope (only one sticky at a time)
+        if post.is_pinned:
+            self._unpin_other_posts(post)
 
         return post
 
@@ -283,7 +295,40 @@ class PostSerializer(serializers.ModelSerializer):
             for index, image in enumerate(uploaded_images):
                 PostImage.objects.create(post=instance, image=image, order=current_max_order + 1 + index)
         
+        # If this post is now pinned, unpin other posts in the same scope (only one sticky at a time)
+        if instance.is_pinned:
+            self._unpin_other_posts(instance)
+        
         return instance
+    
+    def _unpin_other_posts(self, post):
+        """
+        Unpin all other posts in the same scope when a post is pinned.
+        Only one post can be pinned/sticky at a time per scope (club/municipality/global).
+        """
+        from django.db.models import Q
+        
+        # Build filter for same scope based on the post's ownership
+        if post.club:
+            # Club scope: unpin other posts from the same club
+            Post.objects.filter(
+                is_pinned=True,
+                club=post.club
+            ).exclude(id=post.id).update(is_pinned=False)
+        elif post.municipality:
+            # Municipality scope: unpin other posts from the same municipality (without a club)
+            Post.objects.filter(
+                is_pinned=True,
+                municipality=post.municipality,
+                club__isnull=True
+            ).exclude(id=post.id).update(is_pinned=False)
+        else:
+            # Global scope (super admin posts): unpin other global posts
+            Post.objects.filter(
+                is_pinned=True,
+                club__isnull=True,
+                municipality__isnull=True
+            ).exclude(id=post.id).update(is_pinned=False)
 
 
 class PostTemplateSerializer(serializers.ModelSerializer):
@@ -393,6 +438,14 @@ class PostTemplateSerializer(serializers.ModelSerializer):
                 except (json.JSONDecodeError, ValueError):
                     raise serializers.ValidationError({"target_custom_fields": "Invalid JSON format."})
         
+        # Prevent pinned default for templates that target groups
+        is_pinned_default = data.get('is_pinned_default', False)
+        target_groups = data.get('target_groups', [])
+        if is_pinned_default and target_groups:
+            raise serializers.ValidationError({
+                "is_pinned_default": "Templates cannot have pinned default when targeted to specific groups."
+            })
+        
         return data
     
     def create(self, validated_data):
@@ -459,12 +512,21 @@ class PostTemplateSerializer(serializers.ModelSerializer):
 
 
 class PostTemplateListSerializer(serializers.ModelSerializer):
-    """Simplified serializer for template list views."""
+    """
+    Serializer for template list views.
+    Includes all targeting and settings fields needed for quick post creation.
+    """
     
     target_summary = serializers.SerializerMethodField()
     settings_summary = serializers.SerializerMethodField()
     icon_emoji = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
+    
+    # Include ManyToMany fields as IDs for quick post form
+    target_municipalities = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    target_clubs = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    target_groups = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    target_interests = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     
     class Meta:
         model = PostTemplate
@@ -473,7 +535,15 @@ class PostTemplateListSerializer(serializers.ModelSerializer):
             'default_post_type', 'is_global', 'is_pinned_default', 
             'send_push_notification', 'usage_count', 'is_active',
             'target_summary', 'settings_summary', 'created_by_name',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
+            # Targeting fields - needed for quick post creation
+            'target_member_type', 'target_min_age', 'target_max_age',
+            'target_grades', 'target_genders', 'target_custom_fields',
+            'target_municipalities', 'target_clubs', 'target_groups', 'target_interests',
+            # Settings fields - needed for quick post creation
+            'allow_comments', 'require_moderation', 'allow_replies', 'limit_comments_per_user',
+            # Push notification fields - needed for quick post creation
+            'default_push_title', 'default_push_message',
         ]
     
     def get_target_summary(self, obj):

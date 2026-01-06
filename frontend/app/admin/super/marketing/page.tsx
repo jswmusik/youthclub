@@ -12,9 +12,11 @@ import api from '../../../../lib/api';
 import { getMediaUrl } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import LanguageSelector, { LanguageBadge, type LanguageCode } from '../../components/LanguageSelector';
 
 interface Testimonial {
   id: number;
+  language: string;
   author_name: string;
   author_role: string;
   author_avatar?: string;
@@ -26,6 +28,7 @@ interface Testimonial {
 
 interface SEOSettings {
   id?: number;
+  language?: string;
   page_title: string;
   meta_description: string;
   keywords: string;
@@ -58,6 +61,9 @@ export default function MarketingPage() {
   const [activeTab, setActiveTab] = useState<'hero' | 'seo' | 'testimonials'>('hero');
   const { success, error, info, warning } = useToast();
   
+  // Language State
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('sv');
+  
   // SEO/Hero State
   const [seoSettings, setSeoSettings] = useState<SEOSettings>({
     page_title: 'Ungdomsappen - Hitta aktiviteter nära dig',
@@ -89,6 +95,7 @@ export default function MarketingPage() {
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
   const [testimonialForm, setTestimonialForm] = useState({
+    language: 'sv' as LanguageCode,
     author_name: '',
     author_role: 'Ungdom',
     quote: '',
@@ -99,11 +106,17 @@ export default function MarketingPage() {
   const [searchInput, setSearchInput] = useState('');
   const [testimonialToDelete, setTestimonialToDelete] = useState<number | null>(null);
 
-  // Fetch SEO settings
+  // Fetch SEO settings for selected language
   useEffect(() => {
     const fetchSEO = async () => {
+      setSeoLoading(true);
+      setHeroBackgroundPreview(null);
+      setHeroVideoPreview(null);
+      setHeroBackgroundFile(null);
+      setHeroVideoFile(null);
+      
       try {
-        const res = await api.get('/marketing/admin/seo-settings/');
+        const res = await api.get(`/marketing/admin/seo-settings/?lang=${selectedLanguage}`);
         if (res.data) {
           setSeoSettings(res.data);
           if (res.data.hero_background) {
@@ -113,33 +126,39 @@ export default function MarketingPage() {
             setHeroVideoPreview(getMediaUrl(res.data.hero_video) || null);
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch SEO settings:', error);
-        // Try public endpoint as fallback
-        try {
-          const publicRes = await api.get('/marketing/public/seo-settings/');
-          if (publicRes.data) {
-            setSeoSettings(publicRes.data);
-          }
-        } catch (e) {
-          console.error('Failed to fetch public SEO settings:', e);
-        }
+      } catch (err) {
+        console.error('Failed to fetch SEO settings:', err);
+        // Reset to defaults for this language
+        setSeoSettings({
+          page_title: '',
+          meta_description: '',
+          keywords: '',
+          hero_title: '',
+          hero_subtitle: '',
+          hero_cta_text: '',
+          hero_background: null,
+          hero_video: null,
+          og_title: '',
+          og_description: '',
+          og_image: null,
+        });
       } finally {
         setSeoLoading(false);
       }
     };
     fetchSEO();
-  }, []);
+  }, [selectedLanguage]);
 
-  // Fetch testimonials
+  // Fetch testimonials (all languages - we filter in UI)
   useEffect(() => {
     const fetchTestimonials = async () => {
+      setTestimonialsLoading(true);
       try {
         const res = await api.get('/marketing/testimonials/');
         const data = res.data.results || res.data;
         setTestimonials(data);
-      } catch (error) {
-        console.error('Failed to fetch testimonials:', error);
+      } catch (err) {
+        console.error('Failed to fetch testimonials:', err);
       } finally {
         setTestimonialsLoading(false);
       }
@@ -183,11 +202,12 @@ export default function MarketingPage() {
     setSeoSettings({ ...seoSettings, hero_video: null });
   };
 
-  // Save SEO/Hero settings
+  // Save SEO/Hero settings for selected language
   const handleSaveSEO = async () => {
     setSeoSaving(true);
     try {
       const formData = new FormData();
+      formData.append('language', selectedLanguage);
       formData.append('page_title', seoSettings.page_title);
       formData.append('meta_description', seoSettings.meta_description);
       formData.append('keywords', seoSettings.keywords);
@@ -205,7 +225,7 @@ export default function MarketingPage() {
         formData.append('hero_video', heroVideoFile);
       }
 
-      await api.put('/marketing/admin/seo-settings/', formData, {
+      await api.put(`/marketing/admin/seo-settings/?lang=${selectedLanguage}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -220,24 +240,26 @@ export default function MarketingPage() {
     }
   };
 
-  // Save testimonial
+  // Save testimonial with language
   const handleSaveTestimonial = async () => {
     setTestimonialSaving(true);
     try {
+      const formDataWithLang = { ...testimonialForm };
+      
       if (editingTestimonial) {
-        await api.patch(`/marketing/testimonials/${editingTestimonial.id}/`, testimonialForm);
+        await api.patch(`/marketing/testimonials/${editingTestimonial.id}/`, formDataWithLang);
         setTestimonials(prev => 
-          prev.map(t => t.id === editingTestimonial.id ? { ...t, ...testimonialForm } : t)
+          prev.map(t => t.id === editingTestimonial.id ? { ...t, ...formDataWithLang } : t)
         );
         success(t('toast.testimonialUpdated'));
       } else {
-        const res = await api.post('/marketing/testimonials/', testimonialForm);
+        const res = await api.post('/marketing/testimonials/', formDataWithLang);
         setTestimonials(prev => [res.data, ...prev]);
         success(t('toast.testimonialCreated'));
       }
       resetTestimonialForm();
-    } catch (error) {
-      console.error('Failed to save testimonial:', error);
+    } catch (err) {
+      console.error('Failed to save testimonial:', err);
       error(t('toast.failedToSaveTestimonial'));
     } finally {
       setTestimonialSaving(false);
@@ -278,6 +300,7 @@ export default function MarketingPage() {
     setShowTestimonialForm(false);
     setEditingTestimonial(null);
     setTestimonialForm({
+      language: selectedLanguage,
       author_name: '',
       author_role: 'Ungdom',
       quote: '',
@@ -289,6 +312,7 @@ export default function MarketingPage() {
   const startEditTestimonial = (testimonial: Testimonial) => {
     setEditingTestimonial(testimonial);
     setTestimonialForm({
+      language: (testimonial.language || 'sv') as LanguageCode,
       author_name: testimonial.author_name,
       author_role: testimonial.author_role,
       quote: testimonial.quote,
@@ -298,11 +322,13 @@ export default function MarketingPage() {
     setShowTestimonialForm(true);
   };
 
-  // Filter testimonials by search
-  const filteredTestimonials = testimonials.filter(t => 
-    t.author_name.toLowerCase().includes(searchInput.toLowerCase()) ||
-    t.quote.toLowerCase().includes(searchInput.toLowerCase())
-  );
+  // Filter testimonials by search and optionally by language
+  const filteredTestimonials = testimonials.filter(t => {
+    const matchesSearch = t.author_name.toLowerCase().includes(searchInput.toLowerCase()) ||
+      t.quote.toLowerCase().includes(searchInput.toLowerCase());
+    // Show all languages in the list, but you can filter by selected language if needed
+    return matchesSearch;
+  });
 
   const activeCount = testimonials.filter(t => t.is_active).length;
 
@@ -365,6 +391,16 @@ export default function MarketingPage() {
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-[var(--brand-peach)]">{activeCount}</div>
           </div>
+        </div>
+
+        {/* Language Selector */}
+        <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4">
+          <LanguageSelector
+            value={selectedLanguage}
+            onChange={(lang) => setSelectedLanguage(lang)}
+            label="Select language to edit content for"
+            variant="pills"
+          />
         </div>
 
         {/* Tabs */}
@@ -797,6 +833,17 @@ export default function MarketingPage() {
                   </div>
 
                   <div className="p-6 space-y-4">
+                    {/* Language Selector for Testimonial */}
+                    <div>
+                      <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">Language</label>
+                      <LanguageSelector
+                        value={testimonialForm.language}
+                        onChange={(lang) => setTestimonialForm({ ...testimonialForm, language: lang })}
+                        showLabel={false}
+                        variant="dropdown"
+                      />
+                    </div>
+                    
                     <div>
                       <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">{t('testimonials.form.name')}</label>
                       <input
@@ -939,6 +986,7 @@ export default function MarketingPage() {
                         <div className="flex flex-wrap items-center gap-2 mb-2">
                           <span className="font-semibold text-[var(--brand-light)]">{testimonial.author_name}</span>
                           <span className="text-sm text-[var(--brand-light)]/50">• {testimonial.author_role}</span>
+                          <LanguageBadge code={testimonial.language || 'sv'} />
                           {!testimonial.is_active && (
                             <span className="px-2 py-0.5 text-xs bg-[var(--dark-700)] text-[var(--brand-light)]/50 rounded-full">
                               {t('testimonials.hidden')}

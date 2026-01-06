@@ -178,6 +178,13 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
 
   const handlePublish = async () => {
     if (!initialId) return;
+    
+    // Validate that at least one question exists before publishing
+    if (!formData.questions || formData.questions.length === 0) {
+      error(t('toasts.questionsRequired'));
+      return;
+    }
+    
     setLoading(true);
     try {
       const updateData: any = { status: 'PUBLISHED' };
@@ -200,7 +207,9 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
       }, 1000);
     } catch (err: any) {
       console.error('Publish error:', err);
-      error(err.response?.data?.detail || t('toasts.publishFailed'));
+      // Handle specific error messages from backend
+      const errorMsg = err.response?.data?.questions || err.response?.data?.detail || t('toasts.publishFailed');
+      error(Array.isArray(errorMsg) ? errorMsg[0] : errorMsg);
     } finally {
       setLoading(false);
     }
@@ -695,7 +704,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('tips.title')}</h2>
-                <p className="text-sm text-[var(--brand-light)]/50">{t('tips.title')}</p>
+                <p className="text-sm text-[var(--brand-light)]/50">{t('tips.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -716,7 +725,7 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               </li>
               <li className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-[var(--brand-green)] flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip3')}</span>
+                <span className="text-sm text-[var(--brand-light)]/70">{t('tips.tip4')}</span>
               </li>
             </ul>
           </div>
@@ -759,7 +768,8 @@ export default function QuestionnaireEditor({ initialId, basePath, scope }: Prop
               ) : (
                 <button 
                   onClick={handlePublish}
-                  disabled={loading}
+                  disabled={loading || !formData.questions || formData.questions.length === 0}
+                  title={!formData.questions || formData.questions.length === 0 ? t('toasts.questionsRequired') : ''}
                   className="w-full sm:w-auto px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-[var(--brand-green)]/10 border border-[var(--brand-green)] text-[var(--brand-green)] hover:bg-[var(--brand-green)]/20"
                 >
                   <Send className="w-4 h-4" />

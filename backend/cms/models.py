@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from core.languages import LANGUAGE_CHOICES, DEFAULT_LANGUAGE
 
 class Page(models.Model):
     PAGE_TYPES = (
@@ -7,8 +8,16 @@ class Page(models.Model):
         ('creative', 'Creative Showcase'),
     )
 
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this page"
+    )
+    
     title = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, max_length=255, blank=True)
+    slug = models.SlugField(max_length=255, blank=True)  # Removed unique=True, now unique per language
     page_type = models.CharField(max_length=20, choices=PAGE_TYPES, default='standard')
     
     # Content
@@ -54,13 +63,17 @@ class Page(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        # Slug must be unique per language
+        unique_together = ['slug', 'language']
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_language_display()})"
 
 
 class PageFeature(models.Model):
@@ -85,6 +98,14 @@ class MenuItem(models.Model):
         ('none', 'No Menu (Direct Link)'),
     )
 
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this menu item"
+    )
+    
     label = models.CharField(max_length=100)
     page = models.ForeignKey(Page, on_delete=models.SET_NULL, null=True, blank=True, related_name='menu_items')
     external_url = models.URLField(blank=True, help_text="Use this if linking to an external site")
@@ -97,7 +118,7 @@ class MenuItem(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return self.label
+        return f"{self.label} ({self.get_language_display()})"
 
 class FeatureShowcase(models.Model):
     MEDIA_TYPES = (
@@ -111,6 +132,14 @@ class FeatureShowcase(models.Model):
         ('grid', 'Grid Item'),
     )
 
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this feature"
+    )
+    
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     
@@ -128,9 +157,17 @@ class FeatureShowcase(models.Model):
         ordering = ['order']
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({self.get_language_display()})"
 
 class CookieConsent(models.Model):
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this cookie consent"
+    )
+    
     version = models.CharField(max_length=20, help_text="e.g. 1.0. Incrementing this forces users to re-accept.")
     title = models.CharField(max_length=255, default="We use cookies")
     description = models.TextField(help_text="Main banner text")
@@ -139,8 +176,12 @@ class CookieConsent(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        # Only one active cookie consent per language
+        unique_together = ['language', 'version']
+
     def __str__(self):
-        return f"Cookie Policy v{self.version}"
+        return f"Cookie Policy v{self.version} ({self.get_language_display()})"
 
 
 class Boilerplate(models.Model):
@@ -177,9 +218,18 @@ class Boilerplate(models.Model):
 
 class PricingPageContent(models.Model):
     """
-    Singleton model for managing pricing page content.
-    All text content on the pricing page is managed here.
+    Per-language model for managing pricing page content.
+    One instance per language.
     """
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        unique=True,
+        db_index=True,
+        help_text="Language for this pricing page content"
+    )
+    
     # Hero Section
     hero_title = models.CharField(max_length=255, default="Choose Your Plan")
     hero_subtitle = models.TextField(blank=True, help_text="Short description below the title")
@@ -217,27 +267,36 @@ class PricingPageContent(models.Model):
         verbose_name_plural = "Pricing Page Content"
     
     def save(self, *args, **kwargs):
-        # Ensure only one instance exists (singleton pattern)
-        if not self.pk and PricingPageContent.objects.exists():
-            # Update existing instead of creating new
-            existing = PricingPageContent.objects.first()
-            self.pk = existing.pk
+        # Ensure only one instance per language (per-language singleton pattern)
+        if not self.pk:
+            existing = PricingPageContent.objects.filter(language=self.language).first()
+            if existing:
+                self.pk = existing.pk
         super().save(*args, **kwargs)
     
     @classmethod
-    def get_instance(cls):
-        """Get or create the singleton instance."""
-        instance, _ = cls.objects.get_or_create(pk=1)
+    def get_for_language(cls, language=DEFAULT_LANGUAGE):
+        """Get or create the instance for a specific language."""
+        instance, _ = cls.objects.get_or_create(language=language)
         return instance
     
     def __str__(self):
-        return "Pricing Page Content"
+        return f"Pricing Page Content ({self.get_language_display()})"
 
 
 class PricingFAQ(models.Model):
     """
     FAQ items displayed on the pricing page.
+    Each FAQ belongs to a specific language.
     """
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this FAQ"
+    )
+    
     question = models.CharField(max_length=500)
     answer = models.TextField()
     order = models.PositiveIntegerField(default=0)
@@ -250,13 +309,23 @@ class PricingFAQ(models.Model):
         verbose_name_plural = "Pricing FAQs"
     
     def __str__(self):
-        return self.question[:50]
+        return f"{self.question[:50]} ({self.get_language_display()})"
 
 
 class ContactPageContent(models.Model):
     """
-    Singleton model for managing contact page content.
+    Per-language model for managing contact page content.
+    One instance per language.
     """
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        unique=True,
+        db_index=True,
+        help_text="Language for this contact page content"
+    )
+    
     # Hero Section
     hero_title = models.CharField(max_length=255, default="Kontakta oss")
     hero_subtitle = models.TextField(blank=True, default="Vi hjälper dig gärna med frågor om Ungdomsappen")
@@ -289,18 +358,21 @@ class ContactPageContent(models.Model):
         verbose_name_plural = "Contact Page Content"
     
     def save(self, *args, **kwargs):
-        if not self.pk and ContactPageContent.objects.exists():
-            existing = ContactPageContent.objects.first()
-            self.pk = existing.pk
+        # Ensure only one instance per language (per-language singleton pattern)
+        if not self.pk:
+            existing = ContactPageContent.objects.filter(language=self.language).first()
+            if existing:
+                self.pk = existing.pk
         super().save(*args, **kwargs)
     
     @classmethod
-    def get_instance(cls):
-        instance, _ = cls.objects.get_or_create(pk=1)
+    def get_for_language(cls, language=DEFAULT_LANGUAGE):
+        """Get or create the instance for a specific language."""
+        instance, _ = cls.objects.get_or_create(language=language)
         return instance
     
     def __str__(self):
-        return "Contact Page Content"
+        return f"Contact Page Content ({self.get_language_display()})"
 
 
 class ContactSubmission(models.Model):

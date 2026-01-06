@@ -15,7 +15,7 @@ import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../utils';
 import { useToast } from '../../hooks/useToast';
-import CustomFieldsForm from './CustomFieldsForm';
+import CustomFieldsForm, { CustomFieldsFormRef } from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 import { createYouthSchema, type YouthFormData } from '@/lib/validations/youth';
 
@@ -38,6 +38,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   const avatarRef = useRef<HTMLInputElement>(null);
   const bgRef = useRef<HTMLInputElement>(null);
   const interestInputRef = useRef<HTMLInputElement>(null);
+  const customFieldsRef = useRef<CustomFieldsFormRef>(null);
   const [interestDropdownPosition, setInterestDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -278,6 +279,15 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
   });
 
   const handleSubmit = async (validatedData: YouthFormData) => {
+    // Validate custom fields
+    if (customFieldsRef.current) {
+      const validation = customFieldsRef.current.validate();
+      if (!validation.valid) {
+        error(t('customFields.requiredField', { fieldName: validation.invalidFieldName }));
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
@@ -1127,6 +1137,7 @@ export default function YouthForm({ initialData, redirectPath, scope }: YouthFor
 
             <div className="p-6">
               <CustomFieldsForm
+                ref={customFieldsRef}
                 targetRole="YOUTH_MEMBER"
                 context="USER_PROFILE"
                 values={customFieldValues}

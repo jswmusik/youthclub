@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { 
   ArrowLeft, Upload, X, Search, CheckCircle2, Lightbulb, Save,
   Gift, Target, Users, Calendar, Zap, Image, Link2, Sparkles,
-  Cake, Hand, ShieldCheck, Flame
+  Cake, Hand, ShieldCheck, Flame, MapPin, Trophy, Ticket, UserPlus, PartyPopper,
+  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '../../lib/api';
@@ -15,6 +16,7 @@ import { useToast } from '../../hooks/useToast';
 import { getMediaUrl } from '../utils';
 
 interface Option { id: number; name: string; }
+interface EventOption { id: number; title: string; }
 
 interface RewardFormProps {
   initialData?: any;
@@ -36,11 +38,30 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
     { value: 'OTHER', label: t('sections.targetAudience.other') },
   ];
 
+  // Triggers that need additional configuration
+  const TRIGGERS_WITH_CONFIG = ['CHECKIN_STREAK', 'CHECKIN_MILESTONE', 'MOST_CHECKED_IN', 'EVENT_ATTENDED', 'JOINED_GROUP'];
+
   const TRIGGERS = [
-    { value: 'BIRTHDAY', label: t('sections.automaticTriggers.onBirthday'), icon: Cake, desc: t('sections.automaticTriggers.onBirthdayDesc') },
-    { value: 'WELCOME', label: t('sections.automaticTriggers.onSignup'), icon: Hand, desc: t('sections.automaticTriggers.onSignupDesc') },
-    { value: 'VERIFIED', label: t('sections.automaticTriggers.onVerification'), icon: ShieldCheck, desc: t('sections.automaticTriggers.onVerificationDesc') },
-    { value: 'MOST_ACTIVE', label: t('sections.automaticTriggers.mostActive'), icon: Flame, desc: t('sections.automaticTriggers.mostActiveDesc') },
+    // Questionnaire-dedicated rewards (shown first as a special category)
+    { value: 'QUESTIONNAIRE', label: t('sections.automaticTriggers.questionnaire'), icon: ClipboardList, desc: t('sections.automaticTriggers.questionnaireDesc'), category: 'questionnaire' },
+    
+    // User lifecycle triggers
+    { value: 'BIRTHDAY', label: t('sections.automaticTriggers.onBirthday'), icon: Cake, desc: t('sections.automaticTriggers.onBirthdayDesc'), category: 'lifecycle' },
+    { value: 'WELCOME', label: t('sections.automaticTriggers.onSignup'), icon: Hand, desc: t('sections.automaticTriggers.onSignupDesc'), category: 'lifecycle' },
+    { value: 'VERIFIED', label: t('sections.automaticTriggers.onVerification'), icon: ShieldCheck, desc: t('sections.automaticTriggers.onVerificationDesc'), category: 'lifecycle' },
+    { value: 'ANNIVERSARY', label: t('sections.automaticTriggers.anniversary'), icon: PartyPopper, desc: t('sections.automaticTriggers.anniversaryDesc'), category: 'lifecycle' },
+    
+    // Check-in based triggers
+    { value: 'FIRST_CHECKIN', label: t('sections.automaticTriggers.firstCheckin'), icon: MapPin, desc: t('sections.automaticTriggers.firstCheckinDesc'), category: 'checkin' },
+    { value: 'CHECKIN_STREAK', label: t('sections.automaticTriggers.checkinStreak'), icon: Flame, desc: t('sections.automaticTriggers.checkinStreakDesc'), category: 'checkin', hasConfig: true },
+    { value: 'CHECKIN_MILESTONE', label: t('sections.automaticTriggers.checkinMilestone'), icon: Trophy, desc: t('sections.automaticTriggers.checkinMilestoneDesc'), category: 'checkin', hasConfig: true },
+    { value: 'MOST_CHECKED_IN', label: t('sections.automaticTriggers.mostCheckedIn'), icon: Trophy, desc: t('sections.automaticTriggers.mostCheckedInDesc'), category: 'checkin', hasConfig: true },
+    
+    // Event based triggers
+    { value: 'EVENT_ATTENDED', label: t('sections.automaticTriggers.eventAttended'), icon: Ticket, desc: t('sections.automaticTriggers.eventAttendedDesc'), category: 'event', hasConfig: true },
+    
+    // Group based triggers
+    { value: 'JOINED_GROUP', label: t('sections.automaticTriggers.joinedGroup'), icon: UserPlus, desc: t('sections.automaticTriggers.joinedGroupDesc'), category: 'group', hasConfig: true },
   ];
   
   const [loading, setLoading] = useState(false);
@@ -51,6 +72,7 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   // Dropdown Data
   const [groups, setGroups] = useState<Option[]>([]);
   const [interests, setInterests] = useState<Option[]>([]);
+  const [events, setEvents] = useState<EventOption[]>([]);
   
   const { success, error, info, warning } = useToast();
 
@@ -63,6 +85,12 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   const [interestSearchTerm, setInterestSearchTerm] = useState('');
   const [showGroupDropdown, setShowGroupDropdown] = useState(false);
   const [showInterestDropdown, setShowInterestDropdown] = useState(false);
+  
+  // Trigger config search states
+  const [eventSearchTerm, setEventSearchTerm] = useState('');
+  const [triggerGroupSearchTerm, setTriggerGroupSearchTerm] = useState('');
+  const [showEventDropdown, setShowEventDropdown] = useState(false);
+  const [showTriggerGroupDropdown, setShowTriggerGroupDropdown] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -191,12 +219,14 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
 
   const fetchDropdowns = async () => {
     try {
-      const [grpRes, intRes] = await Promise.all([
+      const [grpRes, intRes, evtRes] = await Promise.all([
         api.get('/groups/'),
-        api.get('/interests/')
+        api.get('/interests/'),
+        api.get('/events/?status=PUBLISHED&enable_tickets=true')
       ]);
       setGroups(Array.isArray(grpRes.data) ? grpRes.data : grpRes.data.results || []);
       setInterests(Array.isArray(intRes.data) ? intRes.data : intRes.data.results || []);
+      setEvents(Array.isArray(evtRes.data) ? evtRes.data : evtRes.data.results || []);
     } catch (err) {
       console.error(err);
     }
@@ -282,6 +312,28 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
     });
   };
 
+  // Single trigger selection - only one trigger allowed at a time
+  const handleTriggerSelect = (triggerValue: string) => {
+    setFormData(prev => {
+      const isSelected = prev.active_triggers.includes(triggerValue);
+      if (isSelected) {
+        // Deselect - clear triggers and trigger config
+        return { 
+          ...prev, 
+          active_triggers: [],
+          trigger_config: {}
+        };
+      } else {
+        // Select new trigger - replace any existing trigger and clear old config
+        return { 
+          ...prev, 
+          active_triggers: [triggerValue],
+          trigger_config: {}
+        };
+      }
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
@@ -340,6 +392,44 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
   const filteredInterests = interests.filter(i => 
     i.name.toLowerCase().includes(interestSearchTerm.toLowerCase()) && !formData.target_interests.includes(i.id)
   );
+  
+  // Trigger config helpers
+  const getSelectedEvents = () => {
+    const eventIds = formData.trigger_config?.event_ids || [];
+    return eventIds.map((id: number) => events.find(e => e.id === id)).filter(Boolean) as EventOption[];
+  };
+  
+  const filteredEvents = events.filter(e => 
+    e.title.toLowerCase().includes(eventSearchTerm.toLowerCase()) && 
+    !(formData.trigger_config?.event_ids || []).includes(e.id)
+  );
+  
+  const filteredTriggerGroups = groups.filter(g => 
+    g.name.toLowerCase().includes(triggerGroupSearchTerm.toLowerCase())
+  );
+  
+  const toggleEventForTrigger = (eventId: number) => {
+    const currentIds = formData.trigger_config?.event_ids || [];
+    const newIds = currentIds.includes(eventId) 
+      ? currentIds.filter((id: number) => id !== eventId)
+      : [...currentIds, eventId];
+    setFormData({
+      ...formData,
+      trigger_config: { ...formData.trigger_config, event_ids: newIds }
+    });
+  };
+  
+  const setTriggerConfigValue = (key: string, value: any) => {
+    setFormData({
+      ...formData,
+      trigger_config: { ...formData.trigger_config, [key]: value }
+    });
+  };
+  
+  const getSelectedTriggerGroup = () => {
+    const groupId = formData.trigger_config?.group_id;
+    return groups.find(g => g.id === groupId);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1069,53 +1159,453 @@ export default function RewardForm({ initialData, redirectPath }: RewardFormProp
               </div>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {TRIGGERS.map(t => {
-                  const isSelected = formData.active_triggers.includes(t.value);
-                  return (
-                    <button
-                      key={t.value}
-                      type="button"
-                      onClick={() => {
-                        const current = [...formData.active_triggers];
-                        if (current.includes(t.value)) {
-                          setFormData({...formData, active_triggers: current.filter(x => x !== t.value)});
-                        } else {
-                          setFormData({...formData, active_triggers: [...current, t.value]});
-                        }
-                      }}
-                      className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                        isSelected 
-                          ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
-                          : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isSelected 
-                          ? 'bg-[var(--brand-primary)]'
-                          : 'bg-[var(--dark-600)]'
-                      }`}>
-                        <t.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
-                          {t.label}
+            <div className="p-6 space-y-6">
+              {/* Info about single trigger selection */}
+              <div className="p-3 bg-[var(--brand-blue)]/10 border border-[var(--brand-blue)]/30 rounded-xl">
+                <p className="text-sm text-[var(--brand-blue)]">
+                  {t('sections.automaticTriggers.singleTriggerInfo')}
+                </p>
+              </div>
+
+              {/* Questionnaire Trigger (Special - for survey rewards) */}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('sections.automaticTriggers.questionnaireTriggers')}</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {TRIGGERS.filter(tr => tr.category === 'questionnaire').map(tr => {
+                    const isSelected = formData.active_triggers.includes(tr.value);
+                    return (
+                      <button
+                        key={tr.value}
+                        type="button"
+                        onClick={() => handleTriggerSelect(tr.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]/10'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-purple)]/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-[var(--brand-purple)]' : 'bg-[var(--dark-600)]'
+                        }`}>
+                          <tr.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
                         </div>
-                        <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
-                          {t.desc}
+                        <div className="flex-1">
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--brand-purple)]' : 'text-[var(--brand-light)]'}`}>
+                            {tr.label}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
+                            {tr.desc}
+                          </div>
                         </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-[var(--brand-purple)] bg-[var(--brand-purple)]' : 'border-[var(--dark-400)]'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* User Lifecycle Triggers */}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('sections.automaticTriggers.lifecycleTriggers')}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {TRIGGERS.filter(tr => tr.category === 'lifecycle').map(tr => {
+                    const isSelected = formData.active_triggers.includes(tr.value);
+                    return (
+                      <button
+                        key={tr.value}
+                        type="button"
+                        onClick={() => handleTriggerSelect(tr.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-600)]'
+                        }`}>
+                          <tr.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
+                            {tr.label}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
+                            {tr.desc}
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' : 'border-[var(--dark-400)]'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Check-in Triggers */}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('sections.automaticTriggers.checkinTriggers')}</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {TRIGGERS.filter(tr => tr.category === 'checkin').map(tr => {
+                    const isSelected = formData.active_triggers.includes(tr.value);
+                    return (
+                      <button
+                        key={tr.value}
+                        type="button"
+                        onClick={() => handleTriggerSelect(tr.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-600)]'
+                        }`}>
+                          <tr.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
+                            {tr.label}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
+                            {tr.desc}
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' : 'border-[var(--dark-400)]'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* CHECKIN_STREAK Config */}
+                {formData.active_triggers.includes('CHECKIN_STREAK') && (
+                  <div className="mt-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <h4 className="text-sm font-medium text-[var(--brand-light)] mb-3">{t('sections.automaticTriggers.streakConfig')}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('sections.automaticTriggers.requiredCheckins')}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="5"
+                          value={formData.trigger_config?.required_checkins || ''}
+                          onChange={(e) => setTriggerConfigValue('required_checkins', parseInt(e.target.value) || '')}
+                          className={inputClasses('required_checkins')}
+                        />
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                        isSelected 
-                          ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]'
-                          : 'border-[var(--dark-400)]'
-                      }`}>
-                        {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                      <div>
+                        <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('sections.automaticTriggers.withinDays')}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="10"
+                          value={formData.trigger_config?.within_days || ''}
+                          onChange={(e) => setTriggerConfigValue('within_days', parseInt(e.target.value) || '')}
+                          className={inputClasses('within_days')}
+                        />
                       </div>
-                    </button>
-                  );
-                })}
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.automaticTriggers.streakHint')}</p>
+                  </div>
+                )}
+
+                {/* CHECKIN_MILESTONE Config */}
+                {formData.active_triggers.includes('CHECKIN_MILESTONE') && (
+                  <div className="mt-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <h4 className="text-sm font-medium text-[var(--brand-light)] mb-3">{t('sections.automaticTriggers.milestoneConfig')}</h4>
+                    <div>
+                      <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('sections.automaticTriggers.milestoneCount')}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="50"
+                        value={formData.trigger_config?.milestone_count || ''}
+                        onChange={(e) => setTriggerConfigValue('milestone_count', parseInt(e.target.value) || '')}
+                        className={`${inputClasses('milestone_count')} max-w-[200px]`}
+                      />
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.automaticTriggers.milestoneHint')}</p>
+                  </div>
+                )}
+
+                {/* MOST_CHECKED_IN Config */}
+                {formData.active_triggers.includes('MOST_CHECKED_IN') && (
+                  <div className="mt-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <h4 className="text-sm font-medium text-[var(--brand-light)] mb-3">{t('sections.automaticTriggers.mostCheckedInConfig')}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('sections.automaticTriggers.period')}</label>
+                        <select
+                          value={formData.trigger_config?.period || 'WEEKLY'}
+                          onChange={(e) => setTriggerConfigValue('period', e.target.value)}
+                          className={inputClasses('period')}
+                        >
+                          <option value="WEEKLY">{t('sections.automaticTriggers.weekly')}</option>
+                          <option value="MONTHLY">{t('sections.automaticTriggers.monthly')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-[var(--brand-light)]/60 mb-1">{t('sections.automaticTriggers.topN')}</label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="10"
+                          value={formData.trigger_config?.top_n || ''}
+                          onChange={(e) => setTriggerConfigValue('top_n', parseInt(e.target.value) || '')}
+                          className={inputClasses('top_n')}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.automaticTriggers.mostCheckedInHint')}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Event Triggers */}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('sections.automaticTriggers.eventTriggers')}</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {TRIGGERS.filter(tr => tr.category === 'event').map(tr => {
+                    const isSelected = formData.active_triggers.includes(tr.value);
+                    return (
+                      <button
+                        key={tr.value}
+                        type="button"
+                        onClick={() => handleTriggerSelect(tr.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-600)]'
+                        }`}>
+                          <tr.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
+                            {tr.label}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
+                            {tr.desc}
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' : 'border-[var(--dark-400)]'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* EVENT_ATTENDED Config */}
+                {formData.active_triggers.includes('EVENT_ATTENDED') && (
+                  <div className="mt-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <h4 className="text-sm font-medium text-[var(--brand-light)] mb-3">{t('sections.automaticTriggers.selectEvents')}</h4>
+                    
+                    {/* Selected Events Display */}
+                    {getSelectedEvents().length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-600)] rounded-xl mb-3">
+                        {getSelectedEvents().map(event => (
+                          <span key={event.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-blue)] text-white text-sm font-medium">
+                            {event.title}
+                            <button
+                              type="button"
+                              onClick={() => toggleEventForTrigger(event.id)}
+                              className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Event Search Dropdown */}
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
+                        <input
+                          type="text"
+                          placeholder={t('sections.automaticTriggers.searchEventsPlaceholder')}
+                          value={eventSearchTerm}
+                          onChange={(e) => {
+                            setEventSearchTerm(e.target.value);
+                            setShowEventDropdown(true);
+                          }}
+                          onFocus={() => setShowEventDropdown(true)}
+                          className={`${inputClasses('event_search')} pl-10`}
+                        />
+                      </div>
+
+                      {showEventDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowEventDropdown(false)}></div>
+                          <div className="absolute z-20 w-full mt-2 bg-[var(--dark-600)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                            {filteredEvents.length > 0 ? (
+                              filteredEvents.map(event => (
+                                <button
+                                  key={event.id}
+                                  type="button"
+                                  onClick={() => {
+                                    toggleEventForTrigger(event.id);
+                                    setEventSearchTerm('');
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-[var(--dark-500)] transition-colors border-b border-[var(--dark-500)] last:border-b-0"
+                                >
+                                  <div className="font-medium text-[var(--brand-light)]">{event.title}</div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
+                                {t('sections.automaticTriggers.noEventsFound')}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.automaticTriggers.eventHint')}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Group Triggers */}
+              <div>
+                <h3 className="text-sm font-medium text-[var(--brand-light)]/70 mb-3">{t('sections.automaticTriggers.groupTriggers')}</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  {TRIGGERS.filter(tr => tr.category === 'group').map(tr => {
+                    const isSelected = formData.active_triggers.includes(tr.value);
+                    return (
+                      <button
+                        key={tr.value}
+                        type="button"
+                        onClick={() => handleTriggerSelect(tr.value)}
+                        className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                          isSelected 
+                            ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10'
+                            : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-[var(--brand-primary)]' : 'bg-[var(--dark-600)]'
+                        }`}>
+                          <tr.icon className={`w-4 h-4 ${isSelected ? 'text-[var(--dark-900)]' : 'text-[var(--brand-light)]/60'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <div className={`font-semibold ${isSelected ? 'text-[var(--brand-primary)]' : 'text-[var(--brand-light)]'}`}>
+                            {tr.label}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${isSelected ? 'text-[var(--brand-light)]/60' : 'text-[var(--brand-light)]/40'}`}>
+                            {tr.desc}
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]' : 'border-[var(--dark-400)]'
+                        }`}>
+                          {isSelected && <CheckCircle2 className="w-3 h-3 text-[var(--dark-900)]" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* JOINED_GROUP Config */}
+                {formData.active_triggers.includes('JOINED_GROUP') && (
+                  <div className="mt-4 p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)]">
+                    <h4 className="text-sm font-medium text-[var(--brand-light)] mb-3">{t('sections.automaticTriggers.selectGroup')}</h4>
+                    
+                    {/* Selected Group Display */}
+                    {getSelectedTriggerGroup() && (
+                      <div className="flex flex-wrap gap-2 p-3 bg-[var(--dark-600)] rounded-xl mb-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--brand-purple)] text-[var(--dark-900)] text-sm font-medium">
+                          {getSelectedTriggerGroup()?.name}
+                          <button
+                            type="button"
+                            onClick={() => setTriggerConfigValue('group_id', null)}
+                            className="hover:bg-[var(--dark-900)]/20 rounded-full p-0.5 transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Group Search Dropdown */}
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--brand-light)]/40" />
+                        <input
+                          type="text"
+                          placeholder={t('sections.automaticTriggers.searchGroupPlaceholder')}
+                          value={triggerGroupSearchTerm}
+                          onChange={(e) => {
+                            setTriggerGroupSearchTerm(e.target.value);
+                            setShowTriggerGroupDropdown(true);
+                          }}
+                          onFocus={() => setShowTriggerGroupDropdown(true)}
+                          className={`${inputClasses('trigger_group_search')} pl-10`}
+                        />
+                      </div>
+
+                      {showTriggerGroupDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setShowTriggerGroupDropdown(false)}></div>
+                          <div className="absolute z-20 w-full mt-2 bg-[var(--dark-600)] border border-[var(--dark-500)] rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                            {filteredTriggerGroups.length > 0 ? (
+                              filteredTriggerGroups.map(group => (
+                                <button
+                                  key={group.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setTriggerConfigValue('group_id', group.id);
+                                    setTriggerGroupSearchTerm('');
+                                    setShowTriggerGroupDropdown(false);
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-[var(--dark-500)] transition-colors border-b border-[var(--dark-500)] last:border-b-0"
+                                >
+                                  <div className="font-medium text-[var(--brand-light)]">{group.name}</div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-sm text-[var(--brand-light)]/50 text-center">
+                                {t('sections.automaticTriggers.noGroupsFound')}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('sections.automaticTriggers.groupHint')}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

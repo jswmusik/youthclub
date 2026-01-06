@@ -19,12 +19,32 @@ class Reward(models.Model):
         GUARDIAN = 'GUARDIAN', 'Guardians Only'
 
     class TriggerType(models.TextChoices):
+        # Manual / No automatic trigger
         NONE = 'NONE', 'Manual / No Trigger'
+        
+        # Questionnaire-dedicated rewards (bypasses normal targeting)
+        QUESTIONNAIRE = 'QUESTIONNAIRE', 'Questionnaire Completion'
+        
+        # User lifecycle triggers
         BIRTHDAY = 'BIRTHDAY', 'Birthday'
         WELCOME = 'WELCOME', 'Welcome (Registration)'
         VERIFIED = 'VERIFIED', 'Verified Account'
+        ANNIVERSARY = 'ANNIVERSARY', 'Account Anniversary (Yearly)'
+        
+        # Check-in based triggers
+        FIRST_CHECKIN = 'FIRST_CHECKIN', 'First Check-in'
+        CHECKIN_STREAK = 'CHECKIN_STREAK', 'Check-in Streak (X days within Y days)'
+        CHECKIN_MILESTONE = 'CHECKIN_MILESTONE', 'Check-in Milestone (Total visits)'
+        MOST_CHECKED_IN = 'MOST_CHECKED_IN', 'Most Checked-In (Top N users)'
+        
+        # Event based triggers
+        EVENT_ATTENDED = 'EVENT_ATTENDED', 'Event Attended (Specific events)'
+        
+        # Group based triggers
+        JOINED_GROUP = 'JOINED_GROUP', 'Joined Group (Specific group)'
+        
+        # Legacy - keeping for backwards compatibility
         MOST_ACTIVE = 'MOST_ACTIVE', 'Most Active (Logins)'
-        # MOST_CHECKED_IN can be added later
 
     # --- Basic Info (Section 3) ---
     name = models.CharField(max_length=200)
@@ -71,11 +91,10 @@ class Reward(models.Model):
     usage_limit = models.IntegerField(null=True, blank=True, help_text="Total times this reward can be claimed. Null = Unlimited.")
 
     # --- Triggers (Section 6) ---
-    # We allow multiple triggers, but for simplicity in SQL, we can store primary trigger type
-    # or use a ManyToMany if you want complex combinations. 
-    # Based on your doc, "Admins can choose one or several triggers".
-    # For now, let's use a JSON list to store multiple trigger types e.g. ["BIRTHDAY", "VERIFIED"]
-    active_triggers = models.JSONField(default=list, blank=True, help_text="List of active trigger codes")
+    # Only ONE trigger allowed per reward. Stored as a list for backwards compatibility
+    # but validation ensures only one trigger is selected.
+    # QUESTIONNAIRE triggers bypass normal targeting - questionnaire handles targeting.
+    active_triggers = models.JSONField(default=list, blank=True, help_text="Single trigger code stored as list for compatibility")
     
     # Configuration for complex triggers (like Most Active)
     # Example: { "logins_per_day": 3, "top_n": 10, "period": "WEEKLY" }
@@ -105,6 +124,14 @@ class RewardUsage(models.Model):
     # Has the user actually used it at the shop/club?
     is_redeemed = models.BooleanField(default=False)
     redeemed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Track what triggered this reward (for anti-abuse and audit trail)
+    trigger_type = models.CharField(max_length=50, blank=True, help_text="The trigger that granted this reward")
+    trigger_context = models.JSONField(
+        default=dict, 
+        blank=True, 
+        help_text="Context data for the trigger (e.g. milestone_reached, event_id, group_id, anniversary_year)"
+    )
 
     class Meta:
         ordering = ['-created_at']

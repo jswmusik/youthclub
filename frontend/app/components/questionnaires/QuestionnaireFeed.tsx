@@ -151,8 +151,8 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                     ? 'bg-[var(--dark-700)] border-[var(--dark-500)] hover:border-[var(--brand-primary)]/30' 
                     : 'bg-white shadow-md border-2 border-[#4D4DA4]/10 hover:shadow-xl hover:border-[#4D4DA4]/30'
                 }`}>
-                  {/* Reward Badge */}
-                  {q.benefit_limit !== 0 && (
+                  {/* Reward Badge - Show if rewards exist AND benefit_limit is null (unlimited) or > 0 */}
+                  {q.rewards && q.rewards.length > 0 && (q.benefit_limit === null || q.benefit_limit > 0) && (
                     <div className={`absolute top-0 right-0 text-xs font-bold px-3 py-2 rounded-bl-xl flex items-center gap-1 ${
                       darkMode 
                         ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]' 
@@ -163,7 +163,7 @@ export default function QuestionnaireFeed({ darkMode = false }: QuestionnaireFee
                     </div>
                   )}
                   
-                  <h3 className={`font-bold text-lg mb-2 font-heading ${q.benefit_limit !== 0 ? 'pr-24' : ''} ${
+                  <h3 className={`font-bold text-lg mb-2 font-heading ${(q.benefit_limit === null || q.benefit_limit > 0) ? 'pr-24' : ''} ${
                     darkMode ? 'text-[var(--brand-light)]' : 'text-[#4D4DA4]'
                   }`}>
                     {q.title}

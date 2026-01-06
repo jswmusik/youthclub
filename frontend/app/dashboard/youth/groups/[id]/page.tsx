@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
 
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
@@ -22,11 +23,13 @@ export default function GroupDetailPage() {
     const router = useRouter();
     const pathname = usePathname();
     const { user } = useAuth();
+    const { theme } = useTheme();
     const t = useTranslations('groups');
     const tSidebar = useTranslations('sidebar');
     const tCommon = useTranslations('common');
     const groupId = id as string;
-
+    
+    const [mounted, setMounted] = useState(false);
     const [group, setGroup] = useState<Group | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,6 +43,10 @@ export default function GroupDetailPage() {
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isLeaving, setIsLeaving] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (groupId) {
@@ -156,10 +163,12 @@ export default function GroupDetailPage() {
     };
 
 
+    const darkModeEarly = !mounted || theme === 'dark';
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[var(--dark-900)]">
-                <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+                <NavBar darkMode={darkModeEarly} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
                 <div className="flex justify-center items-center min-h-[50vh]">
                     <div className="w-12 h-12 border-4 border-[var(--brand-primary)]/20 border-t-[var(--brand-primary)] rounded-full animate-spin"></div>
                 </div>
@@ -170,7 +179,7 @@ export default function GroupDetailPage() {
     if (!group) {
         return (
             <div className="min-h-screen bg-[var(--dark-900)]">
-                <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+                <NavBar darkMode={darkModeEarly} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
                 <div className="p-10 text-center">
                     <div className="w-20 h-20 bg-[var(--brand-red)]/20 rounded-none sm:rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <AlertCircle className="w-10 h-10 text-[var(--brand-red)]" />
@@ -200,10 +209,12 @@ export default function GroupDetailPage() {
     const maxRejectionsReached = isRejected && rejectionCount >= 3;
     const avatarUrl = group.avatar ? getMediaUrl(group.avatar) : null;
     const backgroundImageUrl = group.background_image ? getMediaUrl(group.background_image) : null;
+    
+    const darkMode = !mounted || theme === 'dark';
 
     return (
         <div className="min-h-screen bg-[var(--dark-900)]">
-            <NavBar darkMode={true} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
+            <NavBar darkMode={darkMode} showBackButton={true} onMenuToggle={() => setIsSidebarOpen(true)} />
             
             {/* Mobile Sidebar Overlay */}
             <div 
@@ -229,7 +240,7 @@ export default function GroupDetailPage() {
                     </button>
                 </div>
                 <div className="p-4 overflow-y-auto h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)]">
-                    <YouthSidebar activePath={pathname} darkMode />
+                    <YouthSidebar activePath={pathname} darkMode={darkMode} />
                 </div>
             </aside>
             
@@ -237,7 +248,7 @@ export default function GroupDetailPage() {
 
                 {/* Group Header Container */}
                 <div className="max-w-6xl mx-auto px-0 sm:px-4 md:px-6 mt-0 sm:mt-6">
-                    <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl overflow-hidden border-y sm:border border-[var(--dark-600)]">
+                    <div className="bg-[var(--dark-700)] rounded-none sm:rounded-2xl overflow-hidden border-y sm:border border-[var(--dark-600)]">
                         
                         {/* Cover Image Area */}
                         <div 
@@ -265,7 +276,7 @@ export default function GroupDetailPage() {
                                 
                                 {/* Avatar */}
                                 <div className="relative mr-0 md:mr-5 mb-4 md:mb-0">
-                                    <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-2xl border-4 border-[var(--dark-800)] bg-[var(--dark-700)] overflow-hidden relative">
+                                    <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-[var(--dark-700)] bg-[var(--dark-700)] overflow-hidden relative">
                                         {avatarUrl ? (
                                             <img src={avatarUrl} alt={group.name} className="w-full h-full object-cover" />
                                         ) : (
@@ -389,7 +400,7 @@ export default function GroupDetailPage() {
                             
                             {/* LEFT COLUMN - About Info (Sticky) */}
                             <aside className="w-full lg:w-80 flex-shrink-0 lg:sticky lg:top-[72px] lg:self-start lg:max-h-[calc(100vh-88px)] lg:overflow-y-auto">
-                                <div className="bg-[var(--dark-800)] p-4 sm:p-6 rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] space-y-4 sm:space-y-6">
+                                <div className="bg-[var(--dark-700)] p-4 sm:p-6 rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] space-y-4 sm:space-y-6">
                                     <h3 className="text-xl font-bold text-[var(--brand-light)] font-heading">{t('about')}</h3>
                                     
                                     {group.description && (
@@ -502,7 +513,7 @@ export default function GroupDetailPage() {
                                                 <PostCard 
                                                     key={post.id} 
                                                     post={post}
-                                                    darkMode={true}
+                                                    darkMode={darkMode}
                                                 />
                                             ))
                                         ) : (
@@ -529,7 +540,7 @@ export default function GroupDetailPage() {
                 onClose={() => setShowSuccessModal(false)}
                 message={successMessage}
                 title={t('success')}
-                darkMode={true}
+                darkMode={darkMode}
             />
             
             {/* Leave Confirmation Modal */}
@@ -543,7 +554,7 @@ export default function GroupDetailPage() {
                 cancelButtonText={tCommon('cancel')}
                 isLoading={isLeaving}
                 variant="warning"
-                darkMode={true}
+                darkMode={darkMode}
             />
             
             {/* Error Modal */}

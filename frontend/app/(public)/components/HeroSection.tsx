@@ -6,7 +6,7 @@ import { MapPin, Search, Loader2, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { getMediaUrl } from '../../utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -23,6 +23,7 @@ export default function HeroSection() {
   const router = useRouter();
   const { theme } = useTheme();
   const t = useTranslations('public.hero');
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -46,11 +47,11 @@ export default function HeroSection() {
   
   const darkMode = !mounted || theme === 'dark';
 
-  // Fetch hero settings
+  // Fetch hero settings for the current locale
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch(`${API_URL}/marketing/public/seo-settings/`);
+        const res = await fetch(`${API_URL}/marketing/public/seo-settings/?lang=${locale}`);
         if (res.ok) {
           const data = await res.json();
           setHeroSettings({
@@ -66,7 +67,7 @@ export default function HeroSection() {
       }
     };
     fetchSettings();
-  }, []);
+  }, [locale]);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {

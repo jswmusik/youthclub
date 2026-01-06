@@ -520,6 +520,7 @@
     "price": "Price",
     "goingStatus": "Going",
     "noRegistration": "No Registration",
+    "openEvent": "Open Event - Just Show Up!",
     "closed": "Closed",
     "cancelRegistrationTitle": "Cancel Registration?",
     "cancelRegistrationConfirm": "Are you sure you want to cancel your registration for",
@@ -1608,7 +1609,10 @@
     "loadingMorePosts": "Loading more posts...",
     "endOfTimeline": "End of timeline",
     "couldNotLoadHistory": "Could not load activity history.",
-    "at": "at"
+    "at": "at",
+    "completedQuestionnaire": "Completed Questionnaire:",
+    "completedOn": "Completed on",
+    "earnedReward": "Earned reward:"
   },
   "clubsAndGroups": {
     "myClubs": "My Clubs",
@@ -2650,6 +2654,8 @@
         "useFormAbove": "Use the form above to add time slots",
         "closeTimeAfterOpen": "Close time must be after Open time.",
         "overlapDetected": "Overlap detected with existing hour: {time} ({cycle})",
+        "minMaxRequiredAge": "Both minimum and maximum age are required when age restriction is selected",
+        "minMaxRequiredGrade": "Both minimum and maximum grade are required when grade restriction is selected",
         "restrictionLabels": {
           "age": "Age",
           "grade": "Grade"
@@ -2797,6 +2803,8 @@
       "grade": "Grade"
     },
     "overlapError": "Overlap detected with existing hour: {openTime}-{closeTime} ({cycle})",
+    "minMaxRequiredAge": "Both minimum and maximum age are required when age restriction is selected",
+    "minMaxRequiredGrade": "Both minimum and maximum grade are required when grade restriction is selected",
     "buttons": {
       "cancel": "Cancel",
       "saveOpeningHours": "Save Opening Hours",
@@ -2907,6 +2915,17 @@
       "statusOverride": "Overridden: {days} days trial period",
       "statusDefault": "Using municipality default: {days} days",
       "statusDisabled": "Trial period disabled - verification required immediately"
+    },
+    "inventorySettings": {
+      "title": "Inventory Settings",
+      "description": "Configure borrowing rules for your club's inventory.",
+      "maxLoansPerUser": "Maximum Items Per User",
+      "itemsPerClub": "items at this club",
+      "maxLoansDescription": "The maximum number of items a member can borrow simultaneously from this club (1-10). There is also a global limit of 5 items per club.",
+      "requireCheckIn": "Require Check-in to Borrow",
+      "requireCheckInDescription": "When enabled, members must be physically checked in at the club to borrow items or join waiting lists.",
+      "statusCheckInRequired": "Check-in required to borrow items",
+      "statusCheckInNotRequired": "Members can borrow items without being checked in"
     },
     "buttons": {
       "cancel": "Cancel",
@@ -4031,7 +4050,8 @@
     },
     "customFields": {
       "title": "Custom Fields",
-      "description": "Additional custom field values"
+      "description": "Additional custom field values",
+      "requiredField": "Please fill in the required field: {fieldName}"
     },
     "quickTips": {
       "title": "Quick Tips",
@@ -4389,7 +4409,8 @@
     },
     "customFields": {
       "title": "Custom Fields",
-      "description": "Additional custom field values for this guardian"
+      "description": "Additional custom field values for this guardian",
+      "requiredField": "Please fill in the required field: {fieldName}"
     },
     "quickTips": {
       "title": "Quick Tips",
@@ -5181,6 +5202,7 @@
         "scheduleDateTime": "Schedule Date & Time",
         "visibilityEndDate": "Visibility End Date (Optional)",
         "pinToTop": "Pin to top",
+        "pinDisabledForGroups": "Posts cannot be pinned when targeted to groups",
         "allowComments": "Allow Comments",
         "requireModeration": "Require Moderation",
         "allowReplies": "Allow Replies",
@@ -5279,7 +5301,9 @@
         "saveAsDraft": "Save as Draft",
         "publishNow": "Publish Now",
         "schedule": "Schedule",
-        "scheduleDateTime": "Schedule Date & Time"
+        "scheduleDateTime": "Schedule Date & Time",
+        "pinPost": "Pin this post",
+        "pinPostHint": "Pinned posts appear at the top of the feed"
       },
       "templateSettings": {
         "title": "Template Settings",
@@ -5296,6 +5320,12 @@
           "clubs": "{count} clubs",
           "youthOnly": "Youth only",
           "guardiansOnly": "Guardians only",
+          "maleOnly": "Males only",
+          "femaleOnly": "Females only",
+          "otherGenderOnly": "Other gender only",
+          "male": "Males",
+          "female": "Females",
+          "otherGender": "Other",
           "ages": "Ages {min}-{max}",
           "agesMin": "Ages {min}+",
           "agesMax": "Ages up to {max}",
@@ -5304,6 +5334,8 @@
           "gradesRange": "Grades {min}-{max}",
           "group": "{count} group",
           "groups": "{count} groups",
+          "interest": "{count} interest",
+          "interests": "{count} interests",
           "allMembers": "All members",
           "commentsOn": "Comments on",
           "commentsOff": "Comments off",
@@ -5600,6 +5632,7 @@
         "allowRepliesHint": "Members can reply to comments",
         "pinByDefault": "Pin by Default",
         "pinByDefaultHint": "Posts will be pinned to top",
+        "pinDisabledForGroups": "Cannot pin when template targets groups",
         "pushNotification": "Push Notification",
         "pushNotificationHint": "Send push notification when posting",
         "pushTitle": "Push Notification Title",
@@ -6784,14 +6817,65 @@
         "automaticTriggers": {
           "title": "Automatic Triggers",
           "description": "Select when this reward should be automatically given",
+          "singleTriggerInfo": "Only one trigger can be selected per reward. Select the trigger that best fits your reward distribution strategy.",
+          
+          "questionnaireTriggers": "Questionnaire Rewards",
+          "questionnaire": "Questionnaire Completion",
+          "questionnaireDesc": "Dedicated reward for questionnaires - attach to surveys and bypass normal targeting",
+          
+          "lifecycleTriggers": "User Lifecycle",
           "onBirthday": "On Birthday",
           "onBirthdayDesc": "Given automatically on member's birthday",
           "onSignup": "On Signup",
           "onSignupDesc": "Given immediately after registration",
           "onVerification": "On Verification",
           "onVerificationDesc": "Given when account is verified",
+          "anniversary": "Anniversary",
+          "anniversaryDesc": "Given yearly on account anniversary",
+          
+          "checkinTriggers": "Check-in Based",
+          "firstCheckin": "First Check-in",
+          "firstCheckinDesc": "Given on user's very first check-in",
+          "checkinStreak": "Check-in Streak",
+          "checkinStreakDesc": "Given when user checks in X days within Y days",
+          "checkinMilestone": "Check-in Milestone",
+          "checkinMilestoneDesc": "Given when user reaches total check-in milestone",
+          "mostCheckedIn": "Most Checked-In",
+          "mostCheckedInDesc": "Awarded to top users with most check-ins",
           "mostActive": "Most Active",
-          "mostActiveDesc": "Awarded to users with most logins"
+          "mostActiveDesc": "Awarded to users with most logins",
+          
+          "streakConfig": "Streak Configuration",
+          "requiredCheckins": "Required Check-ins",
+          "withinDays": "Within Days",
+          "streakHint": "User must check in on X unique days within Y days (one per day counts)",
+          
+          "milestoneConfig": "Milestone Configuration",
+          "milestoneCount": "Milestone Count",
+          "milestoneHint": "Total unique check-in days required to earn this reward",
+          
+          "mostCheckedInConfig": "Most Checked-In Configuration",
+          "period": "Period",
+          "weekly": "Weekly",
+          "monthly": "Monthly",
+          "topN": "Top N Users",
+          "mostCheckedInHint": "Top N users with most unique check-in days will receive this reward",
+          
+          "eventTriggers": "Event Based",
+          "eventAttended": "Event Attended",
+          "eventAttendedDesc": "Given when user checks in to specific events",
+          "selectEvents": "Select Events",
+          "searchEventsPlaceholder": "Search events...",
+          "noEventsFound": "No events found",
+          "eventHint": "User must check in using their ticket at one of the selected events",
+          
+          "groupTriggers": "Group Based",
+          "joinedGroup": "Joined Group",
+          "joinedGroupDesc": "Given when user joins a specific group",
+          "selectGroup": "Select Group",
+          "searchGroupPlaceholder": "Search groups...",
+          "noGroupsFound": "No groups found",
+          "groupHint": "User will receive this reward when they join the selected group"
         },
         "status": {
           "title": "Status",
@@ -8545,6 +8629,12 @@
       "contact": "Contact Page",
       "contactShort": "Contact"
     },
+    "languageSelector": {
+      "title": "Language Selection",
+      "description": "Choose which language this content should be displayed in.",
+      "label": "Language",
+      "hint": "The content will only be shown to users who have selected this language."
+    },
     "pages": {
       "stats": {
         "totalPages": "Total Pages",
@@ -9122,9 +9212,11 @@
       },
       "tips": {
         "title": "Tips for Great Questionnaires",
+        "subtitle": "Best practices for engaging surveys",
         "tip1": "Keep questions clear and concise for better response rates",
         "tip2": "Set an appropriate expiration date to encourage timely responses",
-        "tip3": "Enable anonymous responses for sensitive topics"
+        "tip3": "Enable anonymous responses for sensitive topics",
+        "tip4": "Add rewards to incentivize participation"
       },
       "toasts": {
         "loadFailed": "Failed to load questionnaire",
@@ -9138,7 +9230,8 @@
         "saveFailed": "Failed to save. Check all required fields.",
         "updateSuccess": "Changes saved successfully!",
         "createSuccess": "Questionnaire created successfully!",
-        "deleteSuccess": "Question deleted"
+        "deleteSuccess": "Question deleted",
+        "questionsRequired": "At least one question is required to publish"
       },
       "validation": {
         "titleRequired": "Title is required",
@@ -10096,7 +10189,26 @@
       "mustAcceptTerms": "You must accept the terms.",
       "incorrectCaptcha": "Incorrect math answer. Are you a robot?",
       "registrationSuccess": "Registration Successful! Redirecting...",
-      "registrationFailed": "Registration failed."
+      "registrationFailed": "Registration failed.",
+      "fillRequiredField": "Please fill in the required field: {fieldName}"
+    },
+    "validation": {
+      "emailRequired": "Email address is required",
+      "invalidEmail": "Please enter a valid email address",
+      "phoneRequired": "Phone number is required",
+      "passwordRequired": "Password is required",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordNeedsNumber": "Password must contain at least one number",
+      "passwordNeedsSpecial": "Password must contain at least one special character",
+      "passwordsMustMatch": "Passwords do not match",
+      "captchaRequired": "Please solve the math problem",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "dateOfBirthRequired": "Date of birth is required",
+      "gradeRequired": "Grade is required",
+      "gradeInvalid": "Grade must be between 1 and 13",
+      "genderRequired": "Please select your gender",
+      "guardianRequired": "Guardian information is required for this club"
     },
     "step1": {
       "title": "Where do you hang out?",
@@ -10104,7 +10216,8 @@
       "municipality": "Municipality",
       "chooseMunicipality": "Choose Municipality",
       "selectClub": "Select Your Club",
-      "noClubsAvailable": "No clubs available for registration in this municipality"
+      "noClubsAvailable": "No clubs available for registration in this municipality",
+      "noDescription": "No description available"
     },
     "step2": {
       "title": "Create Your Login",
@@ -10155,6 +10268,7 @@
       "phone": "Phone",
       "phonePlaceholder": "Phone number",
       "gender": "Gender",
+      "selectGender": "Select gender",
       "guardianDetails": "Guardian Details",
       "skipMessage": "You can skip this step if you don't want to add a guardian now."
     },

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
+import { useLocale } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -19,11 +20,12 @@ export default function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+  const locale = useLocale();
 
   useEffect(() => {
     const fetchTestimonials = async () => {
       try {
-        const res = await fetch(`${API_URL}/marketing/public/testimonials/`);
+        const res = await fetch(`${API_URL}/marketing/public/testimonials/?lang=${locale}`);
         if (res.ok) {
           const data = await res.json();
           setTestimonials(data);
@@ -85,7 +87,7 @@ export default function TestimonialsSection() {
     };
 
     fetchTestimonials();
-  }, []);
+  }, [locale]);
 
   // Auto-play carousel
   useEffect(() => {

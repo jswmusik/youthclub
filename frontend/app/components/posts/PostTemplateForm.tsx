@@ -134,6 +134,13 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
         return () => setIsMounted(false);
     }, []);
 
+    // Automatically unset isPinnedDefault when groups are selected (pinned posts can't be group-targeted)
+    useEffect(() => {
+        if (selectedGroups.length > 0 && isPinnedDefault) {
+            setIsPinnedDefault(false);
+        }
+    }, [selectedGroups, isPinnedDefault]);
+
     // --- Data Fetching ---
     useEffect(() => {
         const loadData = async () => {
@@ -1126,24 +1133,42 @@ export default function PostTemplateForm({ initialData, role, onSuccess }: PostT
                                 </>
                             )}
 
-                            {/* Pinned */}
-                            <div className="flex items-center justify-between p-4 rounded-xl bg-[var(--dark-700)] border border-[var(--dark-500)]">
+                            {/* Pinned - Disabled when groups are selected */}
+                            <div className={`flex items-center justify-between p-4 rounded-xl border ${
+                                selectedGroups.length > 0 
+                                    ? 'bg-[var(--dark-700)] border-[var(--dark-500)] opacity-50' 
+                                    : 'bg-[var(--dark-700)] border-[var(--dark-500)]'
+                            }`}>
                                 <div className="flex items-center gap-3">
-                                    <Pin className="w-5 h-5 text-[var(--brand-peach)]" />
+                                    <Pin className={`w-5 h-5 ${selectedGroups.length > 0 ? 'text-[var(--brand-light)]/30' : 'text-[var(--brand-peach)]'}`} />
                                     <div>
-                                        <p className="font-medium text-[var(--brand-light)]">{t('defaultSettings.pinByDefault')}</p>
-                                        <p className="text-sm text-[var(--brand-light)]/50">{t('defaultSettings.pinByDefaultHint')}</p>
+                                        <p className={`font-medium ${selectedGroups.length > 0 ? 'text-[var(--brand-light)]/50' : 'text-[var(--brand-light)]'}`}>{t('defaultSettings.pinByDefault')}</p>
+                                        <p className="text-sm text-[var(--brand-light)]/50">
+                                            {selectedGroups.length > 0 
+                                                ? t('defaultSettings.pinDisabledForGroups')
+                                                : t('defaultSettings.pinByDefaultHint')
+                                            }
+                                        </p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setIsPinnedDefault(!isPinnedDefault)}
+                                    onClick={() => {
+                                        if (selectedGroups.length === 0) {
+                                            setIsPinnedDefault(!isPinnedDefault);
+                                        }
+                                    }}
+                                    disabled={selectedGroups.length > 0}
                                     className={`w-14 h-8 rounded-full transition-all flex items-center px-1 ${
-                                        isPinnedDefault ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'
+                                        selectedGroups.length > 0 
+                                            ? 'bg-[var(--dark-600)] cursor-not-allowed' 
+                                            : isPinnedDefault 
+                                                ? 'bg-[var(--brand-peach)]' 
+                                                : 'bg-[var(--dark-500)]'
                                     }`}
                                 >
                                     <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${
-                                        isPinnedDefault ? 'translate-x-6' : 'translate-x-0'
+                                        isPinnedDefault && selectedGroups.length === 0 ? 'translate-x-6' : 'translate-x-0'
                                     }`} />
                                 </button>
                             </div>

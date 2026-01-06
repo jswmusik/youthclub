@@ -1,13 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import RichTextEditor from '@/app/components/RichTextEditor';
 import { cmsApi } from '@/lib/cms-api';
 import { useToast } from '../../../../../../hooks/useToast';
 import { Loader2, Save } from 'lucide-react';
+import { type LanguageCode } from '../../../../components/LanguageSelector';
 
-export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
+interface CookieFormProps {
+  onSuccess: () => void;
+  language: LanguageCode;
+}
+
+export default function CookieForm({ onSuccess, language }: CookieFormProps) {
   const t = useTranslations('cmsAdmin.cookies');
   const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
@@ -18,7 +24,13 @@ export default function CookieForm({ onSuccess }: { onSuccess: () => void }) {
     description: t('form.defaultDescription'),
     policy_text: '',
     is_active: true,
+    language: language,
   });
+
+  // Update language when prop changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, language }));
+  }, [language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

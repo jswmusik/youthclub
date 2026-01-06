@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { 
   Mail, Send, CheckCircle, AlertCircle, Building2, User, 
   MessageSquare, Loader2
@@ -32,6 +32,7 @@ interface FormData {
 
 export default function ContactPageClient() {
   const t = useTranslations('contactPage');
+  const locale = useLocale();
   const [content, setContent] = useState<ContactContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -48,11 +49,11 @@ export default function ContactPageClient() {
 
   useEffect(() => {
     fetchContent();
-  }, []);
+  }, [locale]);
 
   const fetchContent = async () => {
     try {
-      const res = await fetch(`${API_URL}/cms/contact-content/public/`);
+      const res = await fetch(`${API_URL}/cms/contact-content/public/?lang=${locale}`);
       if (res.ok) {
         const data = await res.json();
         setContent(data);

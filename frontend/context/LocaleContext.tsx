@@ -21,11 +21,13 @@ function isValidLocale(locale: string | undefined | null): locale is Locale {
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  // Always initialize with defaultLocale to match server-side rendering
+  // The actual locale from cookie/user will be set in useEffect after hydration
   const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const previousLocaleRef = useRef<Locale | null>(null);
   const isInitializedRef = useRef(false);
 
-  // Initialize locale from various sources
+  // Hydrate locale from cookie/user after mount to avoid hydration mismatch
   useEffect(() => {
     // Priority: 1. User preference (from API), 2. Cookie, 3. Browser, 4. Default
     let detectedLocale: Locale = defaultLocale;

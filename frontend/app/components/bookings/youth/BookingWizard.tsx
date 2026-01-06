@@ -75,8 +75,21 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
     }
   };
 
+  // Calculate date navigation limits based on booking_window_weeks
+  const bookingWindowWeeks = resource.booking_window_weeks || 4;
+  const maxDate = addDays(startOfToday(), bookingWindowWeeks * 7);
+  const isAtMinDate = isSameDay(selectedDate, startOfToday());
+  const isAtMaxDate = selectedDate >= maxDate;
+
   const handleDateChange = (days: number) => {
-    setSelectedDate(prev => addDays(prev, days));
+    const newDate = addDays(selectedDate, days);
+    
+    // Prevent navigating to past or beyond booking window
+    if (newDate < startOfToday() || newDate > maxDate) {
+      return;
+    }
+    
+    setSelectedDate(newDate);
     setSelectedSlot(null); // Reset slot selection
   };
 
@@ -157,11 +170,12 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
         }`}>
           <div className="flex items-center justify-between mb-6">
             <button 
-              onClick={() => handleDateChange(-1)} 
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
+              onClick={() => handleDateChange(-1)}
+              disabled={isAtMinDate}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group disabled:opacity-40 disabled:cursor-not-allowed ${
                 darkMode 
-                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
-                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4]'
+                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] disabled:hover:bg-[var(--dark-600)] disabled:hover:text-[var(--brand-light)]/60' 
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4] disabled:hover:bg-white disabled:hover:text-inherit disabled:hover:border-[#4D4DA4]/15'
               }`}
             >
               <ChevronLeft className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -175,11 +189,12 @@ export default function BookingWizard({ resource, darkMode = false }: Props) {
               }`}>{format(selectedDate, 'MMM d, yyyy', { locale: dateLocale })}</div>
             </div>
             <button 
-              onClick={() => handleDateChange(1)} 
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group ${
+              onClick={() => handleDateChange(1)}
+              disabled={isAtMaxDate}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all group disabled:opacity-40 disabled:cursor-not-allowed ${
                 darkMode 
-                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)]' 
-                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4]'
+                  ? 'bg-[var(--dark-600)] hover:bg-[var(--brand-primary)] hover:text-[var(--dark-900)] text-[var(--brand-light)]/60 border border-[var(--dark-500)] disabled:hover:bg-[var(--dark-600)] disabled:hover:text-[var(--brand-light)]/60' 
+                  : 'bg-white hover:bg-[#4D4DA4] hover:text-white shadow-sm border border-[#4D4DA4]/15 hover:border-[#4D4DA4] disabled:hover:bg-white disabled:hover:text-inherit disabled:hover:border-[#4D4DA4]/15'
               }`}
             >
               <ChevronRight className="w-5 h-5 group-hover:scale-110 transition-transform" />

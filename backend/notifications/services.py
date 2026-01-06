@@ -97,7 +97,7 @@ def send_templated_notification(
         return None
     
     # Get user's preferred language (default to Swedish)
-    user_language = getattr(user, 'language', None) or 'sv'
+    user_language = getattr(user, 'preferred_language', None) or 'sv'
     
     # Get the translation for the user's language
     translation = template.get_translation(user_language)
@@ -178,7 +178,7 @@ def send_bulk_templated_notifications(
     # Group users by language for efficient translation lookup
     users_by_language = {}
     for user in users:
-        user_language = getattr(user, 'language', None) or 'sv'
+        user_language = getattr(user, 'preferred_language', None) or 'sv'
         if user_language not in users_by_language:
             users_by_language[user_language] = []
         users_by_language[user_language].append(user)

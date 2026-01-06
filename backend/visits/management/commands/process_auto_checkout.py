@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from visits.models import CheckInSession
 from organization.models import RegularOpeningHour
+from inventory.models import LendingSession
 import datetime
 
 class Command(BaseCommand):
@@ -13,7 +14,8 @@ class Command(BaseCommand):
         # 1. Get all currently active sessions
         active_sessions = CheckInSession.objects.filter(check_out_at__isnull=True).select_related('club')
 
-        count = 0
+        checkout_count = 0
+        items_returned_count = 0
         for session in active_sessions:
             club = session.club
             
@@ -40,11 +42,26 @@ class Command(BaseCommand):
                 
                 # If the current time is past the closing time of the check-in day
                 if now > checkout_threshold:
+                    # Auto-return all borrowed items from this club for this user
+                    active_loans = LendingSession.objects.filter(
+                        user=session.user,
+                        item__club=club,
+                        status='ACTIVE'
+                    )
+                    for loan in active_loans:
+                        loan.status = 'RETURNED_SYSTEM'
+                        loan.returned_at = closing_dt  # Set return time to closing time
+                        loan.save()
+                        loan.item.status = 'AVAILABLE'
+                        loan.item.save()
+                        items_returned_count += 1
+                        self.stdout.write(f"  Auto-returned item '{loan.item.title}' borrowed by {session.user.email}")
+                    
                     session.check_out_at = closing_dt  # Set checkout time to exact closing time
                     session.method = 'MANUAL_ADMIN'    # Mark as system/admin auto-action
                     session.save()
-                    count += 1
+                    checkout_count += 1
                     self.stdout.write(f"Auto-checked out {session.user} from {club.name}")
 
-        self.stdout.write(self.style.SUCCESS(f'Successfully processed {count} auto-checkouts'))
+        self.stdout.write(self.style.SUCCESS(f'Successfully processed {checkout_count} auto-checkouts and {items_returned_count} item returns'))
 

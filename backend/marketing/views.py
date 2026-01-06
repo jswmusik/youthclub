@@ -13,6 +13,7 @@ from django.core.cache import cache
 from django.http import HttpResponse
 from datetime import timedelta, datetime
 
+from core.languages import DEFAULT_LANGUAGE, get_language_from_request
 from .models import SiteSEOSettings, Testimonial, Customer, NewsletterSubscriber
 from .serializers import (
     SiteSEOSettingsSerializer, 
@@ -31,13 +32,25 @@ from .serializers import (
 class SiteSEOSettingsView(APIView):
     """
     Public endpoint to get SEO and Hero settings for the startpage.
-    Returns the singleton SEO settings or defaults.
+    Returns settings for the requested language, falling back to default language.
+    
+    Query params:
+        - lang: Language code (e.g., 'sv', 'da', 'nb', 'en')
     """
     permission_classes = [AllowAny]
     
     def get(self, request):
         try:
-            settings = SiteSEOSettings.objects.first()
+            # Get language from query param or Accept-Language header
+            lang = request.query_params.get('lang') or get_language_from_request(request)
+            
+            # Try to get settings for requested language
+            settings = SiteSEOSettings.objects.filter(language=lang).first()
+            
+            # Fallback to default language if not found
+            if not settings and lang != DEFAULT_LANGUAGE:
+                settings = SiteSEOSettings.objects.filter(language=DEFAULT_LANGUAGE).first()
+            
             if settings:
                 serializer = SiteSEOSettingsSerializer(settings)
                 return Response(serializer.data)
@@ -45,6 +58,7 @@ class SiteSEOSettingsView(APIView):
             # Return defaults if no settings exist
             return Response({
                 'id': None,
+                'language': lang,
                 'page_title': 'Ungdomsappen - Hitta aktiviteter nära dig',
                 'meta_description': 'Upptäck aktiviteter, evenemang och fritidsgårdar nära dig. Ungdomsappen samlar allt för unga på ett ställe.',
                 'keywords': 'ungdomsappen, fritidsgård, aktiviteter, ungdom, evenemang',
@@ -67,25 +81,30 @@ class SiteSEOSettingsAdminView(APIView):
     """
     Admin endpoint to get and update SEO/Hero settings.
     Only Super Admins can modify.
+    
+    Query params:
+        - lang: Language code to get/update settings for (default: 'sv')
     """
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
-        """Get current settings for admin editing"""
-        settings, created = SiteSEOSettings.objects.get_or_create(pk=1)
+        """Get settings for admin editing for a specific language"""
+        lang = request.query_params.get('lang', DEFAULT_LANGUAGE)
+        settings = SiteSEOSettings.get_for_language(lang)
         serializer = SiteSEOSettingsAdminSerializer(settings)
         return Response(serializer.data)
     
     def put(self, request):
-        """Update settings (Super Admin only)"""
+        """Update settings for a specific language (Super Admin only)"""
         if request.user.role != 'SUPER_ADMIN':
             return Response(
                 {'error': 'Only Super Admins can modify site settings'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        settings, created = SiteSEOSettings.objects.get_or_create(pk=1)
+        lang = request.data.get('language') or request.query_params.get('lang', DEFAULT_LANGUAGE)
+        settings = SiteSEOSettings.get_for_language(lang)
         serializer = SiteSEOSettingsAdminSerializer(settings, data=request.data, partial=True)
         
         if serializer.is_valid():
@@ -101,11 +120,22 @@ class SiteSEOSettingsAdminView(APIView):
 class PublicTestimonialsView(APIView):
     """
     Public endpoint to get active testimonials.
+    
+    Query params:
+        - lang: Language code (filters testimonials by language, falls back to default)
     """
     permission_classes = [AllowAny]
     
     def get(self, request):
-        testimonials = Testimonial.objects.filter(is_active=True).order_by('-created_at')[:10]
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        # Get testimonials for the requested language
+        testimonials = Testimonial.objects.filter(is_active=True, language=lang).order_by('-created_at')[:10]
+        
+        # If no testimonials for requested language, fall back to default language
+        if not testimonials.exists() and lang != DEFAULT_LANGUAGE:
+            testimonials = Testimonial.objects.filter(is_active=True, language=DEFAULT_LANGUAGE).order_by('-created_at')[:10]
+        
         serializer = TestimonialSerializer(testimonials, many=True)
         return Response(serializer.data)
 
@@ -183,6 +213,9 @@ class TestimonialViewSet(viewsets.ModelViewSet):
     """
     Admin ViewSet for managing testimonials.
     Only Super Admins can create/update/delete.
+    
+    Query params:
+        - lang: Filter testimonials by language
     """
     queryset = Testimonial.objects.all().order_by('-created_at')
     serializer_class = TestimonialAdminSerializer
@@ -196,13 +229,19 @@ class TestimonialViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        queryset = Testimonial.objects.all()
+        
+        # Filter by language if specified
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
         
         # Super admins see all
         if user.role == 'SUPER_ADMIN':
-            return Testimonial.objects.all().order_by('-created_at')
+            return queryset.order_by('-created_at')
         
         # Others only see active testimonials
-        return Testimonial.objects.filter(is_active=True).order_by('-created_at')
+        return queryset.filter(is_active=True).order_by('-created_at')
     
     def create(self, request, *args, **kwargs):
         """Only Super Admins can create testimonials"""
@@ -235,11 +274,23 @@ class TestimonialViewSet(viewsets.ModelViewSet):
 class PublicCustomersView(APIView):
     """
     Public endpoint to get active customer logos for the homepage carousel.
+    Returns customers for the specified language + customers with no language set (global).
+    
+    Query params:
+        - lang: Language code (filters customers by language)
     """
     permission_classes = [AllowAny]
     
     def get(self, request):
-        customers = Customer.objects.filter(is_active=True).order_by('display_order', 'name')
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        # Get customers for this language OR customers with no language (global)
+        customers = Customer.objects.filter(
+            is_active=True
+        ).filter(
+            Q(language=lang) | Q(language__isnull=True) | Q(language='')
+        ).order_by('display_order', 'name')
+        
         serializer = CustomerSerializer(customers, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -248,6 +299,9 @@ class CustomerViewSet(viewsets.ModelViewSet):
     """
     Admin ViewSet for managing customer logos.
     Only Super Admins can create/update/delete.
+    
+    Query params:
+        - lang: Filter customers by language
     """
     queryset = Customer.objects.all().order_by('display_order', 'name')
     serializer_class = CustomerAdminSerializer
@@ -256,13 +310,19 @@ class CustomerViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        queryset = Customer.objects.all()
+        
+        # Filter by language if specified
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(Q(language=lang) | Q(language__isnull=True) | Q(language=''))
         
         # Super admins see all
         if user.role == 'SUPER_ADMIN':
-            return Customer.objects.all().order_by('display_order', 'name')
+            return queryset.order_by('display_order', 'name')
         
         # Others only see active customers
-        return Customer.objects.filter(is_active=True).order_by('display_order', 'name')
+        return queryset.filter(is_active=True).order_by('display_order', 'name')
     
     def create(self, request, *args, **kwargs):
         """Only Super Admins can create customers"""

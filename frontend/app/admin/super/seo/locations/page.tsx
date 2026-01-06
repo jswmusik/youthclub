@@ -10,6 +10,8 @@ import {
 import { seoApi } from '@/lib/seo-api';
 import { SwedishLocation } from '@/types/seo';
 import { useToast } from '@/hooks/useToast';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 
 function Skeleton({ className }: { className?: string }) {
   return (
@@ -40,6 +42,7 @@ const REGIONS = [
 ];
 
 export default function LocationsPage() {
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [locations, setLocations] = useState<SwedishLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
@@ -49,10 +52,14 @@ export default function LocationsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const { error } = useToast();
 
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+  };
+
   const fetchLocations = async () => {
     setLoading(true);
     try {
-      const params: any = { page, page_size: 50 };
+      const params: any = { page, page_size: 50, lang: currentLanguage };
       if (typeFilter) params.type = typeFilter;
       if (regionFilter) params.region = regionFilter;
       if (searchInput) params.search = searchInput;
@@ -70,7 +77,7 @@ export default function LocationsPage() {
 
   useEffect(() => {
     fetchLocations();
-  }, [page, typeFilter, regionFilter]);
+  }, [page, typeFilter, regionFilter, currentLanguage]);
 
   const handleSearch = () => {
     setPage(1);
@@ -103,12 +110,18 @@ export default function LocationsPage() {
               <div className="w-10 h-10 rounded-xl bg-[var(--brand-blue)] flex items-center justify-center">
                 <Map className="w-5 h-5 text-[var(--dark-900)]" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Svenska platser</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)]">Platser</h1>
             </div>
             <p className="text-[var(--brand-light)]/50 text-sm pl-[52px]">
-              Alla Sveriges kommuner och städer för lokal SEO
+              Kommuner och städer för lokal SEO
             </p>
           </div>
+          <AdminLanguageSelector
+            currentLanguage={currentLanguage}
+            onLanguageChange={handleLanguageChange}
+            languages={locales as unknown as string[]}
+            variant="dropdown"
+          />
         </div>
 
         {/* Stats */}

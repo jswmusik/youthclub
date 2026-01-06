@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from questionnaires.models import QuestionnaireResponse, Questionnaire
-from notifications.services import send_notification
+from notifications.services import send_templated_notification
 from notifications.models import Notification
 
 
@@ -30,13 +30,15 @@ class Command(BaseCommand):
             if response.last_reminded_at and response.last_reminded_at > now - timedelta(hours=24):
                 continue
 
-            # Send Notification
-            send_notification(
+            # Send Notification using templated system for proper translation support
+            send_templated_notification(
                 user=response.user,
-                title="Finish your survey!",
-                body=f"You started '{response.questionnaire.title}' but haven't finished it yet. Complete it now to potentially earn rewards!",
-                category=Notification.Category.SYSTEM,
-                action_url=f"/dashboard/youth/questionnaires/{response.questionnaire.id}"
+                template_type='survey_reminder',
+                context={
+                    'questionnaire_title': response.questionnaire.title,
+                },
+                action_url=f"/dashboard/youth/questionnaires/{response.questionnaire.id}",
+                category_override=Notification.Category.QUESTIONNAIRE
             )
             
             # Update timestamp

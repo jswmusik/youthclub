@@ -200,11 +200,13 @@ class ItemViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @transaction.atomic
     def borrow(self, request, pk=None):
         """
         User action to borrow this item.
         """
-        item = self.get_object()
+        # Use select_for_update to lock the row and prevent race conditions
+        item = Item.objects.select_for_update().get(pk=pk)
         user = request.user
 
         # 1. Validation: Is item available?
@@ -215,24 +217,26 @@ class ItemViewSet(viewsets.ModelViewSet):
         if item.lending_sessions.filter(status='ACTIVE').exists():
             return Response({"error": "Item is currently borrowed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2.5. Validation: Check-in Required (always enforced)
-        active_checkin = CheckInSession.objects.filter(
-            user=user,
-            club=item.club,
-            check_out_at__isnull=True
-        ).exists()
-        if not active_checkin:
-            return Response({
-                "error": "You must be checked in to this club to borrow items",
-                "code": "CHECKIN_REQUIRED"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # 2.5. Validation: Check-in Required (only if club setting requires it)
+        if item.club.borrowing_requires_checkin:
+            active_checkin = CheckInSession.objects.filter(
+                user=user,
+                club=item.club,
+                check_out_at__isnull=True
+            ).exists()
+            if not active_checkin:
+                return Response({
+                    "error": "You must be checked in to this club to borrow items",
+                    "code": "CHECKIN_REQUIRED"
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 3. Validation: Max Items per User (Hard limit: 5 items maximum, or club setting if lower)
+        # 3. Validation: Max Items per User (per club, with hard limit of 5)
         club_max_loans = item.club.max_active_loans_per_user
-        global_max_loans = 5  # Hard limit: maximum 5 items per member
+        global_max_loans = 5  # Hard limit: maximum 5 items per member per club
         max_loans = min(club_max_loans, global_max_loans)  # Use the lower of the two
         
-        active_loans = LendingSession.objects.filter(user=user, status='ACTIVE').count()
+        # Count only loans from the same club
+        active_loans = LendingSession.objects.filter(user=user, item__club=item.club, status='ACTIVE').count()
         if active_loans >= max_loans:
             if max_loans == global_max_loans:
                 return Response({
@@ -276,14 +280,32 @@ class ItemViewSet(viewsets.ModelViewSet):
         if not session:
             return Response({"error": "No active loan found for this item"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Security: Ensure it's the borrower OR an Admin returning it
-        is_admin = user.role in ['CLUB_ADMIN', 'MUNICIPALITY_ADMIN', 'SUPER_ADMIN']
-        if session.user != user and not is_admin:
-            return Response({"error": "You cannot return an item you didn't borrow"}, status=status.HTTP_403_FORBIDDEN)
+        # Security: Scope-based admin permissions
+        can_return = False
+        is_admin_return = False
+
+        if session.user == user:
+            # User can return their own item
+            can_return = True
+        elif user.role == 'SUPER_ADMIN':
+            # Super admin can return any item
+            can_return = True
+            is_admin_return = True
+        elif user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+            # Municipality admin can return items from clubs in their municipality
+            can_return = item.club.municipality == user.assigned_municipality
+            is_admin_return = True
+        elif user.role == 'CLUB_ADMIN' and user.assigned_club:
+            # Club admin can only return items from their club
+            can_return = item.club == user.assigned_club
+            is_admin_return = True
+
+        if not can_return:
+            return Response({"error": "You don't have permission to return this item"}, status=status.HTTP_403_FORBIDDEN)
 
         # Process Return
         session.returned_at = timezone.now()
-        session.status = 'RETURNED_ADMIN' if is_admin else 'RETURNED_USER'
+        session.status = 'RETURNED_ADMIN' if is_admin_return else 'RETURNED_USER'
         session.save()
 
         item.status = 'AVAILABLE'
@@ -300,17 +322,18 @@ class ItemViewSet(viewsets.ModelViewSet):
         item = self.get_object()
         user = request.user
         
-        # 0. Validation: Check-in Required (always enforced)
-        active_checkin = CheckInSession.objects.filter(
-            user=user,
-            club=item.club,
-            check_out_at__isnull=True
-        ).exists()
-        if not active_checkin:
-            return Response({
-                "error": "You must be checked in to this club to join the waiting list",
-                "code": "CHECKIN_REQUIRED"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # 0. Validation: Check-in Required (only if club setting requires it)
+        if item.club.borrowing_requires_checkin:
+            active_checkin = CheckInSession.objects.filter(
+                user=user,
+                club=item.club,
+                check_out_at__isnull=True
+            ).exists()
+            if not active_checkin:
+                return Response({
+                    "error": "You must be checked in to this club to join the waiting list",
+                    "code": "CHECKIN_REQUIRED"
+                }, status=status.HTTP_400_BAD_REQUEST)
         
         # 1. Check if item is actually borrowed
         if item.status == 'AVAILABLE':

@@ -13,6 +13,8 @@ import { useToast } from '../../../../../hooks/useToast';
 import api from '@/lib/api';
 import Link from 'next/link';
 import Skeleton from '@/app/components/ui/Skeleton';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 
 interface ContactContent {
   id?: number;
@@ -49,6 +51,7 @@ const defaultContent: ContactContent = {
 export default function ContactCMSPage() {
   const t = useTranslations('cmsAdmin.contact');
   const { success, error } = useToast();
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [content, setContent] = useState<ContactContent>(defaultContent);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -68,13 +71,32 @@ export default function ContactCMSPage() {
 
   const labelClasses = "block text-sm font-semibold text-[var(--brand-light)]/80 mb-2";
 
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+    // Reset content to empty defaults when switching language to avoid showing stale data
+    setContent({
+      hero_title: '',
+      hero_subtitle: '',
+      contact_email: '',
+      response_time_text: '',
+      form_title: '',
+      form_description: '',
+      success_title: '',
+      success_message: '',
+      info_title: '',
+      info_content: '',
+      meta_title: '',
+      meta_description: '',
+    });
+  };
+
   useEffect(() => {
     fetchContent();
-  }, []);
+  }, [currentLanguage]);
 
   const fetchContent = async () => {
     try {
-      const response = await api.get('/cms/contact-content/');
+      const response = await api.get(`/cms/contact-content/?lang=${currentLanguage}`);
       if (response.data) {
         setContent({ ...defaultContent, ...response.data });
       }
@@ -89,8 +111,15 @@ export default function ContactCMSPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.patch('/cms/contact-content/update_content/', content);
+      // Don't send the id - let the backend handle finding/creating the right instance by language
+      const { id, updated_at, ...contentWithoutId } = content;
+      await api.patch('/cms/contact-content/update_content/', {
+        ...contentWithoutId,
+        language: currentLanguage
+      });
       success(t('toast.saveSuccess'));
+      // Refresh data to get the correct id for this language
+      fetchContent();
     } catch (err) {
       console.error('Failed to save contact content:', err);
       error(t('toast.saveFailed'));
@@ -136,12 +165,20 @@ export default function ContactCMSPage() {
               </p>
             </div>
           </div>
-          <Link href="/contact" target="_blank">
-            <Button variant="outline" className="gap-2 bg-[var(--dark-800)] border-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-700)]">
-              <Eye className="w-4 h-4" />
-              {t('previewButton')}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <AdminLanguageSelector
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              languages={locales as unknown as string[]}
+              variant="dropdown"
+            />
+            <Link href="/contact" target="_blank">
+              <Button variant="outline" className="gap-2 bg-[var(--dark-800)] border-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-700)]">
+                <Eye className="w-4 h-4" />
+                {t('previewButton')}
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Hero Section Card */}

@@ -429,11 +429,20 @@ export default function AdminCreateBookingModal({ onClose, onSuccess, preSelecte
                   className="w-full h-10 px-4 bg-[var(--dark-600)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] outline-none focus:border-[var(--brand-primary)] transition-colors"
                   value={date}
                   min={format(new Date(), 'yyyy-MM-dd')}
+                  max={selectedResource?.booking_window_weeks 
+                    ? format(addDays(new Date(), selectedResource.booking_window_weeks * 7), 'yyyy-MM-dd') 
+                    : undefined
+                  }
                   onChange={e => {
                     setDate(e.target.value);
                     setSelectedSlot(null);
                   }}
                 />
+                {selectedResource?.booking_window_weeks && (
+                  <p className="text-xs text-[var(--brand-light)]/50 mt-2">
+                    {t('maxBookingWindow', { weeks: selectedResource.booking_window_weeks })}
+                  </p>
+                )}
               </div>
             </div>
           )}

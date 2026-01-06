@@ -48,6 +48,7 @@ class QuestionnaireListSerializer(serializers.ModelSerializer):
     progress = serializers.SerializerMethodField()
     total_questions = serializers.SerializerMethodField()
     answered_questions = serializers.SerializerMethodField()
+    rewards = RewardSerializer(many=True, read_only=True)
     
     class Meta:
         model = Questionnaire
@@ -56,7 +57,7 @@ class QuestionnaireListSerializer(serializers.ModelSerializer):
             'start_date', 'expiration_date', 'is_anonymous',
             'municipality', 'club', 'is_completed', 'is_started', 
             'response_status', 'benefit_limit', 'progress', 
-            'total_questions', 'answered_questions'
+            'total_questions', 'answered_questions', 'rewards'
         ]
 
     def get_is_completed(self, obj):
@@ -215,7 +216,13 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
     questions = QuestionCreateSerializer(many=True, required=False)
     # Accept questions as JSON string for FormData compatibility
     questions_data = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    rewards = serializers.PrimaryKeyRelatedField(queryset=Reward.objects.all(), many=True, required=False)
+    # Only allow rewards with QUESTIONNAIRE trigger type to be attached to questionnaires
+    # Use __icontains for JSON text search (consistent with rest of codebase)
+    rewards = serializers.PrimaryKeyRelatedField(
+        queryset=Reward.objects.filter(active_triggers__icontains='QUESTIONNAIRE'),
+        many=True, 
+        required=False
+    )
     response_count = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -313,6 +320,33 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
         
         return super().to_internal_value(data)
 
+    def validate(self, data):
+        """Validate questionnaire data including questions."""
+        questions = data.get('questions', [])
+        status = data.get('status')
+        
+        # If trying to publish, ensure at least one question exists
+        if status == Questionnaire.Status.PUBLISHED:
+            # For new questionnaires, check questions in data
+            # For updates, we check in update() method since instance questions might exist
+            if not self.instance and len(questions) == 0:
+                raise serializers.ValidationError({
+                    'questions': 'At least one question is required to publish a questionnaire.'
+                })
+        
+        for idx, q in enumerate(questions):
+            q_type = q.get('question_type')
+            # Validate that choice questions have at least one option
+            if q_type in ['SINGLE_CHOICE', 'MULTI_CHOICE']:
+                options = q.get('options', [])
+                # Filter out empty options (options with no text)
+                valid_options = [opt for opt in options if opt.get('text', '').strip()]
+                if not valid_options:
+                    raise serializers.ValidationError({
+                        'questions': f'Question {idx + 1}: Choice questions must have at least one option'
+                    })
+        return data
+
     @transaction.atomic
     def create(self, validated_data):
         # Remove questions_data if present (it's not a model field, just used for FormData parsing)
@@ -398,8 +432,18 @@ class QuestionnaireAdminSerializer(serializers.ModelSerializer):
         new_status = validated_data.get('status', instance.status)
         scheduled_publish_date = validated_data.get('scheduled_publish_date', instance.scheduled_publish_date)
         
-        # If status is changing to PUBLISHED
+        # If status is changing to PUBLISHED, validate that questions exist
         if new_status == Questionnaire.Status.PUBLISHED and instance.status != Questionnaire.Status.PUBLISHED:
+            # Check if questions are being provided in this update OR already exist on instance
+            questions_in_update = validated_data.get('questions', [])
+            existing_questions_count = instance.questions.count()
+            
+            # If no questions in update and no existing questions, block publish
+            if len(questions_in_update) == 0 and existing_questions_count == 0:
+                raise serializers.ValidationError({
+                    'questions': 'At least one question is required to publish a questionnaire.'
+                })
+            
             if scheduled_publish_date and scheduled_publish_date > timezone.now():
                 # Scheduled for future - keep status as PUBLISHED but don't set start_date yet
                 # start_date will be set when scheduled_publish_date is reached (via management command)

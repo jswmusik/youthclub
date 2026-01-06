@@ -13,6 +13,8 @@ import { seoApi } from '@/lib/seo-api';
 import { SEOArticle, Keyword } from '@/types/seo';
 import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -44,6 +46,7 @@ const AUDIENCE_OPTIONS = [
 ];
 
 export default function ArticlesPage() {
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [articles, setArticles] = useState<SEOArticle[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +61,10 @@ export default function ArticlesPage() {
   const [generatingImage, setGeneratingImage] = useState<number | null>(null);
   const [publishing, setPublishing] = useState<number | null>(null);
   const { success, error } = useToast();
+
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+  };
   
   // Image management state
   const [showImageModal, setShowImageModal] = useState(false);
@@ -83,7 +90,7 @@ export default function ArticlesPage() {
 
   const fetchArticles = async () => {
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { lang: currentLanguage };
       if (statusFilter) params.status = statusFilter;
       if (audienceFilter) params.target_audience = audienceFilter;
       if (searchInput) params.search = searchInput;
@@ -100,7 +107,7 @@ export default function ArticlesPage() {
 
   const fetchKeywords = async () => {
     try {
-      const data = await seoApi.getKeywords({ status: 'ACTIVE' });
+      const data = await seoApi.getKeywords({ status: 'ACTIVE', lang: currentLanguage });
       setKeywords(data.results || []);
     } catch (err) {
       console.error('Failed to fetch keywords:', err);
@@ -110,7 +117,7 @@ export default function ArticlesPage() {
   useEffect(() => {
     fetchArticles();
     fetchKeywords();
-  }, [statusFilter, audienceFilter]);
+  }, [statusFilter, audienceFilter, currentLanguage]);
 
   const handleSave = async () => {
     if (!form.title) {
@@ -132,6 +139,7 @@ export default function ArticlesPage() {
         og_description: form.og_description,
         slug: editingArticle?.slug || generateSlug(form.title),
         status: editingArticle?.status || 'IDEA',
+        language: currentLanguage, // Include the selected language
       };
       
       if (editingArticle) {
@@ -364,13 +372,21 @@ export default function ArticlesPage() {
               Skapa nyckelordsoptimerade artiklar för olika målgrupper
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Skapa artikel
-          </button>
+          <div className="flex items-center gap-3">
+            <AdminLanguageSelector
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              languages={locales as unknown as string[]}
+              variant="dropdown"
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Skapa artikel
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

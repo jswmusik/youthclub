@@ -518,6 +518,7 @@
     "price": "Pris",
     "goingStatus": "Går",
     "noRegistration": "Ingen anmälan",
+    "openEvent": "Öppet event - Kom bara!",
     "closed": "Stängd",
     "cancelRegistrationTitle": "Avbryt anmälan?",
     "cancelRegistrationConfirm": "Är du säker på att du vill avbryta din anmälan för",
@@ -1607,7 +1608,10 @@
     "loadingMorePosts": "Laddar fler inlägg...",
     "endOfTimeline": "Slut på tidslinjen",
     "couldNotLoadHistory": "Kunde inte ladda aktivitetshistorik.",
-    "at": "kl"
+    "at": "kl",
+    "completedQuestionnaire": "Slutfört frågeformulär:",
+    "completedOn": "Slutfört den",
+    "earnedReward": "Förtjänad förmån:"
   },
   "clubsAndGroups": {
     "myClubs": "Mina fritidsgårdar",
@@ -3404,14 +3408,65 @@
         "automaticTriggers": {
           "title": "Automatiska utlösare",
           "description": "Välj när denna belöning ska ges automatiskt",
+          "singleTriggerInfo": "Endast en utlösare kan väljas per belöning. Välj den utlösare som bäst passar din distributionsstrategi.",
+          
+          "questionnaireTriggers": "Enkätbelöningar",
+          "questionnaire": "Enkätavslutning",
+          "questionnaireDesc": "Dedikerad belöning för enkäter - koppla till undersökningar och kringgå normal målgruppsinställning",
+          
+          "lifecycleTriggers": "Användarlivscykel",
           "onBirthday": "Vid födelsedag",
           "onBirthdayDesc": "Ges automatiskt på medlemmens födelsedag",
           "onSignup": "Vid registrering",
           "onSignupDesc": "Ges omedelbart efter registrering",
           "onVerification": "Vid verifiering",
           "onVerificationDesc": "Ges när kontot är verifierat",
+          "anniversary": "Årsdag",
+          "anniversaryDesc": "Ges årligen på kontoårsdagen",
+          
+          "checkinTriggers": "Incheckningsbaserade",
+          "firstCheckin": "Första incheckning",
+          "firstCheckinDesc": "Ges vid användarens allra första incheckning",
+          "checkinStreak": "Incheckningsserie",
+          "checkinStreakDesc": "Ges när användaren checkar in X dagar inom Y dagar",
+          "checkinMilestone": "Incheckningsmilstolpe",
+          "checkinMilestoneDesc": "Ges när användaren når en milstolpe för totala incheckningar",
+          "mostCheckedIn": "Mest incheckad",
+          "mostCheckedInDesc": "Tilldelas toppanvändare med flest incheckningar",
           "mostActive": "Mest aktiv",
-          "mostActiveDesc": "Tilldelas användare med flest inloggningar"
+          "mostActiveDesc": "Tilldelas användare med flest inloggningar",
+          
+          "streakConfig": "Seriekonfiguration",
+          "requiredCheckins": "Antal incheckningar",
+          "withinDays": "Inom antal dagar",
+          "streakHint": "Användaren måste checka in X unika dagar inom Y dagar (en per dag räknas)",
+          
+          "milestoneConfig": "Milstolpekonfiguration",
+          "milestoneCount": "Milstolpeantal",
+          "milestoneHint": "Totalt antal unika incheckningsdagar som krävs för att tjäna denna belöning",
+          
+          "mostCheckedInConfig": "Mest incheckad-konfiguration",
+          "period": "Period",
+          "weekly": "Veckovis",
+          "monthly": "Månadsvis",
+          "topN": "Topp N användare",
+          "mostCheckedInHint": "Topp N användare med flest unika incheckningsdagar får denna belöning",
+          
+          "eventTriggers": "Evenemangsbaserade",
+          "eventAttended": "Deltagit i evenemang",
+          "eventAttendedDesc": "Ges när användaren checkar in på specifika evenemang",
+          "selectEvents": "Välj evenemang",
+          "searchEventsPlaceholder": "Sök evenemang...",
+          "noEventsFound": "Inga evenemang hittades",
+          "eventHint": "Användaren måste checka in med sin biljett på ett av de valda evenemangen",
+          
+          "groupTriggers": "Gruppbaserade",
+          "joinedGroup": "Gick med i grupp",
+          "joinedGroupDesc": "Ges när användaren går med i en specifik grupp",
+          "selectGroup": "Välj grupp",
+          "searchGroupPlaceholder": "Sök grupper...",
+          "noGroupsFound": "Inga grupper hittades",
+          "groupHint": "Användaren får denna belöning när de går med i den valda gruppen"
         },
         "status": {
           "title": "Status",
@@ -5543,6 +5598,8 @@
         "useFormAbove": "Använd formuläret ovan för att lägga till tidsluckor",
         "closeTimeAfterOpen": "Stängningstid måste vara efter öppningstid.",
         "overlapDetected": "Överlappning upptäckt med befintlig tid: {time} ({cycle})",
+        "minMaxRequiredAge": "Både lägsta och högsta ålder krävs när åldersbegränsning är vald",
+        "minMaxRequiredGrade": "Både lägsta och högsta årskurs krävs när årskursbegränsning är vald",
         "restrictionLabels": {
           "age": "Ålder",
           "grade": "Årskurs"
@@ -5690,6 +5747,8 @@
       "grade": "Årskurs"
     },
     "overlapError": "Överlappning upptäckt med befintlig tid: {openTime}-{closeTime} ({cycle})",
+    "minMaxRequiredAge": "Både lägsta och högsta ålder krävs när åldersbegränsning är vald",
+    "minMaxRequiredGrade": "Både lägsta och högsta årskurs krävs när årskursbegränsning är vald",
     "buttons": {
       "cancel": "Avbryt",
       "saveOpeningHours": "Spara öppettider",
@@ -5800,6 +5859,17 @@
       "statusOverride": "Åsidosatt: {days} dagars provperiod",
       "statusDefault": "Använder kommunens standard: {days} dagar",
       "statusDisabled": "Provperiod inaktiverad - verifiering krävs direkt"
+    },
+    "inventorySettings": {
+      "title": "Utlåningsinställningar",
+      "description": "Konfigurera utlåningsregler för din fritidsgårds inventarie.",
+      "maxLoansPerUser": "Max antal föremål per användare",
+      "itemsPerClub": "föremål på denna fritidsgård",
+      "maxLoansDescription": "Det maximala antalet föremål en medlem kan låna samtidigt från denna fritidsgård (1-10). Det finns också en global gräns på 5 föremål per fritidsgård.",
+      "requireCheckIn": "Kräv incheckning för att låna",
+      "requireCheckInDescription": "När aktiverat måste medlemmar vara fysiskt incheckade på fritidsgården för att låna föremål eller gå med i väntelistor.",
+      "statusCheckInRequired": "Incheckning krävs för att låna föremål",
+      "statusCheckInNotRequired": "Medlemmar kan låna föremål utan att vara incheckade"
     },
     "buttons": {
       "cancel": "Avbryt",
@@ -6924,7 +6994,8 @@
     },
     "customFields": {
       "title": "Anpassade fält",
-      "description": "Ytterligare värden för anpassade fält"
+      "description": "Ytterligare värden för anpassade fält",
+      "requiredField": "Vänligen fyll i det obligatoriska fältet: {fieldName}"
     },
     "quickTips": {
       "title": "Snabbtips",
@@ -7282,7 +7353,8 @@
     },
     "customFields": {
       "title": "Anpassade fält",
-      "description": "Ytterligare anpassade fältvärden för denna vårdnadshavare"
+      "description": "Ytterligare anpassade fältvärden för denna vårdnadshavare",
+      "requiredField": "Vänligen fyll i det obligatoriska fältet: {fieldName}"
     },
     "quickTips": {
       "title": "Snabbtips",
@@ -8074,6 +8146,7 @@
         "scheduleDateTime": "Schemalägg datum och tid",
         "visibilityEndDate": "Synlighet slutdatum (Valfritt)",
         "pinToTop": "Fäst högst upp",
+        "pinDisabledForGroups": "Inlägg kan inte fästas när de är riktade till grupper",
         "allowComments": "Tillåt kommentarer",
         "requireModeration": "Kräv moderering",
         "allowReplies": "Tillåt svar",
@@ -8172,7 +8245,9 @@
         "saveAsDraft": "Spara som utkast",
         "publishNow": "Publicera nu",
         "schedule": "Schemalägg",
-        "scheduleDateTime": "Schemalägg datum och tid"
+        "scheduleDateTime": "Schemalägg datum och tid",
+        "pinPost": "Fäst inlägget",
+        "pinPostHint": "Fästa inlägg visas högst upp i flödet"
       },
       "templateSettings": {
         "title": "Mallinställningar",
@@ -8189,6 +8264,12 @@
           "clubs": "{count} fritidsgårdar",
           "youthOnly": "Endast ungdomar",
           "guardiansOnly": "Endast vårdnadshavare",
+          "maleOnly": "Endast killar",
+          "femaleOnly": "Endast tjejer",
+          "otherGenderOnly": "Endast annat kön",
+          "male": "Killar",
+          "female": "Tjejer",
+          "otherGender": "Annat kön",
           "ages": "Ålder {min}-{max}",
           "agesMin": "Ålder {min}+",
           "agesMax": "Ålder upp till {max}",
@@ -8197,6 +8278,8 @@
           "gradesRange": "Årskurser {min}-{max}",
           "group": "{count} grupp",
           "groups": "{count} grupper",
+          "interest": "{count} intresse",
+          "interests": "{count} intressen",
           "allMembers": "Alla medlemmar",
           "commentsOn": "Kommentarer på",
           "commentsOff": "Kommentarer av",
@@ -8493,6 +8576,7 @@
         "allowRepliesHint": "Medlemmar kan svara på kommentarer",
         "pinByDefault": "Fäst som standard",
         "pinByDefaultHint": "Inlägg kommer att fästas högst upp",
+        "pinDisabledForGroups": "Kan inte fästas när mallen riktas till grupper",
         "pushNotification": "Push-meddelande",
         "pushNotificationHint": "Skicka push-meddelande vid publicering",
         "pushTitle": "Push-meddelande rubrik",
@@ -8543,6 +8627,12 @@
       "pricingShort": "Priser",
       "contact": "Kontaktsida",
       "contactShort": "Kontakt"
+    },
+    "languageSelector": {
+      "title": "Språkval",
+      "description": "Välj vilket språk detta innehåll ska visas på.",
+      "label": "Språk",
+      "hint": "Innehållet kommer endast att visas för användare som har valt detta språk."
     },
     "pages": {
       "stats": {
@@ -9119,9 +9209,11 @@
       },
       "tips": {
         "title": "Tips för bra frågeformulär",
+        "subtitle": "Bästa praxis för engagerande enkäter",
         "tip1": "Håll frågorna tydliga och koncisa för bättre svarfrekvens",
         "tip2": "Sätt ett lämpligt utgångsdatum för att uppmuntra snabba svar",
-        "tip3": "Aktivera anonyma svar för känsliga ämnen"
+        "tip3": "Aktivera anonyma svar för känsliga ämnen",
+        "tip4": "Lägg till belöningar för att öka deltagandet"
       },
       "toasts": {
         "loadFailed": "Kunde inte ladda frågeformulär",
@@ -9135,7 +9227,8 @@
         "saveFailed": "Kunde inte spara. Kontrollera alla obligatoriska fält.",
         "updateSuccess": "Ändringar sparade!",
         "createSuccess": "Frågeformulär skapat!",
-        "deleteSuccess": "Fråga raderad"
+        "deleteSuccess": "Fråga raderad",
+        "questionsRequired": "Minst en fråga krävs för att publicera"
       },
       "validation": {
         "titleRequired": "Titel krävs",
@@ -10093,7 +10186,26 @@
       "mustAcceptTerms": "Du måste acceptera villkoren.",
       "incorrectCaptcha": "Fel svar på matefrågan. Är du en robot?",
       "registrationSuccess": "Registrering lyckades! Omdirigerar...",
-      "registrationFailed": "Registreringen misslyckades."
+      "registrationFailed": "Registreringen misslyckades.",
+      "fillRequiredField": "Vänligen fyll i det obligatoriska fältet: {fieldName}"
+    },
+    "validation": {
+      "emailRequired": "E-postadress krävs",
+      "invalidEmail": "Vänligen ange en giltig e-postadress",
+      "phoneRequired": "Telefonnummer krävs",
+      "passwordRequired": "Lösenord krävs",
+      "passwordTooShort": "Lösenordet måste vara minst 8 tecken",
+      "passwordNeedsNumber": "Lösenordet måste innehålla minst en siffra",
+      "passwordNeedsSpecial": "Lösenordet måste innehålla minst ett specialtecken",
+      "passwordsMustMatch": "Lösenorden matchar inte",
+      "captchaRequired": "Vänligen lös matematikproblemet",
+      "firstNameRequired": "Förnamn krävs",
+      "lastNameRequired": "Efternamn krävs",
+      "dateOfBirthRequired": "Födelsedatum krävs",
+      "gradeRequired": "Årskurs krävs",
+      "gradeInvalid": "Årskurs måste vara mellan 1 och 13",
+      "genderRequired": "Vänligen välj ditt kön",
+      "guardianRequired": "Vårdnadshavarens information krävs för denna fritidsgård"
     },
     "step1": {
       "title": "Vart hänger du?",
@@ -10101,7 +10213,8 @@
       "municipality": "Kommun",
       "chooseMunicipality": "Välj kommun",
       "selectClub": "Välj din fritidsgård",
-      "noClubsAvailable": "Inga fritidsgårdar tillgängliga för registrering i denna kommun"
+      "noClubsAvailable": "Inga fritidsgårdar tillgängliga för registrering i denna kommun",
+      "noDescription": "Ingen beskrivning tillgänglig"
     },
     "step2": {
       "title": "Skapa din inloggning",
@@ -10152,6 +10265,7 @@
       "phone": "Telefon",
       "phonePlaceholder": "Telefonnummer",
       "gender": "Kön",
+      "selectGender": "Välj kön",
       "guardianDetails": "Vårdnadshavarens uppgifter",
       "skipMessage": "Du kan hoppa över detta steg om du inte vill lägga till en vårdnadshavare nu."
     },

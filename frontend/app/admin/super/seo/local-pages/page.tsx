@@ -14,6 +14,8 @@ import { seoApi } from '@/lib/seo-api';
 import { LocalLandingPage, SwedishLocation, Keyword } from '@/types/seo';
 import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -41,6 +43,7 @@ export default function LocalPagesPage() {
   const searchParams = useSearchParams();
   const preselectedLocationId = searchParams.get('location');
   
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [pages, setPages] = useState<LocalLandingPage[]>([]);
   const [locations, setLocations] = useState<SwedishLocation[]>([]);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -54,6 +57,10 @@ export default function LocalPagesPage() {
   const [generating, setGenerating] = useState<number | null>(null);
   const [publishing, setPublishing] = useState<number | null>(null);
   const { success, error } = useToast();
+
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+  };
   
   const [form, setForm] = useState({
     location: preselectedLocationId || '',
@@ -94,7 +101,7 @@ export default function LocalPagesPage() {
 
   const fetchPages = async () => {
     try {
-      const params: any = {};
+      const params: any = { lang: currentLanguage };
       if (statusFilter) params.status = statusFilter;
       if (searchInput) params.search = searchInput;
       
@@ -110,7 +117,7 @@ export default function LocalPagesPage() {
 
   const fetchLocations = async () => {
     try {
-      const data = await seoApi.getLocations({ page_size: 300 });
+      const data = await seoApi.getLocations({ page_size: 300, lang: currentLanguage });
       setLocations(data.results || []);
     } catch (err) {
       console.error('Failed to fetch locations:', err);
@@ -119,7 +126,7 @@ export default function LocalPagesPage() {
 
   const fetchKeywords = async () => {
     try {
-      const data = await seoApi.getKeywords({ status: 'ACTIVE' });
+      const data = await seoApi.getKeywords({ status: 'ACTIVE', lang: currentLanguage });
       setKeywords(data.results || []);
     } catch (err) {
       console.error('Failed to fetch keywords:', err);
@@ -130,7 +137,7 @@ export default function LocalPagesPage() {
     fetchPages();
     fetchLocations();
     fetchKeywords();
-  }, [statusFilter]);
+  }, [statusFilter, currentLanguage]);
 
   const handleSave = async () => {
     if (!form.location || !form.title) {
@@ -165,6 +172,7 @@ export default function LocalPagesPage() {
         show_platform_stats: form.show_platform_stats,
         show_testimonials: form.show_testimonials,
         slug: generateSlug(form.title),
+        language: currentLanguage, // Include the selected language
       };
       
       if (editingPage) {
@@ -411,13 +419,21 @@ export default function LocalPagesPage() {
               Skapa kommun- och stadsspecifika sidor med AI-genererat innehåll
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Skapa ny sida
-          </button>
+          <div className="flex items-center gap-3">
+            <AdminLanguageSelector
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              languages={locales as unknown as string[]}
+              variant="dropdown"
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Skapa ny sida
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

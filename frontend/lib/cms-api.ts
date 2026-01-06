@@ -20,7 +20,7 @@ export const cmsApi = {
   getPages: () => api.get<PaginatedResponse<Page>>('/cms/pages/').then(res => extractResults(res.data)),
   getPage: (slug: string) => api.get<Page>(`/cms/pages/${slug}/`).then(res => res.data),
   // Public page endpoint - only returns published pages
-  getPublicPage: (slug: string) => api.get<Page>(`/cms/pages/public/${slug}/`).then(res => res.data),
+  getPublicPage: (slug: string, lang?: string) => api.get<Page>(`/cms/pages/public/${slug}/${lang ? `?lang=${lang}` : ''}`).then(res => res.data),
   createPage: (data: FormData) => api.post<Page>('/cms/pages/', data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }).then(res => res.data),
@@ -31,7 +31,7 @@ export const cmsApi = {
 
   // Navigation
   getMenuItems: () => api.get<PaginatedResponse<MenuItem>>('/cms/menu/').then(res => extractResults(res.data)),
-  getPublicMenu: () => api.get<PublicMenuResponse>('/cms/menu/public_menu/').then(res => res.data),
+  getPublicMenu: (lang?: string) => api.get<PublicMenuResponse>(`/cms/menu/public_menu/${lang ? `?lang=${lang}` : ''}`).then(res => res.data),
   updateMenuItem: (id: number, data: Partial<MenuItem>) => api.patch<MenuItem>(`/cms/menu/${id}/`, data).then(res => res.data),
   createMenuItem: (data: Partial<MenuItem>) => api.post<MenuItem>('/cms/menu/', data).then(res => res.data),
   deleteMenuItem: (id: number) => api.delete(`/cms/menu/${id}/`),

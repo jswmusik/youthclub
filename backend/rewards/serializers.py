@@ -75,6 +75,7 @@ class RewardSerializer(serializers.ModelSerializer):
         """
         Validate that JSON fields are lists.
         Handle both JSON strings (from FormData) and lists (from JSON API).
+        Enforce single trigger selection.
         """
         # Parse JSON strings if they come from FormData
         if 'target_genders' in data:
@@ -94,5 +95,29 @@ class RewardSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError({"target_grades": "Invalid JSON format."})
             if not isinstance(data['target_grades'], list):
                 raise serializers.ValidationError({"target_grades": "Must be a list."})
+        
+        # Parse and validate active_triggers - only ONE trigger allowed
+        if 'active_triggers' in data:
+            if isinstance(data['active_triggers'], str):
+                try:
+                    data['active_triggers'] = json.loads(data['active_triggers'])
+                except (json.JSONDecodeError, ValueError):
+                    raise serializers.ValidationError({"active_triggers": "Invalid JSON format."})
+            if not isinstance(data['active_triggers'], list):
+                raise serializers.ValidationError({"active_triggers": "Must be a list."})
+            
+            # Enforce single trigger selection
+            if len(data['active_triggers']) > 1:
+                raise serializers.ValidationError({
+                    "active_triggers": "Only one trigger can be selected per reward."
+                })
+            
+            # Validate trigger values against allowed choices
+            valid_triggers = [choice[0] for choice in Reward.TriggerType.choices]
+            for trigger in data['active_triggers']:
+                if trigger not in valid_triggers:
+                    raise serializers.ValidationError({
+                        "active_triggers": f"Invalid trigger type: {trigger}"
+                    })
         
         return data

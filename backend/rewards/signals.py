@@ -5,7 +5,7 @@ from django.db.models import Q
 from users.models import User
 from notifications.models import Notification
 from .models import Reward, RewardUsage
-from .utils import grant_reward
+from .utils import grant_reward, has_received_trigger_reward, grant_reward_with_context
 
 
 @receiver(pre_delete, sender=Reward)
@@ -30,13 +30,16 @@ def cleanup_reward_notifications(sender, instance, **kwargs):
 def track_dob_change(sender, instance, **kwargs):
     """
     Checks if date_of_birth is changing.
-    We attach a temporary flag '_dob_changed' to the instance to check in post_save.
+    We attach temporary flags to the instance to check in post_save:
+    - _dob_changed: True if DOB changed
+    - _old_dob: The previous DOB value (for abuse prevention)
     """
-    if instance.pk: # Only for existing users
+    if instance.pk:  # Only for existing users
         try:
             old_user = User.objects.get(pk=instance.pk)
             if old_user.date_of_birth != instance.date_of_birth:
                 instance._dob_changed = True
+                instance._old_dob = old_user.date_of_birth
         except User.DoesNotExist:
             pass
 
@@ -47,7 +50,7 @@ def track_verification_status_change(sender, instance, **kwargs):
     Checks if verification_status is changing to VERIFIED.
     We attach a temporary flag '_verification_status_changed_to_verified' to the instance to check in post_save.
     """
-    if instance.pk: # Only for existing users
+    if instance.pk:  # Only for existing users
         try:
             old_user = User.objects.get(pk=instance.pk)
             # Only flag if status changed FROM something else TO VERIFIED
@@ -70,15 +73,11 @@ def check_reward_triggers(sender, instance, created, **kwargs):
         for reward in welcome_rewards:
             triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
             if "WELCOME" in triggers:
-                # Fallback: Check if user has EVER received this WELCOME reward before
-                # (shouldn't happen on creation, but safety check to prevent duplicates)
-                has_ever_received = RewardUsage.objects.filter(
-                    user=user,
-                    reward=reward
-                ).exists()
-                
-                if not has_ever_received:
-                    grant_reward(user, reward)
+                # Check if user has EVER received this WELCOME reward before
+                if not has_received_trigger_reward(user, reward, 'WELCOME'):
+                    grant_reward_with_context(user, reward, 'WELCOME', {
+                        'granted_at': timezone.now().isoformat()
+                    })
                 else:
                     print(f"-> Skipped granting '{reward.name}' to {user.email} - user has already received this WELCOME reward before")
 
@@ -88,36 +87,39 @@ def check_reward_triggers(sender, instance, created, **kwargs):
         for reward in verified_rewards:
             triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
             if "VERIFIED" in triggers:
-                # Fallback: Check if user has EVER received this VERIFIED reward before
-                # (regardless of redemption status) to prevent re-granting if they become
-                # unverified and then verified again
-                has_ever_received = RewardUsage.objects.filter(
-                    user=user,
-                    reward=reward
-                ).exists()
-                
-                if not has_ever_received:
-                    grant_reward(user, reward)
+                # Check if user has EVER received this VERIFIED reward before
+                if not has_received_trigger_reward(user, reward, 'VERIFIED'):
+                    grant_reward_with_context(user, reward, 'VERIFIED', {
+                        'verified_at': timezone.now().isoformat()
+                    })
                 else:
                     print(f"-> Skipped granting '{reward.name}' to {user.email} - user has already received this VERIFIED reward before")
 
     # --- 3. BIRTHDAY TRIGGER (On DOB Change) ---
+    # NOTE: Birthday rewards are primarily granted via the daily management command.
+    # This signal handles the edge case where a user changes their DOB to today.
+    # We do NOT revoke existing birthday rewards when DOB changes - that would be punitive.
+    # Instead, we track the DOB used when granting to prevent abuse.
     if getattr(instance, '_dob_changed', False):
-        # A. Revoke existing unredeemed birthday rewards
-        user_usages = RewardUsage.objects.filter(user=user, is_redeemed=False)
-        for usage in user_usages:
-            triggers = usage.reward.active_triggers if isinstance(usage.reward.active_triggers, list) else []
-            if "BIRTHDAY" in triggers:
-                usage.delete()
-
-        # B. Check if NEW birthday is today
         today = timezone.now().date()
+        current_year = today.year
+        
+        # Check if NEW birthday is today
         if user.date_of_birth and user.date_of_birth.month == today.month and user.date_of_birth.day == today.day:
             birthday_rewards = Reward.objects.filter(active_triggers__icontains="BIRTHDAY", is_active=True)
             for reward in birthday_rewards:
                 triggers = reward.active_triggers if isinstance(reward.active_triggers, list) else []
                 if "BIRTHDAY" in triggers:
-                    grant_reward(user, reward)
+                    # Check if user already received birthday reward for THIS YEAR
+                    # We track both the year AND the DOB used to prevent abuse
+                    if not has_received_trigger_reward(user, reward, 'BIRTHDAY', {'birthday_year': current_year}):
+                        grant_reward_with_context(user, reward, 'BIRTHDAY', {
+                            'birthday_year': current_year,
+                            'dob_used': str(user.date_of_birth),
+                            'granted_at': timezone.now().isoformat()
+                        })
+                    else:
+                        print(f"-> Skipped granting '{reward.name}' to {user.email} - already received birthday reward for {current_year}")
 
 
 @receiver(post_save, sender=Reward)

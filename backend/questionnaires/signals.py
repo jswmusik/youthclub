@@ -5,6 +5,7 @@ from django.utils import timezone
 from .models import Questionnaire
 from users.models import User
 from notifications.models import Notification
+from notifications.services import send_bulk_templated_notifications
 
 
 @receiver(pre_save, sender=Questionnaire)
@@ -65,8 +66,9 @@ def notify_questionnaire_availability(sender, instance, created, **kwargs):
         return
     
     # Avoid duplicate notifications - check if notifications already exist for this questionnaire
+    # Use QUESTIONNAIRE category for proper categorization
     if Notification.objects.filter(
-        category=Notification.Category.SYSTEM,
+        category=Notification.Category.QUESTIONNAIRE,
         action_url__icontains=f"/dashboard/youth/questionnaires/{questionnaire.id}"
     ).exists():
         return
@@ -129,31 +131,17 @@ def notify_questionnaire_availability(sender, instance, created, **kwargs):
     ).values_list('user_id', flat=True)
     eligible_users = eligible_users.exclude(id__in=completed_user_ids)
     
-    # Create notifications
-    notifications_to_create = []
-    for user in eligible_users:
-        # Build notification message
-        reward_text = ""
-        if questionnaire.rewards.exists():
-            reward_names = [r.name for r in questionnaire.rewards.all()[:3]]
-            if len(reward_names) == 1:
-                reward_text = f" Complete it to earn: {reward_names[0]}!"
-            elif len(reward_names) > 1:
-                reward_text = f" Complete it to earn rewards!"
-        
-        notifications_to_create.append(
-            Notification(
-                recipient=user,
-                category=Notification.Category.SYSTEM,
-                title=f"New Questionnaire: {questionnaire.title}",
-                body=f"{questionnaire.description[:100] if questionnaire.description else 'Share your opinion!'}{reward_text}",
-                action_url=f"/dashboard/youth/questionnaires/{questionnaire.id}"
-            )
+    # Send notifications using templated system for proper translation support
+    if eligible_users.exists():
+        send_bulk_templated_notifications(
+            users=list(eligible_users),
+            template_type='questionnaire_available',
+            context={
+                'questionnaire_title': questionnaire.title,
+            },
+            action_url=f"/dashboard/youth/questionnaires/{questionnaire.id}",
+            category_override=Notification.Category.QUESTIONNAIRE
         )
-    
-    # Bulk create notifications
-    if notifications_to_create:
-        Notification.objects.bulk_create(notifications_to_create)
 
 
 @receiver(pre_delete, sender=Questionnaire)
@@ -165,8 +153,9 @@ def cleanup_questionnaire_notifications(sender, instance, **kwargs):
     questionnaire = instance
     
     # Delete notifications that reference this questionnaire
+    # Check both QUESTIONNAIRE and SYSTEM categories for backwards compatibility
     Notification.objects.filter(
-        category=Notification.Category.SYSTEM,
+        category__in=[Notification.Category.QUESTIONNAIRE, Notification.Category.SYSTEM],
         action_url__icontains=f"/dashboard/youth/questionnaires/{questionnaire.id}"
     ).delete()
 

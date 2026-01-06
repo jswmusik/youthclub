@@ -15,7 +15,7 @@ import Link from 'next/link';
 import api from '../../lib/api';
 import { getMediaUrl } from '../../app/utils';
 import { useToast } from '../../hooks/useToast';
-import CustomFieldsForm from './CustomFieldsForm';
+import CustomFieldsForm, { CustomFieldsFormRef } from './CustomFieldsForm';
 import { useAuth } from '../../context/AuthContext';
 import { fetchGuardianRelationships, verifyGuardianRelationship, rejectGuardianRelationship, resetGuardianRelationship } from '../../lib/api';
 import ConfirmationModal from './ConfirmationModal';
@@ -36,6 +36,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   const t = useTranslations('guardianForm');
   const progressPlaceholderRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
+  const customFieldsRef = useRef<CustomFieldsFormRef>(null);
 
   const [loading, setLoading] = useState(false);
   const { success, error, info, warning } = useToast();
@@ -220,6 +221,15 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
   });
 
   const handleSubmit = async (validatedData: GuardianFormData) => {
+    // Validate custom fields
+    if (customFieldsRef.current) {
+      const validation = customFieldsRef.current.validate();
+      if (!validation.valid) {
+        error(t('customFields.requiredField', { fieldName: validation.invalidFieldName }));
+        return;
+      }
+    }
+    
     setLoading(true);
 
     try {
@@ -820,6 +830,7 @@ export default function GuardianForm({ initialData, redirectPath, scope }: Guard
 
             <div className="p-6">
               <CustomFieldsForm
+                ref={customFieldsRef}
                 targetRole="GUARDIAN"
                 context="USER_PROFILE"
                 values={customFieldValues}

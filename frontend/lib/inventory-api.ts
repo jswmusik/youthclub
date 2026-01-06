@@ -38,6 +38,8 @@ export interface Item {
   queue_count: number;
   user_in_queue?: boolean;
   created_at: string;
+  // Club settings
+  borrowing_requires_checkin?: boolean;
 }
 
 // Params for Batch Creation

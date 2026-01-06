@@ -41,10 +41,20 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
   
   // Check if current user is borrowing this item
   const isCurrentUserBorrowing = isBorrowed && item.active_loan?.user_id === user?.id;
+  
+  // Check if this club requires check-in to borrow
+  const requiresCheckIn = item.borrowing_requires_checkin ?? false;
 
-  // Check if user is checked in to this item's club
+  // Check if user is checked in to this item's club (only if club requires it)
   useEffect(() => {
     const checkCheckInStatus = async () => {
+      // If club doesn't require check-in, user is effectively "checked in"
+      if (!requiresCheckIn) {
+        setIsCheckedIn(true);
+        setCheckingStatus(false);
+        return;
+      }
+      
       if (!user || !isAvailable) {
         setCheckingStatus(false);
         return;
@@ -69,7 +79,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     };
 
     checkCheckInStatus();
-  }, [user, item.club, isAvailable]);
+  }, [user, item.club, isAvailable, requiresCheckIn]);
 
   // Timer logic for borrowed items
   useEffect(() => {

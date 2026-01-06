@@ -68,7 +68,10 @@ export interface Group {
     
     // Computed fields
     eligibility: Eligibility;
-    membership_status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+    membership_status: {
+        status: 'PENDING' | 'APPROVED' | 'REJECTED';
+        rejection_count: number;
+    } | null;
     
     // Optional fields (for admin views or detailed views)
     target_member_type?: 'YOUTH' | 'GUARDIAN';

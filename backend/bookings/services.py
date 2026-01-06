@@ -1,5 +1,6 @@
 from datetime import timedelta, date, datetime
 from django.db.models import Q
+from django.utils import timezone
 from organization.models import ClubClosure
 from .models import Booking
 
@@ -13,8 +14,25 @@ def get_week_cycle_type(check_date):
 def get_available_slots(resource, start_date, end_date):
     """
     Generates a list of available time slots for a resource within a date range.
+    Respects booking_window_weeks and excludes past dates.
     """
     available_slots = []
+    
+    # Get today's date for validation
+    today = timezone.now().date()
+    
+    # Don't show past slots - clamp start_date to today
+    if start_date < today:
+        start_date = today
+    
+    # Enforce booking window - clamp end_date to max allowed
+    max_date = today + timedelta(weeks=resource.booking_window_weeks)
+    if end_date > max_date:
+        end_date = max_date
+    
+    # If start_date is beyond max_date, return empty list
+    if start_date > max_date:
+        return []
     
     # 1. Fetch all Club Closures in this range
     closures = ClubClosure.objects.filter(

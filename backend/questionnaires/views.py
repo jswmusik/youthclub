@@ -14,6 +14,8 @@ from .serializers import (
 from .permissions import IsQuestionnaireOwnerOrHigher
 from .utils import generate_response_pdf
 from rewards.models import RewardUsage
+from notifications.models import Notification
+from notifications.services import send_templated_notification
 from users.models import User
 from core.permissions import HasLicenseFeature
 
@@ -267,8 +269,13 @@ class QuestionnaireAdminViewSet(viewsets.ModelViewSet):
         total_eligible = eligible_users.count()
         
         # Gender breakdown of responses
+        # For anonymous questionnaires, only show gender breakdown if we have enough responses
+        # to prevent de-anonymization (minimum 5 responses required)
         gender_breakdown = {'male': 0, 'female': 0, 'other': 0}
-        if total_responses > 0:
+        if questionnaire.is_anonymous and total_responses < 5:
+            # Hide gender breakdown for anonymous questionnaires with few responses
+            gender_breakdown = {'male': 0, 'female': 0, 'other': 0, 'hidden': True}
+        elif total_responses > 0:
             # Get user IDs from completed responses
             response_user_ids = responses.values_list('user_id', flat=True)
             response_users = User.objects.filter(id__in=response_user_ids)
@@ -364,18 +371,32 @@ class QuestionnaireAdminViewSet(viewsets.ModelViewSet):
             return Response({"error": "response_id parameter is required"}, status=400)
         
         try:
-            response = QuestionnaireResponse.objects.get(id=response_id, questionnaire=questionnaire)
+            qr = QuestionnaireResponse.objects.get(id=response_id, questionnaire=questionnaire)
         except QuestionnaireResponse.DoesNotExist:
             return Response({"error": "Response not found"}, status=404)
+        
+        # Verify admin has access to this user's data based on their scope
+        admin_user = request.user
+        response_user = qr.user
+        
+        if admin_user.role == User.Role.CLUB_ADMIN:
+            # Club admins can only access responses from users in their club
+            if response_user.preferred_club != admin_user.assigned_club:
+                return Response({"error": "Access denied"}, status=403)
+        elif admin_user.role == User.Role.MUNICIPALITY_ADMIN:
+            # Municipality admins can only access responses from users in their municipality
+            if response_user.preferred_club and response_user.preferred_club.municipality != admin_user.assigned_municipality:
+                return Response({"error": "Access denied"}, status=403)
+        # Super admins have access to all responses
             
         # Check anonymity
         if questionnaire.is_anonymous:
              # Admin can still download the PDF, but the generator handles hiding the name.
              pass
 
-        pdf_buffer = generate_response_pdf(response)
+        pdf_buffer = generate_response_pdf(qr)
         
-        filename = f"survey_{questionnaire.id}_response_{response.id}.pdf"
+        filename = f"survey_{questionnaire.id}_response_{qr.id}.pdf"
         http_response = HttpResponse(pdf_buffer, content_type='application/pdf')
         http_response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return http_response
@@ -449,7 +470,8 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
         
         # A. Group Targeting (Overrides everything else)
         # If the user is a member of the questionnaire's assigned group
-        group_ids = user.group_memberships.values_list('group', flat=True)
+        # Only include APPROVED memberships to prevent pending/rejected users from seeing questionnaires
+        group_ids = user.group_memberships.filter(status='APPROVED').values_list('group', flat=True)
         group_q = Q(visibility_group__in=group_ids)
         
         # B. Scope Targeting (If no group is set)
@@ -557,6 +579,10 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
         q_id = data['questionnaire_id']
         questionnaire = Questionnaire.objects.get(id=q_id)
         
+        # Check if questionnaire has expired
+        if questionnaire.expiration_date and questionnaire.expiration_date < timezone.now():
+            return Response({"error": "This questionnaire has expired and can no longer accept responses."}, status=400)
+        
         # Get or create response (should already exist as STARTED from retrieve)
         response, created = QuestionnaireResponse.objects.get_or_create(
             user=user,
@@ -567,6 +593,25 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
         # If already completed, return error
         if response.status == QuestionnaireResponse.Status.COMPLETED:
             return Response({"error": "You have already completed this questionnaire."}, status=400)
+
+        # Validate answers before processing
+        for ans_data in data['answers']:
+            try:
+                question = Question.objects.get(id=ans_data['question_id'], questionnaire=questionnaire)
+            except Question.DoesNotExist:
+                continue
+            
+            # Validate rating range (1-5)
+            if question.question_type == 'RATING':
+                rating = ans_data.get('rating_answer')
+                if rating is not None and (rating < 1 or rating > 5):
+                    return Response({"error": "Rating must be between 1 and 5"}, status=400)
+            
+            # Validate single choice has max 1 option
+            if question.question_type == 'SINGLE_CHOICE':
+                options = ans_data.get('selected_options', [])
+                if options and len(options) > 1:
+                    return Response({"error": "Single choice questions can only have one answer"}, status=400)
 
         with transaction.atomic():
             # Update response to COMPLETED
@@ -601,9 +646,11 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
                     answer.selected_options.set(valid_options)
             
             # 3. Process Rewards
+            # Only rewards with QUESTIONNAIRE trigger type can be attached to questionnaires
+            # These bypass normal targeting - the questionnaire handles who can take it
             reward_message = None
             if questionnaire.rewards.exists():
-                # Check limit
+                # Check questionnaire benefit limit
                 limit = questionnaire.benefit_limit
                 # Count *claimed* benefits only
                 current_claims = QuestionnaireResponse.objects.filter(
@@ -611,17 +658,54 @@ class UserQuestionnaireViewSet(viewsets.ReadOnlyModelViewSet):
                 ).count()
                 
                 if limit is None or current_claims < limit:
-                    # Grant rewards
-                    response.is_benefit_claimed = True
-                    response.save()
-                    
                     created_rewards = []
                     for reward in questionnaire.rewards.all():
-                        # Create usage record
-                        RewardUsage.objects.create(user=user, reward=reward, is_redeemed=False)
+                        # Verify reward is active and not expired
+                        if not reward.is_active:
+                            continue
+                        if reward.expiration_date and reward.expiration_date < timezone.now().date():
+                            continue
+                        
+                        # Check global usage limit for the reward
+                        if reward.usage_limit:
+                            total_usage = RewardUsage.objects.filter(reward=reward).count()
+                            if total_usage >= reward.usage_limit:
+                                continue
+                        
+                        # Check if user already has unredeemed copy
+                        already_has = RewardUsage.objects.filter(
+                            user=user, reward=reward, is_redeemed=False
+                        ).exists()
+                        if already_has:
+                            continue
+                        
+                        # Create usage record with QUESTIONNAIRE trigger context
+                        RewardUsage.objects.create(
+                            user=user, 
+                            reward=reward, 
+                            is_redeemed=False,
+                            trigger_type='QUESTIONNAIRE',
+                            trigger_context={
+                                'questionnaire_id': questionnaire.id,
+                                'questionnaire_title': questionnaire.title
+                            }
+                        )
                         created_rewards.append(reward.name)
+                        
+                        # Send notification for the reward using templated system
+                        send_templated_notification(
+                            user=user,
+                            template_type='questionnaire_reward_earned',
+                            context={
+                                'reward_name': reward.name,
+                                'questionnaire_title': questionnaire.title
+                            },
+                            action_url="/dashboard/youth/profile?tab=wallet"
+                        )
                     
                     if created_rewards:
+                        response.is_benefit_claimed = True
+                        response.save()
                         reward_message = f"Congratulations! You earned: {', '.join(created_rewards)}"
             
             # 4. Create activity post for user's timeline

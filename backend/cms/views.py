@@ -5,6 +5,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Q
+from core.languages import DEFAULT_LANGUAGE, get_language_from_request
 from .models import Page, MenuItem, FeatureShowcase, CookieConsent, PageFeature, PricingPageContent, PricingFAQ, ContactPageContent, ContactSubmission, Boilerplate
 from .serializers import (
     PageSerializer, MenuItemSerializer, 
@@ -19,11 +21,24 @@ logger = logging.getLogger(__name__)
 
 
 class PageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing CMS pages.
+    
+    Query params:
+        - lang: Filter pages by language
+    """
     queryset = Page.objects.all()
     serializer_class = PageSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    def get_queryset(self):
+        queryset = Page.objects.all()
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
+        return queryset
 
     def _get_feature_ids(self, request):
         """Extract feature_ids from request data."""
@@ -53,9 +68,24 @@ class PageViewSet(viewsets.ModelViewSet):
 
     def _prepare_data(self, request):
         """Prepare data, removing feature_ids (handled separately)."""
-        # Make a mutable copy of the data
-        if hasattr(request.data, 'copy'):
-            data = request.data.copy()
+        # For multipart form data with files, we can't use copy() as it tries to 
+        # deepcopy file objects which fails. Instead, create a new mutable QueryDict.
+        from django.http import QueryDict
+        
+        if hasattr(request.data, 'lists'):
+            # It's a QueryDict - create a new mutable one without deep copying
+            data = QueryDict(mutable=True)
+            for key, values in request.data.lists():
+                if key == 'feature_ids':
+                    continue  # Skip feature_ids, handled separately
+                for value in values:
+                    data.appendlist(key, value)
+        elif hasattr(request.data, 'copy'):
+            try:
+                data = request.data.copy()
+            except TypeError:
+                # Fallback if copy fails (e.g., with file objects)
+                data = dict(request.data)
         else:
             data = dict(request.data)
         
@@ -65,13 +95,6 @@ class PageViewSet(viewsets.ModelViewSet):
                 data.pop('feature_ids', None)
             elif isinstance(data, dict):
                 data.pop('feature_ids', None)
-        
-        # Also try to remove from getlist if it's a QueryDict
-        if hasattr(data, 'getlist'):
-            try:
-                data.setlist('feature_ids', [])
-            except:
-                pass
         
         return data
 
@@ -126,27 +149,67 @@ class PageViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='public/(?P<slug>[^/.]+)')
     def public_page(self, request, slug=None):
-        """Retrieve a published page by slug for the public frontend."""
-        page = get_object_or_404(Page, slug=slug, is_published=True)
+        """
+        Retrieve a published page by slug for the public frontend.
+        Falls back to default language if page not found for requested language.
+        """
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        # Try to get page for requested language
+        page = Page.objects.filter(slug=slug, is_published=True, language=lang).first()
+        
+        # Fallback to default language
+        if not page and lang != DEFAULT_LANGUAGE:
+            page = Page.objects.filter(slug=slug, is_published=True, language=DEFAULT_LANGUAGE).first()
+        
+        if not page:
+            return Response({'error': 'Page not found'}, status=status.HTTP_404_NOT_FOUND)
+        
         serializer = self.get_serializer(page)
         return Response(serializer.data)
 
 
 class MenuItemViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing menu items.
+    
+    Query params:
+        - lang: Filter menu items by language
+    """
     queryset = MenuItem.objects.all()
     serializer_class = MenuItemSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        queryset = MenuItem.objects.all()
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
+        return queryset
 
     @action(detail=False, methods=['get'])
     def public_menu(self, request):
-        """Get menu items organized by location, excluding items linked to unpublished pages."""
-        from django.db.models import Q
+        """
+        Get menu items organized by location, excluding items linked to unpublished pages.
+        Filters by language with fallback to default language.
+        """
+        lang = request.query_params.get('lang') or get_language_from_request(request)
         
-        # Get all menu items, but exclude those linked to unpublished pages
-        # Include items with no linked page (external links) or linked to published pages
+        # Get all menu items for the requested language
+        # Exclude those linked to unpublished pages
         items = MenuItem.objects.select_related('page').filter(
+            language=lang
+        ).filter(
             Q(page__isnull=True) | Q(page__is_published=True)
         ).order_by('order')
+        
+        # Fallback to default language if no items found
+        if not items.exists() and lang != DEFAULT_LANGUAGE:
+            items = MenuItem.objects.select_related('page').filter(
+                language=DEFAULT_LANGUAGE
+            ).filter(
+                Q(page__isnull=True) | Q(page__is_published=True)
+            ).order_by('order')
         
         header = items.filter(location='header')
         footer = items.filter(location='footer')
@@ -159,20 +222,56 @@ class MenuItemViewSet(viewsets.ModelViewSet):
 
 
 class FeatureShowcaseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing feature showcases.
+    
+    Query params:
+        - lang: Filter features by language
+    """
     queryset = FeatureShowcase.objects.filter(is_active=True)
     serializer_class = FeatureShowcaseSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        queryset = FeatureShowcase.objects.filter(is_active=True)
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
+        return queryset
 
 
 class CookieConsentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing cookie consent content.
+    
+    Query params:
+        - lang: Filter by language
+    """
     queryset = CookieConsent.objects.filter(is_active=True).order_by('-created_at')
     serializer_class = CookieConsentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        queryset = CookieConsent.objects.filter(is_active=True)
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
+        return queryset.order_by('-created_at')
 
     @action(detail=False, methods=['get'])
     def latest(self, request):
-        """Get the latest active cookie policy."""
-        policy = self.queryset.first()
+        """
+        Get the latest active cookie policy for the requested language.
+        Falls back to default language if not found.
+        """
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        policy = CookieConsent.objects.filter(is_active=True, language=lang).order_by('-created_at').first()
+        
+        # Fallback to default language
+        if not policy and lang != DEFAULT_LANGUAGE:
+            policy = CookieConsent.objects.filter(is_active=True, language=DEFAULT_LANGUAGE).order_by('-created_at').first()
+        
         if policy:
             return Response(self.get_serializer(policy).data)
         return Response({})
@@ -181,7 +280,10 @@ class CookieConsentViewSet(viewsets.ModelViewSet):
 class PricingPageContentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing pricing page content.
-    Uses singleton pattern - always returns/updates the same instance.
+    Uses per-language singleton pattern.
+    
+    Query params:
+        - lang: Language for content (default: 'sv')
     """
     queryset = PricingPageContent.objects.all()
     serializer_class = PricingPageContentSerializer
@@ -189,12 +291,14 @@ class PricingPageContentViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
-        """Always return the singleton instance."""
-        return PricingPageContent.get_instance()
+        """Return the instance for the requested language."""
+        lang = self.request.query_params.get('lang', DEFAULT_LANGUAGE)
+        return PricingPageContent.get_for_language(lang)
 
     def list(self, request):
-        """Return the singleton instance."""
-        instance = PricingPageContent.get_instance()
+        """Return the instance for the requested language."""
+        lang = request.query_params.get('lang', DEFAULT_LANGUAGE)
+        instance = PricingPageContent.get_for_language(lang)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -202,16 +306,28 @@ class PricingPageContentViewSet(viewsets.ModelViewSet):
     def public(self, request):
         """
         Public endpoint to get pricing page content.
-        No authentication required.
+        Falls back to default language if not found.
         """
-        instance = PricingPageContent.get_instance()
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        # Try requested language
+        instance = PricingPageContent.objects.filter(language=lang).first()
+        
+        # Fallback to default language
+        if not instance and lang != DEFAULT_LANGUAGE:
+            instance = PricingPageContent.objects.filter(language=DEFAULT_LANGUAGE).first()
+        
+        if not instance:
+            instance = PricingPageContent.get_for_language(DEFAULT_LANGUAGE)
+        
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     @action(detail=False, methods=['patch', 'put'])
     def update_content(self, request):
-        """Update the pricing page content."""
-        instance = PricingPageContent.get_instance()
+        """Update the pricing page content for a specific language."""
+        lang = request.data.get('language') or request.query_params.get('lang', DEFAULT_LANGUAGE)
+        instance = PricingPageContent.get_for_language(lang)
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -222,24 +338,40 @@ class PricingPageContentViewSet(viewsets.ModelViewSet):
 class PricingFAQViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing pricing page FAQs.
+    
+    Query params:
+        - lang: Filter FAQs by language
     """
     queryset = PricingFAQ.objects.all()
     serializer_class = PricingFAQSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        """Admin sees all, public sees only active."""
+        """Admin sees all, public sees only active. Filter by language if specified."""
+        queryset = PricingFAQ.objects.all()
+        
+        lang = self.request.query_params.get('lang')
+        if lang:
+            queryset = queryset.filter(language=lang)
+        
         if self.request.user.is_authenticated:
-            return PricingFAQ.objects.all().order_by('order')
-        return PricingFAQ.objects.filter(is_active=True).order_by('order')
+            return queryset.order_by('order')
+        return queryset.filter(is_active=True).order_by('order')
 
     @action(detail=False, methods=['get'])
     def public(self, request):
         """
         Public endpoint to get active FAQs.
-        No authentication required.
+        Falls back to default language if no FAQs found.
         """
-        faqs = PricingFAQ.objects.filter(is_active=True).order_by('order')
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        faqs = PricingFAQ.objects.filter(is_active=True, language=lang).order_by('order')
+        
+        # Fallback to default language
+        if not faqs.exists() and lang != DEFAULT_LANGUAGE:
+            faqs = PricingFAQ.objects.filter(is_active=True, language=DEFAULT_LANGUAGE).order_by('order')
+        
         serializer = self.get_serializer(faqs, many=True)
         return Response(serializer.data)
 
@@ -247,19 +379,24 @@ class PricingFAQViewSet(viewsets.ModelViewSet):
 class ContactPageContentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing contact page content.
-    Uses singleton pattern - always returns/updates the same instance.
+    Uses per-language singleton pattern.
+    
+    Query params:
+        - lang: Language for content (default: 'sv')
     """
     queryset = ContactPageContent.objects.all()
     serializer_class = ContactPageContentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_object(self):
-        """Always return the singleton instance."""
-        return ContactPageContent.get_instance()
+        """Return the instance for the requested language."""
+        lang = self.request.query_params.get('lang', DEFAULT_LANGUAGE)
+        return ContactPageContent.get_for_language(lang)
 
     def list(self, request):
-        """Return the singleton instance."""
-        instance = ContactPageContent.get_instance()
+        """Return the instance for the requested language."""
+        lang = request.query_params.get('lang', DEFAULT_LANGUAGE)
+        instance = ContactPageContent.get_for_language(lang)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -267,16 +404,28 @@ class ContactPageContentViewSet(viewsets.ModelViewSet):
     def public(self, request):
         """
         Public endpoint to get contact page content.
-        No authentication required.
+        Falls back to default language if not found.
         """
-        instance = ContactPageContent.get_instance()
+        lang = request.query_params.get('lang') or get_language_from_request(request)
+        
+        # Try requested language
+        instance = ContactPageContent.objects.filter(language=lang).first()
+        
+        # Fallback to default language
+        if not instance and lang != DEFAULT_LANGUAGE:
+            instance = ContactPageContent.objects.filter(language=DEFAULT_LANGUAGE).first()
+        
+        if not instance:
+            instance = ContactPageContent.get_for_language(DEFAULT_LANGUAGE)
+        
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     @action(detail=False, methods=['patch', 'put'])
     def update_content(self, request):
-        """Update the contact page content."""
-        instance = ContactPageContent.get_instance()
+        """Update the contact page content for a specific language."""
+        lang = request.data.get('language') or request.query_params.get('lang', DEFAULT_LANGUAGE)
+        instance = ContactPageContent.get_for_language(lang)
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

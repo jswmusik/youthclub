@@ -6,13 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FeatureShowcase } from '@/types/cms';
 import { cmsApi } from '@/lib/cms-api';
 import { useToast } from '../../../../../../hooks/useToast';
-import { Loader2, Save, ArrowLeft, Image as ImageIcon, Video, FileJson, Play, RotateCcw, Eye } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Image as ImageIcon, Video, FileJson, Play, RotateCcw, Eye, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import LanguageSelector, { type LanguageCode } from '../../../../components/LanguageSelector';
 
 interface FeatureFormProps {
   initialData?: FeatureShowcase;
   isEditing?: boolean;
+  initialLanguage?: LanguageCode;
 }
 
 // Animation variants - must match FeatureShowcase component
@@ -27,12 +29,13 @@ const animationVariants = {
   'flip-up': { hidden: { opacity: 0, rotateX: 90 }, visible: { opacity: 1, rotateX: 0 } },
 };
 
-export default function FeatureForm({ initialData, isEditing = false }: FeatureFormProps) {
+export default function FeatureForm({ initialData, isEditing = false, initialLanguage = 'sv' }: FeatureFormProps) {
   const t = useTranslations('cmsAdmin.features.form');
   const tAnimations = useTranslations('cmsAdmin.features.animations');
   const tMedia = useTranslations('cmsAdmin.features.mediaTypes');
   const tLayout = useTranslations('cmsAdmin.features.layout');
   const tStatus = useTranslations('cmsAdmin.features.status');
+  const tLang = useTranslations('cmsAdmin.languageSelector');
   const router = useRouter();
   const { success, error } = useToast();
   const [saving, setSaving] = useState(false);
@@ -48,6 +51,7 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
     animation_type: initialData?.animation_type || 'fade-up',
     order: initialData?.order || 0,
     is_active: initialData?.is_active ?? true,
+    language: (initialData?.language || initialLanguage) as LanguageCode,
   });
 
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -172,6 +176,30 @@ export default function FeatureForm({ initialData, isEditing = false }: FeatureF
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {isEditing ? t('updateFeature') : t('createFeature')}
           </button>
+        </div>
+      </div>
+
+      {/* Language Selection */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+        <div className="px-4 sm:px-6 py-4 border-b border-[var(--dark-600)]">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-[var(--brand-primary)]" />
+            <h2 className="text-lg font-semibold text-[var(--brand-light)]">{tLang('title')}</h2>
+          </div>
+          <p className="text-sm text-[var(--brand-light)]/50 mt-1">
+            {tLang('description')}
+          </p>
+        </div>
+        <div className="p-4 sm:p-6">
+          <LanguageSelector
+            value={formData.language}
+            onChange={(lang) => handleChange('language', lang)}
+            label={tLang('label')}
+            variant="pills"
+          />
+          <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+            {tLang('hint')}
+          </p>
         </div>
       </div>
 

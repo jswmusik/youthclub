@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ExternalLink } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -18,11 +19,13 @@ export default function CustomersSection() {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const locale = useLocale();
+  const t = useTranslations('public.customers');
 
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await fetch(`${API_URL}/marketing/public/customers/`);
+        const res = await fetch(`${API_URL}/marketing/public/customers/?lang=${locale}`);
         if (res.ok) {
           const data = await res.json();
           setCustomers(data);
@@ -35,7 +38,7 @@ export default function CustomersSection() {
     };
 
     fetchCustomers();
-  }, []);
+  }, [locale]);
 
   // Don't render if no customers
   if (loading || customers.length === 0) {
@@ -51,10 +54,10 @@ export default function CustomersSection() {
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-[var(--brand-light)] font-heading mb-3">
-            Våra kunder
+            {t('title')}
           </h2>
           <p className="text-[var(--brand-light)]/60 max-w-2xl mx-auto">
-            Stolta över att samarbeta med kommuner och organisationer över hela Sverige
+            {t('subtitle')}
           </p>
         </div>
 

@@ -655,17 +655,27 @@ export const fetchRecommendedGroups = () => api.get('/groups/recommended/');
 
 // --- PUBLIC MARKETING ENDPOINTS ---
 export const marketing = {
-  // Get SEO settings for the startpage
-  getSeoSettings: () => 
-    api.get('/marketing/public/seo-settings/', { skipAuth: true } as any),
+  // Get SEO settings for the startpage (with language support)
+  getSeoSettings: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/marketing/public/seo-settings/${params}`, { skipAuth: true } as any);
+  },
   
-  // Get active testimonials
-  getTestimonials: () => 
-    api.get('/marketing/public/testimonials/', { skipAuth: true } as any),
+  // Get active testimonials (with language support)
+  getTestimonials: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/marketing/public/testimonials/${params}`, { skipAuth: true } as any);
+  },
   
   // Get platform KPIs
   getKPIs: () => 
     api.get('/marketing/public/kpi/', { skipAuth: true } as any),
+  
+  // Get customer logos (with language support)
+  getCustomers: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/marketing/public/customers/${params}`, { skipAuth: true } as any);
+  },
 };
 
 // --- PUBLIC EVENTS ENDPOINTS ---
@@ -699,5 +709,44 @@ export const publicEvents = {
     
     const query = queryParams.toString();
     return api.get(`/public/events/${slug}/${query ? `?${query}` : ''}`, { skipAuth: true } as any);
+  },
+};
+
+// --- PUBLIC CMS ENDPOINTS ---
+export const cms = {
+  // Get public page by slug (with language support)
+  getPage: (slug: string, lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/pages/public/${slug}/${params}`, { skipAuth: true } as any);
+  },
+  
+  // Get menu items (with language support)
+  getMenu: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/menu-items/public_menu/${params}`, { skipAuth: true } as any);
+  },
+  
+  // Get latest cookie consent (with language support)
+  getCookieConsent: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/cookies/latest/${params}`, { skipAuth: true } as any);
+  },
+  
+  // Get pricing page content (with language support)
+  getPricingContent: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/pricing/public/${params}`, { skipAuth: true } as any);
+  },
+  
+  // Get pricing FAQs (with language support)
+  getPricingFAQs: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/pricing-faqs/public/${params}`, { skipAuth: true } as any);
+  },
+  
+  // Get contact page content (with language support)
+  getContactContent: (lang?: string) => {
+    const params = lang ? `?lang=${lang}` : '';
+    return api.get(`/cms/contact/public/${params}`, { skipAuth: true } as any);
   },
 };

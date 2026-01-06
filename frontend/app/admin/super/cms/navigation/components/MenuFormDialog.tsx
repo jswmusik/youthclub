@@ -14,9 +14,10 @@ interface MenuFormDialogProps {
   initialData?: MenuItem | null;
   location: LocationType;
   pages: Page[];
+  language: string;
 }
 
-export default function MenuFormDialog({ isOpen, onClose, onSave, initialData, location, pages }: MenuFormDialogProps) {
+export default function MenuFormDialog({ isOpen, onClose, onSave, initialData, location, pages, language }: MenuFormDialogProps) {
   const t = useTranslations('cmsAdmin.navigation.dialog');
   const [label, setLabel] = useState('');
   const [linkType, setLinkType] = useState<'page' | 'external'>('page');
@@ -54,6 +55,7 @@ export default function MenuFormDialog({ isOpen, onClose, onSave, initialData, l
         label,
         location,
         order,
+        language,
         page: linkType === 'page' ? parseInt(pageId) : null,
         external_url: linkType === 'external' ? externalUrl : '',
       });

@@ -7,6 +7,7 @@ export interface Page {
   id: number;
   title: string;
   slug: string;
+  language: string; // Language code (sv, en, da, nb, etc.)
   page_type: 'standard' | 'creative';
   content: string;
   excerpt?: string;
@@ -37,6 +38,7 @@ export interface Page {
 export interface MenuItem {
   id: number;
   label: string;
+  language: string; // Language code
   page?: number | null; // ID of the linked page
   page_slug?: string;   // Read-only from serializer
   external_url?: string;
@@ -56,6 +58,7 @@ export interface FeatureShowcase {
   id: number;
   title: string;
   description: string;
+  language: string; // Language code
   media: string; // URL
   media_type: 'image' | 'video' | 'lottie';
   alt_text: string;
@@ -67,6 +70,7 @@ export interface FeatureShowcase {
 
 export interface CookieConsent {
   id: number;
+  language: string; // Language code
   version: string;
   title: string;
   description: string;

@@ -119,6 +119,17 @@ class BookingSchedule(models.Model):
 class ResourceQualification(models.Model):
     """
     Proof that a user is allowed to book a restricted resource (e.g. 'Studio License').
+    
+    NOTE: This model is currently NOT USED in the booking validation logic.
+    The system currently uses group membership via `qualification_group` on BookingResource
+    to determine if a user is qualified to book a resource that requires training.
+    
+    This model is RESERVED FOR FUTURE USE - it could be used to implement:
+    - Individual user qualifications that bypass group membership
+    - Expiring qualifications with renewal dates
+    - Qualification certificates/licenses with metadata
+    
+    Do not remove this model without a proper migration strategy.
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resource_qualifications')
     resource = models.ForeignKey(BookingResource, on_delete=models.CASCADE, related_name='qualified_users')

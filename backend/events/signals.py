@@ -1,8 +1,39 @@
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from .models import Event, EventRegistration, EventTicket
 from notifications.models import Notification
 from notifications.services import send_notification
+
+
+@receiver(pre_save, sender=EventTicket)
+def track_ticket_checkin_change(sender, instance, **kwargs):
+    """
+    Track when checked_in_at changes from None to a value.
+    This indicates the user attended the event.
+    """
+    if instance.pk:
+        try:
+            old_ticket = EventTicket.objects.get(pk=instance.pk)
+            if old_ticket.checked_in_at is None and instance.checked_in_at is not None:
+                instance._just_checked_in = True
+        except EventTicket.DoesNotExist:
+            pass
+
+
+@receiver(post_save, sender=EventTicket)
+def process_event_attendance_reward(sender, instance, created, **kwargs):
+    """
+    Process EVENT_ATTENDED reward trigger when a ticket is checked in.
+    """
+    # Check if this ticket was just checked in (not on creation)
+    if getattr(instance, '_just_checked_in', False):
+        try:
+            from rewards.trigger_handlers import EventAttendedHandler
+            user = instance.registration.user
+            EventAttendedHandler.process(user, instance)
+        except Exception as e:
+            # Don't let reward processing break ticket functionality
+            print(f"Error processing event attendance reward trigger: {e}")
 
 
 @receiver(pre_delete, sender=Event)

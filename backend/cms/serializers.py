@@ -24,7 +24,7 @@ class PageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = [
-            'id', 'title', 'slug', 'page_type', 'content', 'excerpt', 'hero_tagline',
+            'id', 'language', 'title', 'slug', 'page_type', 'content', 'excerpt', 'hero_tagline',
             'hero_image', 'show_hero', 'features_data',
             # Table of contents
             'table_of_contents', 'show_toc',
@@ -49,12 +49,15 @@ class PageSerializer(serializers.ModelSerializer):
         }
 
     def validate_slug(self, value):
-        """Allow the same slug when updating the same instance."""
+        """Allow the same slug when updating the same instance or for different languages."""
         if self.instance and self.instance.slug == value:
             return value
-        # Check if slug exists for other pages
-        if Page.objects.filter(slug=value).exists():
-            raise serializers.ValidationError("A page with this slug already exists.")
+        # Check if slug exists for other pages with the same language
+        language = self.initial_data.get('language', 'sv')
+        if self.instance:
+            language = self.initial_data.get('language', self.instance.language)
+        if Page.objects.filter(slug=value, language=language).exists():
+            raise serializers.ValidationError("A page with this slug already exists for this language.")
         return value
 
     def get_features_data(self, obj):
@@ -82,7 +85,7 @@ class CookieConsentSerializer(serializers.ModelSerializer):
 class PricingFAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = PricingFAQ
-        fields = ['id', 'question', 'answer', 'order', 'is_active', 'created_at']
+        fields = ['id', 'language', 'question', 'answer', 'order', 'is_active', 'created_at']
         read_only_fields = ['created_at']
 
 
@@ -90,7 +93,7 @@ class PricingPageContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = PricingPageContent
         fields = [
-            'id',
+            'id', 'language',
             # Hero Section
             'hero_title', 'hero_subtitle', 'hero_tagline',
             # CTA Section
@@ -113,7 +116,7 @@ class ContactPageContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactPageContent
         fields = [
-            'id',
+            'id', 'language',
             # Hero Section
             'hero_title', 'hero_subtitle',
             # Contact Info

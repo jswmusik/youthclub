@@ -71,6 +71,7 @@ class NotificationTemplate(models.Model):
         # Questionnaires
         QUESTIONNAIRE_AVAILABLE = 'questionnaire_available', 'Questionnaire Available'
         SURVEY_REMINDER = 'survey_reminder', 'Survey Reminder'
+        QUESTIONNAIRE_REWARD_EARNED = 'questionnaire_reward_earned', 'Questionnaire Reward Earned'
         
         # Inventory
         INVENTORY_OVERDUE = 'inventory_overdue', 'Inventory Overdue'

@@ -13,6 +13,8 @@ import { seoApi } from '@/lib/seo-api';
 import { Keyword } from '@/types/seo';
 import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 
 function Skeleton({ className }: { className?: string }) {
   return (
@@ -49,6 +51,7 @@ const STATUS_OPTIONS = [
 
 export default function KeywordsPage() {
   const router = useRouter();
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
@@ -62,6 +65,10 @@ export default function KeywordsPage() {
   const [generatingPage, setGeneratingPage] = useState<number | null>(null);
   const [generatingArticle, setGeneratingArticle] = useState<number | null>(null);
   const { success, error } = useToast();
+
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+  };
   
   const [form, setForm] = useState({
     keyword: '',
@@ -74,7 +81,7 @@ export default function KeywordsPage() {
 
   const fetchKeywords = async () => {
     try {
-      const params: any = {};
+      const params: any = { lang: currentLanguage };
       if (statusFilter) params.status = statusFilter;
       if (intentFilter) params.intent = intentFilter;
       if (audienceFilter) params.target_audience = audienceFilter;
@@ -92,7 +99,7 @@ export default function KeywordsPage() {
 
   useEffect(() => {
     fetchKeywords();
-  }, [statusFilter, intentFilter, audienceFilter]);
+  }, [statusFilter, intentFilter, audienceFilter, currentLanguage]);
 
   const handleSearch = () => {
     setLoading(true);
@@ -114,6 +121,7 @@ export default function KeywordsPage() {
         intent: form.intent,
         status: form.status,
         target_audience: form.target_audience,
+        language: currentLanguage, // Include the selected language
       };
       
       if (editingKeyword) {
@@ -244,13 +252,21 @@ export default function KeywordsPage() {
               Hantera sökord du vill ranka för
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Lägg till nyckelord
-          </button>
+          <div className="flex items-center gap-3">
+            <AdminLanguageSelector
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              languages={locales as unknown as string[]}
+              variant="dropdown"
+            />
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Lägg till nyckelord
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

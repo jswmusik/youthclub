@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { 
     ArrowLeft, Upload, X, Globe, Building, Users, FileText, Image, Video,
     CheckCircle2, Lightbulb, Sparkles, Bell, MessageSquare, Pin, Calendar,
-    Eye, EyeOff, Target, Settings, Send
+    Eye, EyeOff, Target, Settings, Send, Info
 } from 'lucide-react';
 import api from '../../../lib/api';
 import { Post, PostImage } from '../../../types/post';
@@ -120,6 +120,13 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
         setIsMounted(true);
         return () => setIsMounted(false);
     }, []);
+
+    // Automatically unset isPinned when groups are selected (pinned posts can't be group-targeted)
+    useEffect(() => {
+        if (selectedGroups.length > 0 && isPinned) {
+            setIsPinned(false);
+        }
+    }, [selectedGroups, isPinned]);
 
     // --- Data Fetching ---
     useEffect(() => {
@@ -981,24 +988,39 @@ export default function PostForm({ initialData, role, onSuccess }: PostFormProps
                                         />
                                     </div>
 
-                                    {/* Pin Toggle */}
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsPinned(!isPinned)}
-                                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
-                                            isPinned 
-                                                ? 'bg-[var(--brand-peach)]/20 border-2 border-[var(--brand-peach)]' 
-                                                : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <Pin className={`w-5 h-5 ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/50'}`} />
-                                            <span className={`font-medium ${isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/70'}`}>{t('publicationSettings.pinToTop')}</span>
-                                        </div>
-                                        <div className={`w-10 h-6 rounded-full transition-colors ${isPinned ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'}`}>
-                                            <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${isPinned ? 'translate-x-5' : 'translate-x-1'}`} />
-                                        </div>
-                                    </button>
+                                    {/* Pin Toggle - Disabled when groups are selected */}
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (selectedGroups.length === 0) {
+                                                    setIsPinned(!isPinned);
+                                                }
+                                            }}
+                                            disabled={selectedGroups.length > 0}
+                                            className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
+                                                selectedGroups.length > 0
+                                                    ? 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] opacity-50 cursor-not-allowed'
+                                                    : isPinned 
+                                                        ? 'bg-[var(--brand-peach)]/20 border-2 border-[var(--brand-peach)]' 
+                                                        : 'bg-[var(--dark-700)] border-2 border-[var(--dark-500)] hover:border-[var(--brand-peach)]/30'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Pin className={`w-5 h-5 ${selectedGroups.length > 0 ? 'text-[var(--brand-light)]/30' : isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/50'}`} />
+                                                <span className={`font-medium ${selectedGroups.length > 0 ? 'text-[var(--brand-light)]/30' : isPinned ? 'text-[var(--brand-peach)]' : 'text-[var(--brand-light)]/70'}`}>{t('publicationSettings.pinToTop')}</span>
+                                            </div>
+                                            <div className={`w-10 h-6 rounded-full transition-colors ${selectedGroups.length > 0 ? 'bg-[var(--dark-600)]' : isPinned ? 'bg-[var(--brand-peach)]' : 'bg-[var(--dark-500)]'}`}>
+                                                <div className={`w-4 h-4 rounded-full bg-white mt-1 transition-transform ${isPinned && selectedGroups.length === 0 ? 'translate-x-5' : 'translate-x-1'}`} />
+                                            </div>
+                                        </button>
+                                        {selectedGroups.length > 0 && (
+                                            <p className="mt-1 text-xs text-[var(--brand-light)]/50 flex items-center gap-1">
+                                                <Info className="w-3 h-3" />
+                                                {t('publicationSettings.pinDisabledForGroups')}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Right Column */}

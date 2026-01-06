@@ -8,6 +8,7 @@ import { FeatureShowcase } from '@/types/cms';
 import { Plus, Pencil, Trash2, Sparkles, Eye, EyeOff, Image, Video, FileJson, Loader2 } from 'lucide-react';
 import { useToast } from '../../../../../hooks/useToast';
 import ConfirmationModal from '../../../../components/ConfirmationModal';
+import LanguageSelector, { LanguageBadge, type LanguageCode, LANGUAGES } from '../../../components/LanguageSelector';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -29,6 +30,7 @@ export default function FeaturesList() {
   const [loading, setLoading] = useState(true);
   const [featureToDelete, setFeatureToDelete] = useState<FeatureShowcase | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [languageFilter, setLanguageFilter] = useState<'all' | LanguageCode>('all');
   const { success, error } = useToast();
 
   const fetchFeatures = async () => {
@@ -62,7 +64,11 @@ export default function FeaturesList() {
     }
   };
 
-  const activeCount = features.filter(f => f.is_active).length;
+  // Filter features by language
+  const filteredFeatures = languageFilter === 'all' 
+    ? features 
+    : features.filter(f => f.language === languageFilter);
+  const activeCount = filteredFeatures.filter(f => f.is_active).length;
 
   const getMediaIcon = (type: string) => {
     switch (type) {
@@ -83,6 +89,34 @@ export default function FeaturesList() {
 
   return (
     <div className="space-y-6">
+      {/* Language Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 px-4 sm:px-0">
+        <select
+          value={languageFilter}
+          onChange={(e) => setLanguageFilter(e.target.value as 'all' | LanguageCode)}
+          className="bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] px-4 py-3 text-[var(--brand-light)] outline-none appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-colors min-w-[160px]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.75rem center',
+            backgroundSize: '1rem',
+            paddingRight: '2.5rem'
+          }}
+        >
+          <option value="all">🌐 All Languages</option>
+          {LANGUAGES.map(lang => (
+            <option key={lang.code} value={lang.code}>{lang.flag} {lang.name}</option>
+          ))}
+        </select>
+        <div className="flex-1" />
+        <Link href={`/admin/super/cms/features/create${languageFilter !== 'all' ? `?lang=${languageFilter}` : ''}`}>
+          <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all w-full sm:w-auto justify-center">
+            <Plus className="w-4 h-4" />
+            {t('addFeature')}
+          </button>
+        </Link>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-0">
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
@@ -128,16 +162,6 @@ export default function FeaturesList() {
         </div>
       </div>
 
-      {/* Add Button */}
-      <div className="flex justify-end px-4 sm:px-0">
-        <Link href="/admin/super/cms/features/create">
-          <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all">
-            <Plus className="w-4 h-4" />
-            {t('addFeature')}
-          </button>
-        </Link>
-      </div>
-
       {/* Features List */}
       {loading ? (
         <div className="space-y-3 px-4 sm:px-0">
@@ -154,7 +178,7 @@ export default function FeaturesList() {
             </div>
           ))}
         </div>
-      ) : features.length === 0 ? (
+      ) : filteredFeatures.length === 0 ? (
         <div className="text-center py-16 bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)]">
           <Sparkles className="w-12 h-12 mx-auto text-[var(--brand-light)]/20 mb-4" />
           <p className="text-[var(--brand-light)]/50 mb-2">{t('emptyState.noFeatures')}</p>
@@ -166,7 +190,7 @@ export default function FeaturesList() {
         </div>
       ) : (
         <div className="space-y-3 px-4 sm:px-0">
-          {features.sort((a, b) => a.order - b.order).map((feature) => {
+          {filteredFeatures.sort((a, b) => a.order - b.order).map((feature) => {
             const MediaIcon = getMediaIcon(feature.media_type);
             return (
               <div
@@ -200,6 +224,7 @@ export default function FeaturesList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <h3 className="font-semibold text-[var(--brand-light)]">{feature.title}</h3>
+                      <LanguageBadge code={feature.language || 'sv'} size="sm" />
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
                         feature.is_active 
                           ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 

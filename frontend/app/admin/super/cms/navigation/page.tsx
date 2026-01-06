@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { cmsApi } from '@/lib/cms-api';
 import { MenuItem, Page } from '@/types/cms';
-import { Plus, Pencil, Trash2, Navigation, Link as LinkIcon, ExternalLink, Users, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, Navigation, Link as LinkIcon, ExternalLink, Users, GripVertical, Globe } from 'lucide-react';
 import { useToast } from '../../../../../hooks/useToast';
 import MenuFormDialog from './components/MenuFormDialog';
 import ConfirmationModal from '../../../../components/ConfirmationModal';
+import LanguageSelector, { LanguageBadge, type LanguageCode, LANGUAGES } from '../../../components/LanguageSelector';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -31,6 +32,9 @@ export default function NavigationManager() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Language filter
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>('sv');
 
   // Dialog State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -193,9 +197,11 @@ export default function NavigationManager() {
     setDragOverItemId(null);
   };
 
-  const headerItems = items.filter(i => i.location === 'header').sort((a, b) => a.order - b.order);
-  const footerItems = items.filter(i => i.location === 'footer').sort((a, b) => a.order - b.order);
-  const communityFooterItems = items.filter(i => i.location === 'community_footer').sort((a, b) => a.order - b.order);
+  // Filter items by selected language
+  const filteredItems = items.filter(i => i.language === selectedLanguage);
+  const headerItems = filteredItems.filter(i => i.location === 'header').sort((a, b) => a.order - b.order);
+  const footerItems = filteredItems.filter(i => i.location === 'footer').sort((a, b) => a.order - b.order);
+  const communityFooterItems = filteredItems.filter(i => i.location === 'community_footer').sort((a, b) => a.order - b.order);
 
   const renderMenuList = (
     locationItems: MenuItem[], 
@@ -326,6 +332,16 @@ export default function NavigationManager() {
 
   return (
     <div className="space-y-6">
+      {/* Language Selector */}
+      <div className="bg-[var(--dark-800)] rounded-none sm:rounded-xl border-y sm:border border-[var(--dark-600)] px-4 sm:px-6 py-4">
+        <LanguageSelector
+          value={selectedLanguage}
+          onChange={(lang) => setSelectedLanguage(lang)}
+          label="Select language to manage navigation for"
+          variant="pills"
+        />
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 px-4 sm:px-0">
         <div className="bg-[var(--dark-700)] rounded-xl p-4 border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
@@ -415,7 +431,8 @@ export default function NavigationManager() {
         onSave={handleSave}
         initialData={editingItem}
         location={activeLocation}
-        pages={pages}
+        pages={pages.filter(p => p.language === selectedLanguage)}
+        language={selectedLanguage}
       />
 
       <ConfirmationModal

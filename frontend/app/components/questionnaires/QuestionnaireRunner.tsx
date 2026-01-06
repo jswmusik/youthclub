@@ -244,6 +244,12 @@ export default function QuestionnaireRunner({ questionnaireId, onDataLoaded, dar
     // Don't allow submission if already completed
     if (isCompleted) return;
     
+    // Cancel any pending auto-save to prevent race condition
+    if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+    }
+    
     setSubmitting(true);
     try {
         // Format payload

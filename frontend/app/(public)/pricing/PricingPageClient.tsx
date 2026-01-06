@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { 
   Check, Sparkles, Zap, Shield, Users, ChevronDown, 
   ArrowRight, Building2, Star, MessageCircle
@@ -51,6 +51,7 @@ interface FAQ {
 
 export default function PricingPageClient() {
   const t = useTranslations('pricingPage');
+  const locale = useLocale();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [content, setContent] = useState<PricingContent | null>(null);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
@@ -60,14 +61,14 @@ export default function PricingPageClient() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [locale]);
 
   const fetchData = async () => {
     try {
       const [plansRes, contentRes, faqsRes] = await Promise.all([
         fetch(`${API_URL}/licensing/plans/public/`),
-        fetch(`${API_URL}/cms/pricing-content/public/`),
-        fetch(`${API_URL}/cms/pricing-faqs/public/`)
+        fetch(`${API_URL}/cms/pricing-content/public/?lang=${locale}`),
+        fetch(`${API_URL}/cms/pricing-faqs/public/?lang=${locale}`)
       ]);
 
       if (plansRes.ok) {

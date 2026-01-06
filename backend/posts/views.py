@@ -306,6 +306,15 @@ class PostViewSet(viewsets.ModelViewSet):
                 Q(club_id__in=club_ids) |  # Club posts
                 Q(club__isnull=True, municipality__isnull=True) |  # Global posts (super admin)
                 Q(club__isnull=True, municipality_id__in=municipality_ids)  # Municipality posts
+            ).filter(
+                # IMPORTANT: Exclude posts with youth-specific targeting criteria
+                # Guardians don't have age, grade, gender, interests, or group memberships
+                # So posts with these targeting criteria should NOT show to guardians
+                # Only show posts that have NO youth-specific targeting
+                target_min_age__isnull=True,
+                target_max_age__isnull=True,
+                target_grades=[],  # Empty list means no grade targeting
+                target_genders=[],  # Empty list means no gender targeting
             ).exclude(
                 # Explicitly exclude specific auto-generated types for Guardians
                 # "New group", "rewards" etc.
@@ -317,6 +326,22 @@ class PostViewSet(viewsets.ModelViewSet):
                 Q(title__startswith='Returned ') |
                 Q(title__startswith='Joined ')
             ).distinct().order_by('-is_pinned', '-published_at', '-created_at')
+            
+            # Additional filters for ManyToMany fields - exclude posts with any targeting
+            # Guardians aren't in groups, don't have interests, and don't have custom fields
+            
+            # Get IDs of posts that have group targeting
+            posts_with_groups = Post.objects.filter(target_groups__isnull=False).values_list('id', flat=True)
+            queryset = queryset.exclude(id__in=posts_with_groups)
+            
+            # Get IDs of posts that have interest targeting
+            posts_with_interests = Post.objects.filter(target_interests__isnull=False).values_list('id', flat=True)
+            queryset = queryset.exclude(id__in=posts_with_interests)
+            
+            # Exclude posts with custom field targeting (non-empty dict)
+            queryset = queryset.exclude(
+                ~Q(target_custom_fields={}) & Q(target_custom_fields__isnull=False)
+            )
             
             # Annotate
             queryset = queryset.annotate(
@@ -502,17 +527,47 @@ class PostViewSet(viewsets.ModelViewSet):
                 logger.error(f"Error fetching events for feed: {e}")
                 events_data = []
             
-            # Combine and Sort
+            # Combine and Sort - Pinned posts should stay at top
             all_items = rewards_data + questionnaires_data + events_data + feed_items
             
             def get_sort_key(item):
+                # Pinned posts (is_pinned=True) should come first
+                # Only POST feed_type items can be pinned
+                is_pinned = item.get('is_pinned', False) if item.get('feed_type') == 'POST' else False
+                
+                date_str = item.get('published_at') or item.get('created_at') or ''
+                if isinstance(date_str, str): 
+                    date_key = date_str
+                elif hasattr(date_str, 'isoformat'): 
+                    date_key = date_str.isoformat()
+                else:
+                    date_key = ''
+                
+                # Return tuple: (not is_pinned, date) - False sorts before True, so pinned (not False = True sorts after not True = False)
+                # We want pinned first, so use (0 if pinned else 1, -date)
+                return (0 if is_pinned else 1, date_key)
+            
+            # Sort: pinned first (0 < 1), then by date descending (reverse=True for date part)
+            all_items.sort(key=lambda item: (
+                0 if (item.get('is_pinned', False) and item.get('feed_type') == 'POST') else 1,
+                get_sort_key(item)[1]
+            ), reverse=False)
+            
+            # Re-sort non-pinned items by date descending
+            pinned_items = [item for item in all_items if item.get('is_pinned', False) and item.get('feed_type') == 'POST']
+            non_pinned_items = [item for item in all_items if not (item.get('is_pinned', False) and item.get('feed_type') == 'POST')]
+            
+            # Sort non-pinned by date descending
+            def date_sort_key(item):
                 date_str = item.get('published_at') or item.get('created_at') or ''
                 if isinstance(date_str, str): return date_str
                 if hasattr(date_str, 'isoformat'): return date_str.isoformat()
                 return ''
             
-            all_items.sort(key=get_sort_key, reverse=True)
-            feed_items = all_items
+            non_pinned_items.sort(key=date_sort_key, reverse=True)
+            
+            # Combine: pinned first, then non-pinned sorted by date
+            feed_items = pinned_items + non_pinned_items
 
         if page is not None:
             return self.get_paginated_response(feed_items)

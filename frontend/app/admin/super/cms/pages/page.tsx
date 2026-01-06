@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { cmsApi } from '@/lib/cms-api';
 import { Page } from '@/types/cms';
-import { Plus, Pencil, Trash2, FileText, Eye, EyeOff, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileText, Eye, EyeOff, Search, X, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import { sv, enUS } from 'date-fns/locale';
 import { useToast } from '../../../../../hooks/useToast';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
+import LanguageSelector, { LanguageBadge, type LanguageCode, LANGUAGES } from '../../../components/LanguageSelector';
 
 // Skeleton Component
 function Skeleton({ className }: { className?: string }) {
@@ -33,6 +34,7 @@ export default function PagesList() {
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
+  const [languageFilter, setLanguageFilter] = useState<'all' | LanguageCode>('all');
   const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const { showToast } = useToast();
 
@@ -65,11 +67,13 @@ export default function PagesList() {
     }
   };
 
-  // Filter pages by search
-  const filteredPages = pages.filter(p => 
-    p.title.toLowerCase().includes(searchInput.toLowerCase()) ||
-    p.slug.toLowerCase().includes(searchInput.toLowerCase())
-  );
+  // Filter pages by search and language
+  const filteredPages = pages.filter(p => {
+    const matchesSearch = p.title.toLowerCase().includes(searchInput.toLowerCase()) ||
+      p.slug.toLowerCase().includes(searchInput.toLowerCase());
+    const matchesLanguage = languageFilter === 'all' || p.language === languageFilter;
+    return matchesSearch && matchesLanguage;
+  });
 
   const publishedCount = pages.filter(p => p.is_published).length;
   const draftCount = pages.filter(p => !p.is_published).length;
@@ -119,7 +123,7 @@ export default function PagesList() {
         </div>
       </div>
 
-      {/* Search & Add */}
+      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 px-4 sm:px-0">
         <div className="flex-1 bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] px-4 py-3 flex items-center gap-3">
           <Search className="h-5 w-5 text-[var(--brand-light)]/40 flex-shrink-0" />
@@ -139,7 +143,27 @@ export default function PagesList() {
             </button>
           )}
         </div>
-        <Link href="/admin/super/cms/pages/create">
+        
+        {/* Language Filter */}
+        <select
+          value={languageFilter}
+          onChange={(e) => setLanguageFilter(e.target.value as 'all' | LanguageCode)}
+          className="bg-[var(--dark-800)] rounded-xl border border-[var(--dark-600)] px-4 py-3 text-[var(--brand-light)] outline-none appearance-none cursor-pointer hover:border-[var(--brand-primary)]/50 focus:border-[var(--brand-primary)] transition-colors min-w-[140px]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 0.75rem center',
+            backgroundSize: '1rem',
+            paddingRight: '2.5rem'
+          }}
+        >
+          <option value="all">🌐 All Languages</option>
+          {LANGUAGES.map(lang => (
+            <option key={lang.code} value={lang.code}>{lang.flag} {lang.name}</option>
+          ))}
+        </select>
+        
+        <Link href={`/admin/super/cms/pages/create${languageFilter !== 'all' ? `?lang=${languageFilter}` : ''}`}>
           <button className="flex items-center gap-2 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/90 text-[var(--dark-900)] font-bold rounded-xl px-6 py-3 transition-all w-full sm:w-auto justify-center">
             <Plus className="w-4 h-4" />
             {t('createNewPage')}
@@ -209,6 +233,7 @@ export default function PagesList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[var(--brand-light)] truncate">{page.title}</h3>
+                      <LanguageBadge code={page.language || 'sv'} size="sm" />
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
                         page.is_published 
                           ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 

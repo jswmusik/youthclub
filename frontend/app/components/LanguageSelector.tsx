@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Globe, Check } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
-import { localeOptions, type Locale } from '../../i18n/config';
+import { localeOptions, defaultLocale, type Locale } from '../../i18n/config';
 
 interface LanguageSelectorProps {
   variant?: 'dropdown' | 'inline';
@@ -18,10 +18,19 @@ export default function LanguageSelector({
 }: LanguageSelectorProps) {
   const { locale, setLocale } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Mark as hydrated after mount to avoid hydration mismatch
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Use defaultLocale during SSR and initial hydration, then switch to actual locale
+  const displayLocale = isHydrated ? locale : defaultLocale;
+  
   // Find current locale option
-  const currentLocale = localeOptions.find(opt => opt.code === locale) || localeOptions[0];
+  const currentLocale = localeOptions.find(opt => opt.code === displayLocale) || localeOptions[0];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -50,7 +59,7 @@ export default function LanguageSelector({
             key={option.code}
             onClick={() => handleSelect(option.code)}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              locale === option.code
+              displayLocale === option.code
                 ? darkMode
                   ? 'bg-[var(--brand-primary)] text-[var(--dark-900)]'
                   : 'bg-[#4D4DA4] text-white'
@@ -61,7 +70,7 @@ export default function LanguageSelector({
           >
             <span>{option.flag}</span>
             <span>{option.name}</span>
-            {locale === option.code && <Check className="w-4 h-4" />}
+            {displayLocale === option.code && <Check className="w-4 h-4" />}
           </button>
         ))}
       </div>
@@ -94,7 +103,7 @@ export default function LanguageSelector({
               key={option.code}
               onClick={() => handleSelect(option.code)}
               className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors ${
-                locale === option.code
+                displayLocale === option.code
                   ? darkMode
                     ? 'bg-[var(--brand-primary)]/20 text-[var(--brand-primary)]'
                     : 'bg-[#4D4DA4]/10 text-[#4D4DA4]'
@@ -105,7 +114,7 @@ export default function LanguageSelector({
             >
               <span className="text-xl">{option.flag}</span>
               <span className="flex-1 font-medium">{option.name}</span>
-              {locale === option.code && <Check className="w-4 h-4" />}
+              {displayLocale === option.code && <Check className="w-4 h-4" />}
             </button>
           ))}
         </div>

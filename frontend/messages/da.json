@@ -233,6 +233,94 @@
         "copyright": "Alle rettigheder forbeholdes"
       }
     }
+  },
+  "pricingPage": {
+    "loading": "Indlæser...",
+    "heroTitleFallback": "Vælg dit abonnement",
+    "billingToggle": {
+      "monthly": "Månedlig",
+      "yearly": "Årlig",
+      "savePercent": "Spar {percent}%"
+    },
+    "plans": {
+      "noPlans": "Prisplaner kommer snart. Kontakt os for skræddersyede løsninger.",
+      "mostPopular": "Mest populær",
+      "perMonth": "pr. måned",
+      "perYear": "pr. år",
+      "getStarted": "Kom i gang",
+      "featuresIncluded": "{count} funktioner inkluderet"
+    },
+    "features": {
+      "posts": "Nyheder & Opslag",
+      "groups": "Interessegrupper",
+      "learning": "Læringsplatform",
+      "custom_fields": "Tilpassede datafelter",
+      "visits": "Check-in",
+      "events": "Begivenheder",
+      "messenger": "Beskeder & Chat",
+      "inventory": "Inventar & Udlån",
+      "bookings": "Lokalebookinger",
+      "questionnaires": "Spørgeskemaer & Afstemninger",
+      "rewards": "Belønninger & Gamification",
+      "analytics": "Analysepanel",
+      "api_access": "API-adgang"
+    },
+    "trust": {
+      "badge": "Pålidelig partner",
+      "municipalities": "Kommuner",
+      "activeUsers": "Aktive brugere",
+      "satisfaction": "Tilfredshed",
+      "uptime": "Oppetid"
+    },
+    "faq": {
+      "badge": "Ofte stillede spørgsmål",
+      "title": "Ofte stillede spørgsmål og svar"
+    },
+    "meta": {
+      "title": "Priser - Ungdomsappen",
+      "description": "Udforsk vores fleksible prisabonnementer designet til kommuner og ungdomsorganisationer."
+    }
+  },
+  "contactPage": {
+    "loading": "Indlæser...",
+    "hero": {
+      "title": "Kontakt os",
+      "subtitle": "Vi hjælper dig gerne med spørgsmål om Ungdomsappen"
+    },
+    "form": {
+      "title": "Send en besked",
+      "description": "Udfyld formularen nedenfor, så vender vi tilbage hurtigst muligt",
+      "name": "Navn",
+      "namePlaceholder": "Dit navn",
+      "email": "E-mail",
+      "emailPlaceholder": "din@email.dk",
+      "organization": "Organisation",
+      "organizationPlaceholder": "Din kommune eller organisation (valgfrit)",
+      "subject": "Emne",
+      "subjectPlaceholder": "Vælg et emne",
+      "subjects": {
+        "general": "Generelt spørgsmål",
+        "demo": "Book en demo",
+        "pricing": "Prisspørgsmål",
+        "support": "Teknisk support",
+        "partnership": "Samarbejde",
+        "other": "Andet"
+      },
+      "message": "Besked",
+      "messagePlaceholder": "Beskriv dit ærinde...",
+      "submit": "Send besked",
+      "sending": "Sender...",
+      "errorMessage": "Noget gik galt. Prøv igen senere."
+    },
+    "success": {
+      "title": "Tak for din besked!",
+      "message": "Vi har modtaget din besked og vender tilbage hurtigst muligt.",
+      "sendAnother": "Send endnu en besked"
+    },
+    "meta": {
+      "title": "Kontakt - Ungdomsappen",
+      "description": "Kontakt Ungdomsappen for spørgsmål om vores platform for ungdomsaktiviteter."
+    }
   }
 }
 

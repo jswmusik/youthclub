@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import api from '../../lib/api';
 import { useToast } from '../../hooks/useToast';
 import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2, X } from 'lucide-react';
+import { getMediaUrl } from '../utils';
 
 // --- Interfaces ---
 interface Option { id: number; name: string; }
@@ -17,6 +18,9 @@ interface Club extends Option {
   effective_require_guardian: boolean;
   terms_and_conditions: string;
   club_policies: string;
+  avatar?: string | null;
+  hero_image?: string | null;
+  description?: string | null;
 }
 
 interface Municipality extends Option {
@@ -85,14 +89,32 @@ export default function YouthRegistrationWizard() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // --- Validation Errors State ---
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  
   // --- Terms Modal State ---
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [termsModalType, setTermsModalType] = useState<'terms' | 'policies'>('terms');
   const [mounted, setMounted] = useState(false);
   
+  // --- Club Hover Preview State ---
+  const [hoveredClub, setHoveredClub] = useState<Club | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Set mounted state for portal
   useEffect(() => {
     setMounted(true);
+  }, []);
+  
+  // Cleanup hover timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
   }, []);
 
   // --- Form Data ---
@@ -114,7 +136,7 @@ export default function YouthRegistrationWizard() {
     guardian_first_name: '',
     guardian_last_name: '',
     guardian_phone: '',
-    guardian_legal_gender: 'MALE',
+    guardian_legal_gender: '',
     guardian_custom_field_values: {} as Record<string, any>,
     terms_accepted: false,
   });
@@ -248,6 +270,125 @@ export default function YouthRegistrationWizard() {
 
   // --- Step Validation ---
   const isStep2Valid = () => formData.email && formData.phone && !emailTaken && !checkingEmail && isPasswordValid && isCaptchaValid();
+  
+  const isStep3Valid = () => {
+    const gradeNum = parseInt(formData.grade);
+    const gradeValid = formData.grade && !isNaN(gradeNum) && gradeNum >= 1 && gradeNum <= 13;
+    
+    return formData.first_name.trim() !== '' && 
+           formData.last_name.trim() !== '' && 
+           formData.date_of_birth !== '' &&
+           gradeValid &&
+           formData.legal_gender !== '';
+  };
+  
+  const isStep4Valid = () => {
+    // If guardian is required, check that guardian email is provided
+    if (selectedClub?.effective_require_guardian) {
+      if (!formData.guardian_email.trim()) return false;
+    }
+    
+    // If guardian email is provided and guardian doesn't exist, validate all guardian fields
+    if (formData.guardian_email && !guardianExists && !checkingGuardian) {
+      if (!formData.guardian_first_name.trim()) return false;
+      if (!formData.guardian_last_name.trim()) return false;
+      if (!formData.guardian_phone.trim()) return false;
+      if (!formData.guardian_legal_gender) return false;
+    }
+    
+    return true;
+  };
+
+  // Validate step and return errors
+  const validateStep = (stepNumber: number): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    
+    switch (stepNumber) {
+      case 2:
+        if (!formData.email.trim()) errors.email = t('validation.emailRequired');
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = t('validation.invalidEmail');
+        else if (emailTaken) errors.email = t('toasts.emailAlreadyRegistered');
+        
+        if (!formData.phone.trim()) errors.phone = t('validation.phoneRequired');
+        
+        if (!formData.password) errors.password = t('validation.passwordRequired');
+        else {
+          if (formData.password.length < 8) errors.password = t('validation.passwordTooShort');
+          else if (!/\d/.test(formData.password)) errors.password = t('validation.passwordNeedsNumber');
+          else if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) errors.password = t('validation.passwordNeedsSpecial');
+        }
+        
+        if (formData.password !== formData.confirm_password) errors.confirm_password = t('validation.passwordsMustMatch');
+        
+        if (!isCaptchaValid()) errors.captcha = t('validation.captchaRequired');
+        break;
+        
+      case 3:
+        if (!formData.first_name.trim()) errors.first_name = t('validation.firstNameRequired');
+        if (!formData.last_name.trim()) errors.last_name = t('validation.lastNameRequired');
+        if (!formData.date_of_birth) errors.date_of_birth = t('validation.dateOfBirthRequired');
+        
+        // Validate grade (required, must be 1-13)
+        if (!formData.grade) {
+          errors.grade = t('validation.gradeRequired');
+        } else {
+          const gradeNum = parseInt(formData.grade);
+          if (isNaN(gradeNum) || gradeNum < 1 || gradeNum > 13) {
+            errors.grade = t('validation.gradeInvalid');
+          }
+        }
+        
+        if (!formData.legal_gender) errors.legal_gender = t('validation.genderRequired');
+        
+        // Validate required custom fields for youth
+        const invalidYouthField = validateCustomFields(youthCustomFields, formData.custom_field_values);
+        if (invalidYouthField) {
+          errors.custom_fields = t('toasts.fillRequiredField', { fieldName: invalidYouthField });
+        }
+        break;
+        
+      case 4:
+        if (selectedClub?.effective_require_guardian && !formData.guardian_email.trim()) {
+          errors.guardian_email = t('validation.guardianRequired');
+        }
+        
+        // If guardian email is entered and guardian doesn't exist, validate all guardian fields
+        if (formData.guardian_email && !guardianExists && !checkingGuardian) {
+          if (!formData.guardian_first_name.trim()) errors.guardian_first_name = t('validation.firstNameRequired');
+          if (!formData.guardian_last_name.trim()) errors.guardian_last_name = t('validation.lastNameRequired');
+          if (!formData.guardian_phone.trim()) errors.guardian_phone = t('validation.phoneRequired');
+          if (!formData.guardian_legal_gender) errors.guardian_legal_gender = t('validation.genderRequired');
+          
+          // Validate required custom fields for guardian
+          const invalidGuardianField = validateCustomFields(guardianCustomFields, formData.guardian_custom_field_values);
+          if (invalidGuardianField) {
+            errors.guardian_custom_fields = t('toasts.fillRequiredField', { fieldName: invalidGuardianField });
+          }
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  // Handle next step with validation
+  const handleNextStep = () => {
+    const errors = validateStep(step);
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setShowValidationErrors(true);
+      // Show first error as toast
+      const firstError = Object.values(errors)[0];
+      error(firstError);
+      return;
+    }
+    
+    // Clear errors and proceed
+    setValidationErrors({});
+    setShowValidationErrors(false);
+    setStep(step + 1);
+  };
 
   // --- Helpers ---
   const stripHtmlTags = (html: string): string => {
@@ -278,6 +419,49 @@ export default function YouthRegistrationWizard() {
     setTermsModalType(type);
     setTermsModalOpen(true);
   };
+  
+  // --- Club Hover Handlers ---
+  const handleClubMouseEnter = (club: Club, event: React.MouseEvent<HTMLButtonElement>) => {
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    
+    // Capture the rect immediately before the timeout
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position = {
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    };
+    
+    // Set a small delay before showing the preview
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoverPosition(position);
+      setHoveredClub(club);
+    }, 300);
+  };
+  
+  const handleClubMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setHoveredClub(null);
+    setHoverPosition(null);
+  };
+  
+  // Strip HTML for description preview
+  const stripHtmlForPreview = (html: string | null | undefined): string => {
+    if (!html) return '';
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
+  };
 
   const updateCF = (fieldId: number, value: any, isGuardian = false) => {
     const key = isGuardian ? 'guardian_custom_field_values' : 'custom_field_values';
@@ -285,6 +469,29 @@ export default function YouthRegistrationWizard() {
         ...prev,
         [key]: { ...prev[key], [fieldId]: value }
     }));
+  };
+
+  // Validate required custom fields
+  const validateCustomFields = (fields: CustomFieldDef[], values: Record<string, any>): string | null => {
+    for (const field of fields) {
+      if (field.required) {
+        const value = values[field.id];
+        
+        if (field.field_type === 'MULTI_SELECT') {
+          if (!value || !Array.isArray(value) || value.length === 0) {
+            return field.name;
+          }
+        } else if (field.field_type === 'BOOLEAN') {
+          // Boolean fields: false is a valid answer, no validation needed
+        } else {
+          // TEXT and SINGLE_SELECT
+          if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+            return field.name;
+          }
+        }
+      }
+    }
+    return null;
   };
   
   const handleInterestToggle = (id: number) => {
@@ -306,6 +513,22 @@ export default function YouthRegistrationWizard() {
         error(t('toasts.incorrectCaptcha'));
         generateCaptcha();
         return;
+    }
+
+    // Validate required youth custom fields
+    const invalidYouthField = validateCustomFields(youthCustomFields, formData.custom_field_values);
+    if (invalidYouthField) {
+      error(t('toasts.fillRequiredField', { fieldName: invalidYouthField }));
+      return;
+    }
+    
+    // Validate required guardian custom fields (only if creating new guardian)
+    if (formData.guardian_email && !guardianExists) {
+      const invalidGuardianField = validateCustomFields(guardianCustomFields, formData.guardian_custom_field_values);
+      if (invalidGuardianField) {
+        error(t('toasts.fillRequiredField', { fieldName: invalidGuardianField }));
+        return;
+      }
     }
 
     setLoading(true);
@@ -507,19 +730,39 @@ export default function YouthRegistrationWizard() {
                       <button 
                         key={club.id} 
                         type="button"
-                        onClick={() => setSelectedClub(club)} 
+                        onClick={() => setSelectedClub(club)}
+                        onMouseEnter={(e) => handleClubMouseEnter(club, e)}
+                        onMouseLeave={handleClubMouseLeave}
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                           selectedClub?.id === club.id 
                             ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10' 
                             : 'border-[var(--dark-500)] bg-[var(--dark-700)] hover:border-[var(--brand-primary)]/50'
                         }`}
                       >
-                        <div className="font-bold text-[var(--brand-light)]">{club.name}</div>
-                        {selectedClub?.id === club.id && (
-                          <div className="flex items-center gap-1 mt-2 text-[var(--brand-primary)] text-xs font-medium">
-                            <Check className="w-3 h-3" /> {t('common.selected')}
+                        <div className="flex items-center gap-3">
+                          {/* Club Avatar */}
+                          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[var(--dark-600)] border border-[var(--dark-500)]">
+                            {club.avatar ? (
+                              <img 
+                                src={getMediaUrl(club.avatar)} 
+                                alt={club.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Building2 className="w-6 h-6 text-[var(--brand-light)]/30" />
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-[var(--brand-light)] truncate">{club.name}</div>
+                            {selectedClub?.id === club.id && (
+                              <div className="flex items-center gap-1 mt-1 text-[var(--brand-primary)] text-xs font-medium">
+                                <Check className="w-3 h-3" /> {t('common.selected')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -543,15 +786,16 @@ export default function YouthRegistrationWizard() {
             {/* Email & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.emailAddress')}</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.emailAddress')} *</label>
                 <input 
                   type="email" 
                   placeholder={t('step2.emailPlaceholder')}
-                  className={`${inputClasses} ${emailTaken ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
+                  className={`${inputClasses} ${emailTaken || (showValidationErrors && validationErrors.email) ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                   value={formData.email} 
                   onChange={e => { 
                     setFormData({...formData, email: e.target.value}); 
                     setEmailTaken(false);
+                    if (validationErrors.email) setValidationErrors(prev => ({...prev, email: ''}));
                   }}
                   onBlur={checkEmailAvailability} 
                 />
@@ -562,30 +806,48 @@ export default function YouthRegistrationWizard() {
                     {t('step2.emailAlreadyRegistered')} <a href="/login" className="underline hover:text-[var(--brand-red)]/80">{t('step2.loginInstead')}</a>
                   </p>
                 )}
+                {showValidationErrors && validationErrors.email && !emailTaken && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.email}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.phone')}</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.phone')} *</label>
                 <input 
                   type="tel" 
                   placeholder={t('step2.phonePlaceholder')}
-                  className={inputClasses}
+                  className={`${inputClasses} ${showValidationErrors && validationErrors.phone ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                   value={formData.phone} 
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                  onChange={e => {
+                    setFormData({...formData, phone: e.target.value});
+                    if (validationErrors.phone) setValidationErrors(prev => ({...prev, phone: ''}));
+                  }}
                 />
+                {showValidationErrors && validationErrors.phone && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.phone}
+                  </p>
+                )}
               </div>
             </div>
             
             {/* Passwords */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.password')}</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.password')} *</label>
                 <div className="relative">
                   <input 
                     type={showPassword ? 'text' : 'password'} 
                     placeholder="••••••••"
-                    className={inputClasses}
+                    className={`${inputClasses} ${showValidationErrors && validationErrors.password ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                     value={formData.password} 
-                    onChange={e => setFormData({...formData, password: e.target.value})} 
+                    onChange={e => {
+                      setFormData({...formData, password: e.target.value});
+                      if (validationErrors.password) setValidationErrors(prev => ({...prev, password: ''}));
+                    }} 
                   />
                   <button
                     type="button"
@@ -595,16 +857,25 @@ export default function YouthRegistrationWizard() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {showValidationErrors && validationErrors.password && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.password}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.confirmPassword')}</label>
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step2.confirmPassword')} *</label>
                 <div className="relative">
                   <input 
                     type={showConfirmPassword ? 'text' : 'password'} 
                     placeholder="••••••••"
-                    className={`${inputClasses} ${formData.confirm_password && !pwValid.match ? 'border-[var(--brand-red)]' : ''}`}
+                    className={`${inputClasses} ${(formData.confirm_password && !pwValid.match) || (showValidationErrors && validationErrors.confirm_password) ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                     value={formData.confirm_password} 
-                    onChange={e => setFormData({...formData, confirm_password: e.target.value})} 
+                    onChange={e => {
+                      setFormData({...formData, confirm_password: e.target.value});
+                      if (validationErrors.confirm_password) setValidationErrors(prev => ({...prev, confirm_password: ''}));
+                    }} 
                   />
                   <button
                     type="button"
@@ -614,6 +885,12 @@ export default function YouthRegistrationWizard() {
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {showValidationErrors && validationErrors.confirm_password && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.confirm_password}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -674,33 +951,108 @@ export default function YouthRegistrationWizard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.firstName')} *</label>
-                <input type="text" placeholder={t('step3.firstName')} className={inputClasses} value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+                <input 
+                  type="text" 
+                  placeholder={t('step3.firstName')} 
+                  className={`${inputClasses} ${showValidationErrors && validationErrors.first_name ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                  value={formData.first_name} 
+                  onChange={e => {
+                    setFormData({...formData, first_name: e.target.value});
+                    if (validationErrors.first_name) setValidationErrors(prev => ({...prev, first_name: ''}));
+                  }} 
+                />
+                {showValidationErrors && validationErrors.first_name && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.first_name}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.lastName')} *</label>
-                <input type="text" placeholder={t('step3.lastName')} className={inputClasses} value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+                <input 
+                  type="text" 
+                  placeholder={t('step3.lastName')} 
+                  className={`${inputClasses} ${showValidationErrors && validationErrors.last_name ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                  value={formData.last_name} 
+                  onChange={e => {
+                    setFormData({...formData, last_name: e.target.value});
+                    if (validationErrors.last_name) setValidationErrors(prev => ({...prev, last_name: ''}));
+                  }} 
+                />
+                {showValidationErrors && validationErrors.last_name && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.last_name}
+                  </p>
+                )}
               </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.dateOfBirth')}</label>
-                <input type="date" className={`${inputClasses} appearance-none`} style={{ minHeight: '50px' }} value={formData.date_of_birth} onChange={e => setFormData({...formData, date_of_birth: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.dateOfBirth')} *</label>
+                <input 
+                  type="date" 
+                  className={`${inputClasses} appearance-none ${showValidationErrors && validationErrors.date_of_birth ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                  style={{ minHeight: '50px' }} 
+                  value={formData.date_of_birth} 
+                  onChange={e => {
+                    setFormData({...formData, date_of_birth: e.target.value});
+                    if (validationErrors.date_of_birth) setValidationErrors(prev => ({...prev, date_of_birth: ''}));
+                  }} 
+                />
+                {showValidationErrors && validationErrors.date_of_birth && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.date_of_birth}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.grade')}</label>
-                <input type="number" placeholder={t('step3.gradePlaceholder')} className={inputClasses} value={formData.grade} onChange={e => setFormData({...formData, grade: e.target.value})} />
+                <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.grade')} * <span className="font-normal text-[var(--brand-light)]/50">(1-13)</span></label>
+                <input 
+                  type="number" 
+                  min="1"
+                  max="13"
+                  placeholder={t('step3.gradePlaceholder')} 
+                  className={`${inputClasses} ${showValidationErrors && validationErrors.grade ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                  value={formData.grade} 
+                  onChange={e => {
+                    setFormData({...formData, grade: e.target.value});
+                    if (validationErrors.grade) setValidationErrors(prev => ({...prev, grade: ''}));
+                  }} 
+                />
+                {showValidationErrors && validationErrors.grade && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.grade}
+                  </p>
+                )}
               </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.legalGender')} *</label>
-                <select className={`${inputClasses} appearance-none`} value={formData.legal_gender} onChange={e => setFormData({...formData, legal_gender: e.target.value})}>
+                <select 
+                  className={`${inputClasses} appearance-none ${showValidationErrors && validationErrors.legal_gender ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                  value={formData.legal_gender} 
+                  onChange={e => {
+                    setFormData({...formData, legal_gender: e.target.value});
+                    if (validationErrors.legal_gender) setValidationErrors(prev => ({...prev, legal_gender: ''}));
+                  }}
+                >
                   <option value="MALE">{t('gender.male')}</option>
                   <option value="FEMALE">{t('gender.female')}</option>
                   <option value="OTHER">{t('gender.other')}</option>
                 </select>
+                {showValidationErrors && validationErrors.legal_gender && (
+                  <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.legal_gender}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.preferredGender')}</label>
@@ -748,6 +1100,12 @@ export default function YouthRegistrationWizard() {
               <div className="pt-4 border-t border-[var(--dark-600)]">
                 <h4 className="font-bold text-[var(--brand-light)] mb-4">{t('common.additionalQuestions')}</h4>
                 {renderCustomFields(youthCustomFields, false)}
+                {showValidationErrors && validationErrors.custom_fields && (
+                  <p className="text-xs text-[var(--brand-red)] mt-2 font-medium flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {validationErrors.custom_fields}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -769,19 +1127,28 @@ export default function YouthRegistrationWizard() {
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.guardianEmail')}</label>
+              <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">
+                {t('step4.guardianEmail')} {selectedClub?.effective_require_guardian && '*'}
+              </label>
               <input 
                 type="email" 
                 placeholder={t('step4.guardianEmailPlaceholder')}
-                className={`${inputClasses} ${guardianExists ? 'border-[var(--brand-green)] bg-[var(--brand-green)]/10' : ''}`}
+                className={`${inputClasses} ${guardianExists ? 'border-[var(--brand-green)] bg-[var(--brand-green)]/10' : ''} ${showValidationErrors && validationErrors.guardian_email ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`}
                 value={formData.guardian_email} 
                 onChange={e => {
                   setFormData({...formData, guardian_email: e.target.value});
                   setGuardianExists(false);
+                  if (validationErrors.guardian_email) setValidationErrors(prev => ({...prev, guardian_email: ''}));
                 }}
                 onBlur={checkGuardianEmail}
               />
               {checkingGuardian && <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('common.checking')}</p>}
+              {showValidationErrors && validationErrors.guardian_email && (
+                <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {validationErrors.guardian_email}
+                </p>
+              )}
             </div>
             
             {guardianExists && (
@@ -797,26 +1164,85 @@ export default function YouthRegistrationWizard() {
               <div className="space-y-4 animate-fade-in">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.firstName')}</label>
-                    <input type="text" placeholder={t('step4.guardianFirstNamePlaceholder')} className={inputClasses} value={formData.guardian_first_name} onChange={e => setFormData({...formData, guardian_first_name: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.firstName')} *</label>
+                    <input 
+                      type="text" 
+                      placeholder={t('step4.guardianFirstNamePlaceholder')} 
+                      className={`${inputClasses} ${showValidationErrors && validationErrors.guardian_first_name ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                      value={formData.guardian_first_name} 
+                      onChange={e => {
+                        setFormData({...formData, guardian_first_name: e.target.value});
+                        if (validationErrors.guardian_first_name) setValidationErrors(prev => ({...prev, guardian_first_name: ''}));
+                      }} 
+                    />
+                    {showValidationErrors && validationErrors.guardian_first_name && (
+                      <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.guardian_first_name}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.lastName')}</label>
-                    <input type="text" placeholder={t('step4.guardianLastNamePlaceholder')} className={inputClasses} value={formData.guardian_last_name} onChange={e => setFormData({...formData, guardian_last_name: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step3.lastName')} *</label>
+                    <input 
+                      type="text" 
+                      placeholder={t('step4.guardianLastNamePlaceholder')} 
+                      className={`${inputClasses} ${showValidationErrors && validationErrors.guardian_last_name ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                      value={formData.guardian_last_name} 
+                      onChange={e => {
+                        setFormData({...formData, guardian_last_name: e.target.value});
+                        if (validationErrors.guardian_last_name) setValidationErrors(prev => ({...prev, guardian_last_name: ''}));
+                      }} 
+                    />
+                    {showValidationErrors && validationErrors.guardian_last_name && (
+                      <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.guardian_last_name}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.phone')}</label>
-                    <input type="tel" placeholder={t('step4.phonePlaceholder')} className={inputClasses} value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.phone')} *</label>
+                    <input 
+                      type="tel" 
+                      placeholder={t('step4.phonePlaceholder')} 
+                      className={`${inputClasses} ${showValidationErrors && validationErrors.guardian_phone ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                      value={formData.guardian_phone} 
+                      onChange={e => {
+                        setFormData({...formData, guardian_phone: e.target.value});
+                        if (validationErrors.guardian_phone) setValidationErrors(prev => ({...prev, guardian_phone: ''}));
+                      }} 
+                    />
+                    {showValidationErrors && validationErrors.guardian_phone && (
+                      <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.guardian_phone}
+                      </p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.gender')}</label>
-                    <select className={`${inputClasses} appearance-none`} value={formData.guardian_legal_gender} onChange={e => setFormData({...formData, guardian_legal_gender: e.target.value})}>
+                    <label className="block text-sm font-bold text-[var(--brand-light)] mb-2">{t('step4.gender')} *</label>
+                    <select 
+                      className={`${inputClasses} appearance-none ${showValidationErrors && validationErrors.guardian_legal_gender ? 'border-[var(--brand-red)] bg-[var(--brand-red)]/10' : ''}`} 
+                      value={formData.guardian_legal_gender} 
+                      onChange={e => {
+                        setFormData({...formData, guardian_legal_gender: e.target.value});
+                        if (validationErrors.guardian_legal_gender) setValidationErrors(prev => ({...prev, guardian_legal_gender: ''}));
+                      }}
+                    >
+                      <option value="">{t('step4.selectGender')}</option>
                       <option value="MALE">{t('gender.male')}</option>
                       <option value="FEMALE">{t('gender.female')}</option>
                       <option value="OTHER">{t('gender.other')}</option>
                     </select>
+                    {showValidationErrors && validationErrors.guardian_legal_gender && (
+                      <p className="text-xs text-[var(--brand-red)] mt-1 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.guardian_legal_gender}
+                      </p>
+                    )}
                   </div>
                 </div>
                 
@@ -824,6 +1250,12 @@ export default function YouthRegistrationWizard() {
                   <div className="pt-4 border-t border-[var(--dark-600)]">
                     <h4 className="font-bold text-[var(--brand-light)] mb-4">{t('step4.guardianDetails')}</h4>
                     {renderCustomFields(guardianCustomFields, true)}
+                    {showValidationErrors && validationErrors.guardian_custom_fields && (
+                      <p className="text-xs text-[var(--brand-red)] mt-2 font-medium flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {validationErrors.guardian_custom_fields}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -941,7 +1373,11 @@ export default function YouthRegistrationWizard() {
         {step > 1 ? (
           <button 
             type="button"
-            onClick={() => setStep(step - 1)} 
+            onClick={() => {
+              setValidationErrors({});
+              setShowValidationErrors(false);
+              setStep(step - 1);
+            }} 
             className="flex items-center gap-2 text-[var(--brand-light)]/70 hover:text-[var(--brand-light)] font-bold transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -952,8 +1388,8 @@ export default function YouthRegistrationWizard() {
         {step < 5 ? (
           <button 
             type="button"
-            onClick={() => setStep(step + 1)} 
-            disabled={(step === 1 && !selectedClub) || (step === 2 && !isStep2Valid())} 
+            onClick={step === 1 ? () => setStep(step + 1) : handleNextStep} 
+            disabled={step === 1 && !selectedClub} 
             className="flex items-center gap-2 bg-[var(--brand-primary)] text-gray-900 px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-primary)]/90 transition-all active:scale-95 shadow-md"
           >
             {t('navigation.next')}
@@ -980,6 +1416,69 @@ export default function YouthRegistrationWizard() {
           </button>
         )}
       </div>
+
+      {/* Club Hover Preview Card - Using Portal */}
+      {hoveredClub && hoverPosition && mounted && createPortal(
+        <div 
+          className="fixed z-[9998] pointer-events-none"
+          style={{
+            left: Math.min(hoverPosition.x - 160, window.innerWidth - 340),
+            top: Math.max(hoverPosition.y - 220, 10),
+          }}
+        >
+          <div className="w-[320px] bg-white dark:bg-[var(--dark-800)] rounded-2xl border border-gray-200 dark:border-[var(--dark-500)] shadow-2xl overflow-hidden animate-fade-in">
+            {/* Hero Image */}
+            <div className="h-24 relative bg-gradient-to-br from-[var(--brand-purple)]/20 dark:from-[var(--brand-purple)]/30 to-[var(--brand-primary)]/10 dark:to-[var(--brand-primary)]/20">
+              {hoveredClub.hero_image ? (
+                <img 
+                  src={getMediaUrl(hoveredClub.hero_image)} 
+                  alt={hoveredClub.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Building2 className="w-10 h-10 text-gray-300 dark:text-[var(--brand-light)]/20" />
+                </div>
+              )}
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[var(--dark-800)] via-transparent to-transparent" />
+            </div>
+            
+            {/* Avatar - positioned to overlap hero */}
+            <div className="relative px-4 -mt-8">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border-4 border-white dark:border-[var(--dark-800)] bg-gray-100 dark:bg-[var(--dark-700)] shadow-lg">
+                {hoveredClub.avatar ? (
+                  <img 
+                    src={getMediaUrl(hoveredClub.avatar)} 
+                    alt={hoveredClub.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Building2 className="w-8 h-8 text-gray-300 dark:text-[var(--brand-light)]/30" />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="px-4 pb-4 pt-2">
+              <h4 className="font-bold text-gray-900 dark:text-[var(--brand-light)] text-lg">{hoveredClub.name}</h4>
+              {hoveredClub.description && (
+                <p className="text-gray-600 dark:text-[var(--brand-light)]/60 text-sm mt-2 line-clamp-3">
+                  {stripHtmlForPreview(hoveredClub.description)}
+                </p>
+              )}
+              {!hoveredClub.description && (
+                <p className="text-gray-400 dark:text-[var(--brand-light)]/40 text-sm mt-2 italic">
+                  {t('step1.noDescription')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Terms Modal - Using Portal to render outside component hierarchy */}
       {termsModalOpen && mounted && createPortal(

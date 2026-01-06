@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { getMediaUrl } from '@/app/utils';
 import FeatureShowcase from '@/app/components/cms/FeatureShowcase';
+import { useLocale } from 'next-intl';
 
 // Helper function to generate TOC from content
 function generateTocFromContent(content: string | undefined | null): TableOfContentsItem[] {
@@ -84,6 +85,7 @@ function processContentWithIds(content: string | undefined | null, tocItems: Tab
 export default function DynamicCmsPage() {
   const { slug } = useParams();
   const { theme } = useTheme();
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [page, setPage] = useState<Page | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +125,7 @@ export default function DynamicCmsPage() {
     async function load() {
       if (!slug) return;
       try {
-        const data = await cmsApi.getPublicPage(Array.isArray(slug) ? slug[0] : slug);
+        const data = await cmsApi.getPublicPage(Array.isArray(slug) ? slug[0] : slug, locale);
         setPage(data);
         
         if (data) {
@@ -159,7 +161,7 @@ export default function DynamicCmsPage() {
       }
     }
     load();
-  }, [slug]);
+  }, [slug, locale]);
 
   // Track scroll position for TOC highlighting and fixed positioning
   useEffect(() => {

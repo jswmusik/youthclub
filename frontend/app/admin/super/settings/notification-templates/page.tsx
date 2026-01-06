@@ -96,7 +96,8 @@ export default function NotificationTemplatesPage() {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const response = await api.get('/notifications/templates/');
+      // Fetch all templates (override pagination with high page_size)
+      const response = await api.get('/notifications/templates/?page_size=100');
       setTemplates(response.data.results || response.data);
     } catch (err) {
       console.error('Error fetching templates:', err);

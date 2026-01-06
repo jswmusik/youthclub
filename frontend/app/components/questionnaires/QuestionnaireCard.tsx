@@ -487,6 +487,8 @@ export default function QuestionnaireCard({ questionnaire, onComplete, darkMode 
 
 // Question Input Component (same as QuestionnaireRunner)
 function QuestionInput({ question, value, onChange, darkMode = false }: { question: any, value: any, onChange: (v: any) => void, darkMode?: boolean }) {
+  const t = useTranslations('questionnaires');
+  
   if (question.question_type === 'FREE_TEXT') {
     return (
       <textarea

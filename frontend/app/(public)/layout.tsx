@@ -15,7 +15,7 @@ import CookieConsentBanner from '@/app/components/cms/CookieConsentBanner';
 import NewsletterModal from '@/app/components/NewsletterModal';
 import { BackgroundGlow } from '@/components/BackgroundGlow';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 
 export default function PublicLayout({
   children,
@@ -25,6 +25,7 @@ export default function PublicLayout({
   const { user, logout, loading: authLoading } = useAuth();
   const { theme } = useTheme();
   const t = useTranslations('public.layout');
+  const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -70,11 +71,11 @@ export default function PublicLayout({
     };
   }, [mobileMenuOpen]);
 
-  // Fetch CMS menu items
+  // Fetch CMS menu items based on current locale
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const menuData = await cmsApi.getPublicMenu();
+        const menuData = await cmsApi.getPublicMenu(locale);
         setHeaderItems(menuData.header || []);
         setFooterItems(menuData.footer || []);
       } catch (error) {
@@ -84,7 +85,7 @@ export default function PublicLayout({
       }
     };
     fetchMenu();
-  }, []);
+  }, [locale]);
 
   const getDashboardLink = () => {
     if (!user) return '/login';

@@ -294,6 +294,9 @@ class ClubSerializer(serializers.ModelSerializer):
             'allow_self_registration_override', 
             'require_guardian_override',
             'trial_period_days_override',
+            # Inventory settings:
+            'max_active_loans_per_user',
+            'borrowing_requires_checkin',
             # Computed fields:
             'effective_require_guardian',
             'effective_registration_allowed',
@@ -383,6 +386,9 @@ class ClubManagementSerializer(serializers.ModelSerializer):
             'allow_self_registration_override',
             'require_guardian_override',
             'trial_period_days_override',  # Added trial period override
+            # Inventory settings:
+            'max_active_loans_per_user',
+            'borrowing_requires_checkin',
             'regular_hours_data'
         ]
 

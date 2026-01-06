@@ -172,6 +172,9 @@ export default function EventDetailPage() {
         ? new Date(event.registration_close_date) < new Date()
         : false;
 
+    // Check if event is OPEN mode (no registration needed - just show up)
+    const isOpenMode = event?.registration_mode === 'OPEN';
+
     const eventDate = new Date(event.start_date);
     const isUpcoming = eventDate > new Date();
 
@@ -582,14 +585,15 @@ export default function EventDetailPage() {
                                     ) : (
                                         <button 
                                             onClick={() => setRegModalOpen(true)}
-                                            disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
+                                            disabled={isOpenMode || !event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
                                             className={`w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-4 rounded-xl hover:bg-[var(--brand-primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-                                                !event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)
+                                                isOpenMode || !event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)
                                                     ? (darkMode ? 'disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50' : 'disabled:bg-gray-200 disabled:text-gray-500')
                                                     : ''
                                             }`}
                                         >
-                                            {!event.allow_registration ? t('noRegistrationRequired') : 
+                                            {isOpenMode ? t('openEvent') :
+                                             !event.allow_registration ? t('noRegistrationRequired') : 
                                              isRegistrationClosed ? t('registrationClosed') :
                                              (event.max_seats > 0 && isFull) ? t('joinWaitlist') : t('registerNow')}
                                         </button>
@@ -647,12 +651,13 @@ export default function EventDetailPage() {
                         ) : (
                             <button 
                                 onClick={() => setRegModalOpen(true)}
-                                disabled={!event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
+                                disabled={isOpenMode || !event.allow_registration || isRegistrationClosed || (event.max_seats > 0 && isFull && event.max_waitlist === 0)}
                                 className={`w-full bg-[var(--brand-primary)] text-[var(--dark-900)] font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
                                     darkMode ? 'disabled:bg-[var(--dark-600)] disabled:text-[var(--brand-light)]/50' : 'disabled:bg-gray-200 disabled:text-gray-500'
                                 }`}
                             >
-                                {!event.allow_registration ? t('noRegistration') : 
+                                {isOpenMode ? t('openEvent') :
+                                 !event.allow_registration ? t('noRegistration') : 
                                  isRegistrationClosed ? t('closed') :
                                  (event.max_seats > 0 && isFull) ? t('joinWaitlist') : t('registerNow')}
                             </button>

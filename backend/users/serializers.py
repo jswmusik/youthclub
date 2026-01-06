@@ -784,17 +784,27 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         
         # Clean up empty strings - convert to None for optional fields
         # Note: nickname is excluded because the model has blank=True but not null=True
-        for field in ['preferred_gender', 'date_of_birth', 'grade']:
+        for field in ['preferred_gender']:
             if field in attrs and attrs[field] == '':
                 attrs[field] = None
         
-        # Handle grade - convert to None if invalid
-        if 'grade' in attrs:
-            try:
-                if attrs['grade'] is not None:
-                    attrs['grade'] = int(attrs['grade'])
-            except (ValueError, TypeError):
-                attrs['grade'] = None
+        # Validate date_of_birth is required
+        date_of_birth = attrs.get('date_of_birth')
+        if not date_of_birth or date_of_birth == '':
+            raise serializers.ValidationError({"date_of_birth": "Date of birth is required."})
+        
+        # Validate grade is required and must be 1-13
+        grade = attrs.get('grade')
+        if not grade or grade == '':
+            raise serializers.ValidationError({"grade": "Grade is required."})
+        
+        try:
+            grade_int = int(grade)
+            if grade_int < 1 or grade_int > 13:
+                raise serializers.ValidationError({"grade": "Grade must be between 1 and 13."})
+            attrs['grade'] = grade_int
+        except (ValueError, TypeError):
+            raise serializers.ValidationError({"grade": "Grade must be a valid number between 1 and 13."})
             
         # 2. Club Validation
         try:
@@ -810,6 +820,91 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         if club.should_require_guardian:
             if not attrs.get('guardian_email'):
                 raise serializers.ValidationError({"guardian_email": "This club requires a guardian to register."})
+        
+        # 4. Validate required custom fields
+        custom_fields_data = attrs.get('custom_fields', {})
+        guardian_custom_fields_data = attrs.get('guardian_custom_fields', {})
+        
+        from custom_fields.models import CustomFieldDefinition
+        from django.db.models import Q
+        
+        # Get applicable required custom fields for this club
+        applicable_fields = CustomFieldDefinition.objects.filter(
+            Q(club=club) |
+            Q(owner_role='SUPER_ADMIN', municipality__isnull=True, club__isnull=True) |
+            Q(municipality=club.municipality, specific_clubs__isnull=True) |
+            Q(municipality=club.municipality, specific_clubs=club)
+        ).filter(
+            is_published=True,
+            context='USER_PROFILE',
+            required=True
+        ).distinct()
+        
+        # Check youth required fields
+        for field in applicable_fields:
+            target_roles = field.target_roles if isinstance(field.target_roles, list) else []
+            if 'ALL' in target_roles or 'YOUTH_MEMBER' in target_roles:
+                field_id_str = str(field.id)
+                value = custom_fields_data.get(field_id_str)
+                
+                # Skip boolean fields (false is valid)
+                if field.field_type == 'BOOLEAN':
+                    continue
+                
+                # Check if value is empty
+                if value is None or value == '':
+                    raise serializers.ValidationError({
+                        'custom_fields': f"Field '{field.name}' is required."
+                    })
+                
+                # For MULTI_SELECT, check if array is empty
+                if field.field_type == 'MULTI_SELECT':
+                    if not isinstance(value, list) or len(value) == 0:
+                        raise serializers.ValidationError({
+                            'custom_fields': f"Field '{field.name}' is required."
+                        })
+        
+        # Check guardian required fields (only if creating new guardian)
+        guardian_email = attrs.get('guardian_email')
+        if guardian_email:
+            existing_guardian = User.objects.filter(email__iexact=guardian_email).first()
+            
+            if not existing_guardian:
+                # New guardian being created - validate required guardian fields
+                guardian_first_name = attrs.get('guardian_first_name')
+                guardian_last_name = attrs.get('guardian_last_name')
+                guardian_phone = attrs.get('guardian_phone')
+                guardian_legal_gender = attrs.get('guardian_legal_gender')
+                
+                if not guardian_first_name or guardian_first_name.strip() == '':
+                    raise serializers.ValidationError({"guardian_first_name": "Guardian first name is required."})
+                if not guardian_last_name or guardian_last_name.strip() == '':
+                    raise serializers.ValidationError({"guardian_last_name": "Guardian last name is required."})
+                if not guardian_phone or guardian_phone.strip() == '':
+                    raise serializers.ValidationError({"guardian_phone": "Guardian phone number is required."})
+                if not guardian_legal_gender or guardian_legal_gender.strip() == '':
+                    raise serializers.ValidationError({"guardian_legal_gender": "Guardian gender is required."})
+                
+                # Validate guardian custom fields
+                for field in applicable_fields:
+                    target_roles = field.target_roles if isinstance(field.target_roles, list) else []
+                    if 'ALL' in target_roles or 'GUARDIAN' in target_roles:
+                        field_id_str = str(field.id)
+                        value = guardian_custom_fields_data.get(field_id_str)
+                        
+                        if field.field_type == 'BOOLEAN':
+                            continue
+                        
+                        if value is None or value == '':
+                            raise serializers.ValidationError({
+                                'guardian_custom_fields': f"Field '{field.name}' is required for guardian."
+                            })
+                        
+                        if field.field_type == 'MULTI_SELECT':
+                            if not isinstance(value, list) or len(value) == 0:
+                                raise serializers.ValidationError({
+                                    'guardian_custom_fields': f"Field '{field.name}' is required for guardian."
+                                })
                 
         attrs['preferred_club'] = club
         return attrs
@@ -897,10 +992,21 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         for field_id, value in data_dict.items():
             try:
                 field = CustomFieldDefinition.objects.get(id=int(field_id))
-                CustomFieldValue.objects.update_or_create(
-                    user=user,
-                    field=field,
-                    defaults={'value': value}
-                )
+                
+                # Convert empty strings to None for cleaner storage
+                if value == '':
+                    value = None
+                
+                # Only save if there's an actual value (or it's a boolean false)
+                if value is not None or field.field_type == 'BOOLEAN':
+                    CustomFieldValue.objects.update_or_create(
+                        user=user,
+                        field=field,
+                        defaults={'value': value}
+                    )
+                else:
+                    # Remove any existing value if the new value is empty/None
+                    CustomFieldValue.objects.filter(user=user, field=field).delete()
+                    
             except (CustomFieldDefinition.DoesNotExist, ValueError):
                 continue

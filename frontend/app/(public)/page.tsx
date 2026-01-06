@@ -1,5 +1,6 @@
 // frontend/app/(public)/page.tsx
 import { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import HeroSection from './components/HeroSection';
 import KPITicker from './components/KPITicker';
 import EventsSection from './components/EventsSection';
@@ -7,13 +8,23 @@ import PostsSection from './components/PostsSection';
 import TestimonialsSection from './components/TestimonialsSection';
 import CustomersSection from './components/CustomersSection';
 import CTASection from './components/CTASection';
+import { defaultLocale, type Locale } from '@/i18n/config';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+const LOCALE_COOKIE = 'NEXT_LOCALE';
 
-// Fetch SEO settings from backend
-async function getSeoSettings() {
+// Get locale from cookies
+async function getLocale(): Promise<Locale> {
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  return (cookieLocale as Locale) || defaultLocale;
+}
+
+// Fetch SEO settings from backend with language support
+async function getSeoSettings(lang?: string) {
   try {
-    const res = await fetch(`${API_URL}/marketing/public/seo-settings/`, {
+    const params = lang ? `?lang=${lang}` : '';
+    const res = await fetch(`${API_URL}/marketing/public/seo-settings/${params}`, {
       next: { revalidate: 60 }, // Revalidate every minute
     });
     if (!res.ok) return null;
@@ -24,9 +35,22 @@ async function getSeoSettings() {
   }
 }
 
-// Generate dynamic metadata
+// Map locale to Open Graph locale format
+const localeToOgLocale: Record<string, string> = {
+  'sv': 'sv_SE',
+  'en': 'en_US',
+  'da': 'da_DK',
+  'nb': 'nb_NO',
+  'fi': 'fi_FI',
+  'ar': 'ar_SA',
+  'so': 'so_SO',
+  'prs': 'fa_AF',
+};
+
+// Generate dynamic metadata with language support
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSeoSettings();
+  const locale = await getLocale();
+  const settings = await getSeoSettings(locale);
 
   const title = settings?.page_title || 'Ungdomsappen - Hitta aktiviteter nära dig';
   const description = settings?.meta_description || 
@@ -42,7 +66,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: settings?.og_description || description,
       images: settings?.og_image ? [settings.og_image] : [],
       type: 'website',
-      locale: 'sv_SE',
+      locale: localeToOgLocale[locale] || 'sv_SE',
     },
     twitter: {
       card: 'summary_large_image',

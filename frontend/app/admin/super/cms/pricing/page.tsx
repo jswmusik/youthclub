@@ -19,6 +19,8 @@ import {
 import { useToast } from '../../../../../hooks/useToast';
 import Skeleton from '@/app/components/ui/Skeleton';
 import Link from 'next/link';
+import { AdminLanguageSelector, LanguageBadge } from '../../../components/LanguageSelector';
+import { locales } from '../../../../../i18n/config';
 import {
   DndContext,
   closestCenter,
@@ -141,6 +143,7 @@ function SortableFAQItem({
 
 export default function PricingCMSPage() {
   const t = useTranslations('cmsAdmin.pricing');
+  const [currentLanguage, setCurrentLanguage] = useState<string>('sv');
   const [content, setContent] = useState<PricingContent>({
     hero_title: '',
     hero_subtitle: '',
@@ -199,16 +202,43 @@ export default function PricingCMSPage() {
     })
   );
 
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLanguage(lang);
+    // Reset content to defaults when switching language to avoid showing stale data
+    setContent({
+      hero_title: '',
+      hero_subtitle: '',
+      hero_tagline: '',
+      cta_title: '',
+      cta_description: '',
+      cta_button_text: '',
+      cta_button_url: '',
+      trust_section_title: '',
+      trust_section_description: '',
+      trust_stat_municipalities: '',
+      trust_stat_active_users: '',
+      trust_stat_satisfaction: '',
+      trust_stat_uptime: '',
+      meta_title: '',
+      meta_description: '',
+      og_title: '',
+      og_description: '',
+      og_image: null,
+      ai_description: '',
+    });
+    setFaqs([]);
+  };
+
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentLanguage]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [contentRes, faqsRes] = await Promise.all([
-        api.get('/cms/pricing-content/'),
-        api.get('/cms/pricing-faqs/')
+        api.get(`/cms/pricing-content/?lang=${currentLanguage}`),
+        api.get(`/cms/pricing-faqs/?lang=${currentLanguage}`)
       ]);
       
       if (contentRes.data) {
@@ -228,8 +258,15 @@ export default function PricingCMSPage() {
   const handleSaveContent = async () => {
     try {
       setSaving(true);
-      await api.patch('/cms/pricing-content/update_content/', content);
+      // Don't send the id - let the backend handle finding/creating the right instance by language
+      const { id, ...contentWithoutId } = content;
+      await api.patch('/cms/pricing-content/update_content/', {
+        ...contentWithoutId,
+        language: currentLanguage
+      });
       success(t('toast.saveSuccess'));
+      // Refresh data to get the correct id for this language
+      fetchData();
     } catch (err) {
       console.error('Failed to save content:', err);
       error(t('toast.saveFailed'));
@@ -247,12 +284,16 @@ export default function PricingCMSPage() {
     try {
       setSavingFaq(true);
       if (editingFaq.id) {
-        await api.patch(`/cms/pricing-faqs/${editingFaq.id}/`, editingFaq);
+        await api.patch(`/cms/pricing-faqs/${editingFaq.id}/`, {
+          ...editingFaq,
+          language: currentLanguage
+        });
         success(t('toast.faqUpdateSuccess'));
       } else {
         await api.post('/cms/pricing-faqs/', {
           ...editingFaq,
-          order: faqs.length
+          order: faqs.length,
+          language: currentLanguage
         });
         success(t('toast.faqCreateSuccess'));
       }
@@ -362,14 +403,22 @@ export default function PricingCMSPage() {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            className="border-[var(--dark-500)] text-[var(--brand-light)] hover:bg-[var(--dark-700)]"
-            onClick={() => window.open('/pricing', '_blank')}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            {t('previewButton')}
-          </Button>
+          <div className="flex items-center gap-3">
+            <AdminLanguageSelector
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+              languages={locales as unknown as string[]}
+              variant="dropdown"
+            />
+            <Button
+              variant="outline"
+              className="border-[var(--dark-500)] text-[var(--brand-light)] hover:bg-[var(--dark-700)]"
+              onClick={() => window.open('/pricing', '_blank')}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              {t('previewButton')}
+            </Button>
+          </div>
         </div>
 
         {/* Hero Section Card */}

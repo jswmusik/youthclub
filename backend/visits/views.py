@@ -12,6 +12,7 @@ from .services import CheckInService
 from organization.models import Club
 from users.models import User
 from core.permissions import HasLicenseFeature
+from inventory.models import LendingSession
 
 class KioskTokenView(views.APIView):
     """
@@ -507,8 +508,23 @@ class VisitViewSet(viewsets.ModelViewSet):
         # Validation: Can only checkout own session or admin can checkout anyone
         if request.user != session.user and request.user.role not in ['CLUB_ADMIN', 'SUPER_ADMIN']:
              return Response({"error": "Unauthorized"}, status=403)
+        
+        # Auto-return all borrowed items from this club
+        active_loans = LendingSession.objects.filter(
+            user=session.user,
+            item__club=session.club,
+            status='ACTIVE'
+        )
+        returned_count = 0
+        for loan in active_loans:
+            loan.status = 'RETURNED_SYSTEM'
+            loan.returned_at = timezone.now()
+            loan.save()
+            loan.item.status = 'AVAILABLE'
+            loan.item.save()
+            returned_count += 1
              
         session.check_out_at = timezone.now()
         session.save()
         
-        return Response({"status": "checked_out"})
+        return Response({"status": "checked_out", "items_returned": returned_count})

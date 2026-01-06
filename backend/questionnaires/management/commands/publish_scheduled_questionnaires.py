@@ -42,7 +42,9 @@ class Command(BaseCommand):
             # Clear scheduled_publish_date since it's been processed
             questionnaire.scheduled_publish_date = None
             
-            questionnaire.save(update_fields=['status', 'start_date', 'scheduled_publish_date'])
+            # Use full save() to trigger notification signals
+            # This ensures users receive notifications when scheduled questionnaires are published
+            questionnaire.save()
             count += 1
             self.stdout.write(
                 self.style.SUCCESS(

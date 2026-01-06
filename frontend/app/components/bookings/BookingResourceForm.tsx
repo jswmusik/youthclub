@@ -99,7 +99,8 @@ export default function BookingResourceForm({ initialData, redirectPath, clubId 
         }
         break;
       case 'max_bookings_per_user_per_week':
-        if (!value || value.toString().trim() === '' || parseInt(value.toString()) < 1) {
+        // Allow 0 (which means "unlimited" in the backend)
+        if (value === null || value === undefined || value.toString().trim() === '' || parseInt(value.toString()) < 0) {
           error = t('validation.maxBookingsRequired');
         }
         break;

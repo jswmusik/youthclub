@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import api from '../../lib/api';
 
 interface CustomField {
@@ -25,7 +25,11 @@ interface CustomFieldsFormProps {
   userClubId?: number | null;
 }
 
-export default function CustomFieldsForm({
+export interface CustomFieldsFormRef {
+  validate: () => { valid: boolean; invalidFieldName?: string };
+}
+
+const CustomFieldsForm = forwardRef<CustomFieldsFormRef, CustomFieldsFormProps>(({
   targetRole,
   context = 'USER_PROFILE',
   values,
@@ -33,9 +37,33 @@ export default function CustomFieldsForm({
   userId,
   userMunicipalityId,
   userClubId,
-}: CustomFieldsFormProps) {
+}, ref) => {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Expose validate method to parent
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      for (const field of fields) {
+        if (field.required) {
+          const value = values[field.id];
+          
+          if (field.field_type === 'MULTI_SELECT') {
+            if (!value || !Array.isArray(value) || value.length === 0) {
+              return { valid: false, invalidFieldName: field.name };
+            }
+          } else if (field.field_type === 'BOOLEAN') {
+            // Boolean: false is valid
+          } else {
+            if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+              return { valid: false, invalidFieldName: field.name };
+            }
+          }
+        }
+      }
+      return { valid: true };
+    }
+  }), [fields, values]);
 
   useEffect(() => {
     // For new user creation: only fetch if userClubId is provided (club selected)
@@ -462,5 +490,9 @@ export default function CustomFieldsForm({
       })}
     </div>
   );
-}
+});
+
+CustomFieldsForm.displayName = 'CustomFieldsForm';
+
+export default CustomFieldsForm;
 

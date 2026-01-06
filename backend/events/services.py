@@ -7,6 +7,22 @@ from dateutil.relativedelta import relativedelta
 from .models import Event, EventRegistration, EventImage
 
 
+def _calculate_relative_date(original_date, original_start, new_start):
+    """
+    Calculate a new date that maintains the same offset from the event start.
+    For example, if registration_close_date was 2 days before start_date,
+    the new registration_close_date will be 2 days before new_start.
+    """
+    if not original_date or not original_start or not new_start:
+        return None
+    
+    # Calculate the offset (can be positive or negative)
+    offset = original_date - original_start
+    
+    # Apply the same offset to the new start date
+    return new_start + offset
+
+
 def generate_recurring_events(master_event):
     """
     Creates copies of the master_event based on its recurrence pattern
@@ -152,6 +168,18 @@ def generate_recurring_events(master_event):
             requires_verified_account=master_event.requires_verified_account,
             requires_guardian_approval=master_event.requires_guardian_approval,
             requires_admin_approval=master_event.requires_admin_approval,
+            
+            # Calculate registration dates relative to the instance's start date
+            registration_open_date=_calculate_relative_date(
+                master_event.registration_open_date,
+                master_event.start_date,
+                current_start
+            ),
+            registration_close_date=_calculate_relative_date(
+                master_event.registration_close_date,
+                master_event.start_date,
+                current_start
+            ),
             
             max_seats=master_event.max_seats,
             max_waitlist=master_event.max_waitlist,
@@ -337,9 +365,11 @@ def register_user_for_event(user, event):
     - OPEN: No registration needed (this function shouldn't be called)
     - FIRST_COME: Automatic spot assignment based on capacity
     - MANUAL_APPROVAL: All applications go to PENDING_ADMIN for admin to manually approve
+    
+    Uses select_for_update() to prevent race conditions when checking capacity.
     """
     
-    # 1. Basic Validation
+    # 1. Basic Validation (outside transaction for quick failures)
     if event.status != Event.Status.PUBLISHED:
         raise ValidationError("Event is not open for registration.")
     
@@ -361,56 +391,50 @@ def register_user_for_event(user, event):
     # Check for cancelled registration that we can reuse
     cancelled_reg = EventRegistration.objects.filter(user=user, event=event, status=EventRegistration.Status.CANCELLED).first()
 
-    # 2. Determine Initial Status based on Registration Mode
-    initial_status = None
-
-    # MANUAL_APPROVAL mode: All applications go to PENDING_ADMIN
-    # Admin will manually select who gets a spot
-    if event.registration_mode == Event.RegistrationMode.MANUAL_APPROVAL:
-        # Guardian approval still takes priority if enabled
-        if event.requires_guardian_approval:
-            initial_status = EventRegistration.Status.PENDING_GUARDIAN
-        else:
-            initial_status = EventRegistration.Status.PENDING_ADMIN
-    
-    # FIRST_COME mode: Automatic assignment based on capacity
-    else:
-        # Priority 1: Guardian Approval Required
-        if event.requires_guardian_approval:
-            initial_status = EventRegistration.Status.PENDING_GUARDIAN
-        
-        # Priority 2: Admin Approval Required (legacy flag, still supported)
-        elif event.requires_admin_approval:
-            initial_status = EventRegistration.Status.PENDING_ADMIN
-        
-        # Priority 3: Automatic Assignment based on Capacity
-        else:
-            if not event.is_full:
-                initial_status = EventRegistration.Status.APPROVED
-            elif event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
-                initial_status = EventRegistration.Status.WAITLIST
-            else:
-                raise ValidationError("Event is full and waitlist is at capacity.")
-
-    # 3. Create or Update Registration Transactionally
+    # 2. Use transaction with row-level locking to prevent race conditions
     with transaction.atomic():
+        # Lock the event row to prevent concurrent modifications
+        event = Event.objects.select_for_update().get(pk=event.pk)
+        
+        # Determine Initial Status based on Registration Mode (with locked row)
+        initial_status = None
+
+        # MANUAL_APPROVAL mode: All applications go to PENDING_ADMIN
+        # Admin will manually select who gets a spot
+        if event.registration_mode == Event.RegistrationMode.MANUAL_APPROVAL:
+            # Guardian approval still takes priority if enabled
+            if event.requires_guardian_approval:
+                initial_status = EventRegistration.Status.PENDING_GUARDIAN
+            else:
+                initial_status = EventRegistration.Status.PENDING_ADMIN
+        
+        # FIRST_COME mode: Automatic assignment based on capacity
+        else:
+            # Priority 1: Guardian Approval Required
+            if event.requires_guardian_approval:
+                initial_status = EventRegistration.Status.PENDING_GUARDIAN
+            
+            # Priority 2: Admin Approval Required (legacy flag, still supported)
+            elif event.requires_admin_approval:
+                initial_status = EventRegistration.Status.PENDING_ADMIN
+            
+            # Priority 3: Automatic Assignment based on Capacity (checked with locked row)
+            else:
+                if not event.is_full:
+                    initial_status = EventRegistration.Status.APPROVED
+                elif event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
+                    initial_status = EventRegistration.Status.WAITLIST
+                else:
+                    raise ValidationError("Event is full and waitlist is at capacity.")
+
+        # 3. Create or Update Registration
         if cancelled_reg:
             # Reuse cancelled registration by updating its status
-            old_status = cancelled_reg.status
             cancelled_reg.status = initial_status
             cancelled_reg.approved_by = None
             cancelled_reg.approval_date = None
             cancelled_reg.save()
             registration = cancelled_reg
-            
-            # Update counters - only increment if the old status was CANCELLED
-            # (which it always is in this branch, but being explicit)
-            if initial_status == EventRegistration.Status.APPROVED:
-                event.confirmed_participants_count += 1
-                event.save(update_fields=['confirmed_participants_count'])
-            elif initial_status == EventRegistration.Status.WAITLIST:
-                event.waitlist_count += 1
-                event.save(update_fields=['waitlist_count'])
         else:
             # Create new registration
             registration = EventRegistration.objects.create(
@@ -418,14 +442,14 @@ def register_user_for_event(user, event):
                 event=event,
                 status=initial_status
             )
-            
-            # Update Denormalized Counters
-            if initial_status == EventRegistration.Status.APPROVED:
-                event.confirmed_participants_count += 1
-                event.save(update_fields=['confirmed_participants_count'])
-            elif initial_status == EventRegistration.Status.WAITLIST:
-                event.waitlist_count += 1
-                event.save(update_fields=['waitlist_count'])
+        
+        # Update Denormalized Counters
+        if initial_status == EventRegistration.Status.APPROVED:
+            event.confirmed_participants_count += 1
+            event.save(update_fields=['confirmed_participants_count'])
+        elif initial_status == EventRegistration.Status.WAITLIST:
+            event.waitlist_count += 1
+            event.save(update_fields=['waitlist_count'])
             
     return registration
 

@@ -648,16 +648,13 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
                             </span>
                           </div>
                           <p className={`text-sm mb-2 ${darkMode ? 'text-[var(--brand-light)]/60' : 'text-gray-600'}`}>
-                            {weekday}, {dateStr} at {timeStr}
+                            {weekday}, {dateStr} {t('at')} {timeStr}
                           </p>
                           {questionnairePost.content && (
-                            <div 
-                              className={`text-sm max-w-none ${
-                                darkMode 
-                                  ? 'text-[var(--brand-light)]/70 [&_a]:text-[var(--brand-purple)] [&_strong]:text-[var(--brand-light)] [&_p]:text-[var(--brand-light)]/70'
-                                  : 'text-gray-700 [&_a]:text-[#6D6DD4] [&_strong]:text-gray-800'
-                              }`}
-                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(questionnairePost.content) }}
+                            <QuestionnaireActivityContent 
+                              content={questionnairePost.content} 
+                              questionnaireTitle={questionnaireTitle}
+                              darkMode={darkMode}
                             />
                           )}
                         </div>
@@ -912,6 +909,53 @@ export default function ActivityFeed({ showTimeFilter = true, darkMode = false }
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Helper component to render questionnaire activity content with translations
+function QuestionnaireActivityContent({ content, questionnaireTitle, darkMode }: { content: string, questionnaireTitle: string, darkMode: boolean }) {
+  const t = useTranslations('activity');
+  
+  // Parse the HTML content to extract relevant information
+  // The backend sends HTML like:
+  // <p>✅ <strong>Completed Questionnaire: {title}</strong></p>
+  // <p>Completed on {date} at {time}</p>
+  // <p>{description}</p>
+  // <p>🎁 Earned reward: <strong>{reward}</strong></p>
+  
+  // Extract completion date/time from content
+  const completedOnMatch = content.match(/Completed on ([^<]+)/);
+  const completedOnText = completedOnMatch ? completedOnMatch[1] : null;
+  
+  // Extract description (the third paragraph, if exists)
+  const descriptionMatch = content.match(/<p>(?!✅|Completed on|🎁)([^<]+)<\/p>/);
+  const description = descriptionMatch ? descriptionMatch[1] : null;
+  
+  // Extract reward name if present
+  const rewardMatch = content.match(/Earned reward: <strong>([^<]+)<\/strong>/);
+  const rewardName = rewardMatch ? rewardMatch[1] : null;
+  
+  return (
+    <div className={`text-sm ${darkMode ? 'text-[var(--brand-light)]/70' : 'text-gray-700'}`}>
+      <p>
+        <span>✅ </span>
+        <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>
+          {t('completedQuestionnaire')} {questionnaireTitle}
+        </strong>
+      </p>
+      {completedOnText && (
+        <p>{t('completedOn')} {completedOnText}</p>
+      )}
+      {description && (
+        <p>{description}</p>
+      )}
+      {rewardName && (
+        <p>
+          <span>🎁 </span>
+          {t('earnedReward')} <strong className={darkMode ? 'text-[var(--brand-light)]' : 'text-gray-800'}>{rewardName}</strong>
+        </p>
+      )}
     </div>
   );
 }

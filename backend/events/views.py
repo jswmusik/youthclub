@@ -737,7 +737,11 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
     def guardian_respond(self, request, pk=None):
         """
         Endpoint for guardians to APPROVE or REJECT a registration.
+        Uses select_for_update() to prevent race conditions when checking capacity.
         """
+        from django.db import transaction as db_transaction
+        from .models import Event
+        
         registration = self.get_object()
         user = request.user
         
@@ -751,30 +755,32 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         decision = request.data.get('decision')  # 'approve' or 'reject'
         
         if decision == 'approve':
-            # Check logic: Does it go to APPROVED or PENDING_ADMIN?
-            event = registration.event
-            
-            if hasattr(event, 'requires_admin_approval') and event.requires_admin_approval:
-                new_status = EventRegistration.Status.PENDING_ADMIN if hasattr(EventRegistration.Status, 'PENDING_ADMIN') else EventRegistration.Status.PENDING
-            else:
-                # Check capacity
-                if not event.is_full:
-                    new_status = EventRegistration.Status.APPROVED
-                    # Increment counter
-                    event.confirmed_participants_count += 1
-                    event.save(update_fields=['confirmed_participants_count'])
-                elif hasattr(event, 'max_waitlist') and event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
-                    new_status = EventRegistration.Status.WAITLIST
-                    # Increment counter
-                    event.waitlist_count += 1
-                    event.save(update_fields=['waitlist_count'])
+            # Use transaction with row-level locking to prevent race conditions
+            with db_transaction.atomic():
+                # Lock the event row to prevent concurrent modifications
+                event = Event.objects.select_for_update().get(pk=registration.event.pk)
+                
+                if hasattr(event, 'requires_admin_approval') and event.requires_admin_approval:
+                    new_status = EventRegistration.Status.PENDING_ADMIN if hasattr(EventRegistration.Status, 'PENDING_ADMIN') else EventRegistration.Status.PENDING
                 else:
-                    return Response({"error": "Event is full"}, status=status.HTTP_400_BAD_REQUEST)
-            
-            registration.status = new_status
-            registration.approved_by = user
-            registration.approval_date = timezone.now()
-            registration.save()
+                    # Check capacity with locked row
+                    if not event.is_full:
+                        new_status = EventRegistration.Status.APPROVED
+                        # Increment counter
+                        event.confirmed_participants_count += 1
+                        event.save(update_fields=['confirmed_participants_count'])
+                    elif hasattr(event, 'max_waitlist') and event.max_waitlist > 0 and event.waitlist_count < event.max_waitlist:
+                        new_status = EventRegistration.Status.WAITLIST
+                        # Increment counter
+                        event.waitlist_count += 1
+                        event.save(update_fields=['waitlist_count'])
+                    else:
+                        return Response({"error": "Event is full"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                registration.status = new_status
+                registration.approved_by = user
+                registration.approval_date = timezone.now()
+                registration.save()
             
             return Response(EventRegistrationSerializer(registration).data)
             
@@ -821,7 +827,11 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
             event.confirmed_participants_count = max(0, event.confirmed_participants_count - 1)
             serializer.save()
             event.save(update_fields=['confirmed_participants_count'])
-            # Could promote waitlist here if desired
+            
+            # Trigger waitlist promotion - a seat has opened up!
+            from .services import process_waitlist_promotion
+            process_waitlist_promotion(event)
+            
         elif new_status == EventRegistration.Status.REJECTED and old_status == EventRegistration.Status.WAITLIST:
             # If rejecting a waitlist registration, decrement waitlist count
             event = instance.event
@@ -936,12 +946,34 @@ class PublicEventViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         now = timezone.now()
         
-        # Base query: Published events that are either global or have no specific group targeting
+        # Base query: Published events that are truly public
+        # Exclude events with ANY targeting criteria that would fail for unauthenticated users
         qs = Event.objects.filter(
             status=Event.Status.PUBLISHED,
         ).filter(
             # Only show events that are open to public (global or no group targeting)
             Q(is_global=True) | Q(target_groups__isnull=True)
+        ).exclude(
+            # Exclude events with gender targeting (non-empty list)
+            ~Q(target_genders=[]) & Q(target_genders__isnull=False)
+        ).exclude(
+            # Exclude events with minimum age targeting
+            target_min_age__isnull=False
+        ).exclude(
+            # Exclude events with maximum age targeting
+            target_max_age__isnull=False
+        ).exclude(
+            # Exclude events with grade targeting (non-empty list)
+            ~Q(target_grades=[]) & Q(target_grades__isnull=False)
+        )
+        
+        # Exclude events with interest targeting (M2M relationship exists)
+        # We need to check if target_interests has any entries
+        from django.db.models import Count
+        qs = qs.annotate(
+            interest_count=Count('target_interests')
+        ).exclude(
+            interest_count__gt=0
         ).select_related('club', 'municipality').distinct()
         
         # Filter for upcoming events by default

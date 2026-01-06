@@ -19,6 +19,9 @@ class ItemSerializer(serializers.ModelSerializer):
     tags_details = InventoryTagSerializer(source='tags', many=True, read_only=True)
     club_name = serializers.CharField(source='club.name', read_only=True)
     
+    # Club settings for frontend display
+    borrowing_requires_checkin = serializers.BooleanField(source='club.borrowing_requires_checkin', read_only=True)
+    
     # Field to check availability instantly in the list
     active_loan = serializers.SerializerMethodField()
     queue_count = serializers.SerializerMethodField()
@@ -30,7 +33,8 @@ class ItemSerializer(serializers.ModelSerializer):
             'id', 'club', 'club_name', 'category', 'category_details', 
             'title', 'description', 'image', 'tags', 'tags_details',
             'max_borrow_duration', 'status', 'internal_note', 
-            'active_loan', 'queue_count', 'user_in_queue', 'created_at'
+            'active_loan', 'queue_count', 'user_in_queue', 'created_at',
+            'borrowing_requires_checkin'
         ]
         read_only_fields = ['club'] # Club is usually assigned automatically in the view
 

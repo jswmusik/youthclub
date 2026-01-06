@@ -7,8 +7,9 @@ import RichTextEditor from '@/app/components/RichTextEditor';
 import { cmsApi } from '@/lib/cms-api';
 import { Page, FeatureShowcase } from '@/types/cms';
 import { useToast } from '../../../../../../hooks/useToast';
-import { Loader2, Save, ArrowLeft, Image as ImageIcon, FileText, Settings, Search, Sparkles, GripVertical, Plus, X, User, List } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Image as ImageIcon, FileText, Settings, Search, Sparkles, GripVertical, Plus, X, User, List, Globe } from 'lucide-react';
 import Link from 'next/link';
+import LanguageSelector, { type LanguageCode, LANGUAGES } from '../../../../components/LanguageSelector';
 
 interface PageFormProps {
   initialData?: Page;
@@ -26,6 +27,7 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     slug: initialData?.slug || '',
+    language: (initialData?.language || 'sv') as LanguageCode,
     page_type: initialData?.page_type || 'standard',
     content: initialData?.content || '',
     excerpt: initialData?.excerpt || '',
@@ -239,6 +241,13 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
           <span className="font-medium">{t('backToPages')}</span>
         </Link>
         <div className="flex items-center gap-4 w-full sm:w-auto">
+          {/* Language Selector - Prominent in header */}
+          <LanguageSelector
+            value={formData.language}
+            onChange={(lang) => handleChange('language', lang)}
+            variant="dropdown"
+            showLabel={false}
+          />
           <button
             type="button"
             onClick={() => handleChange('is_published', !formData.is_published)}
@@ -415,7 +424,20 @@ export default function PageForm({ initialData, isEditing = false }: PageFormPro
           </div>
           
           <div className="p-4 sm:p-6 space-y-6">
+            {/* Language Selector */}
             <div>
+              <LanguageSelector
+                value={formData.language}
+                onChange={(lang) => handleChange('language', lang)}
+                label="Page Language"
+                variant="pills"
+              />
+              <p className="text-xs text-[var(--brand-light)]/40 mt-2">
+                Select which language version this page is for. You can create the same page in multiple languages.
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-[var(--dark-600)]">
               <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
                 {t('settings.pageType')}
               </label>

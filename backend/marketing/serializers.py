@@ -12,7 +12,7 @@ class SiteSEOSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SiteSEOSettings
         fields = [
-            'id',
+            'id', 'language',
             # SEO fields
             'page_title', 'meta_description', 'keywords',
             # Hero fields
@@ -34,7 +34,7 @@ class TestimonialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Testimonial
         fields = [
-            'id', 'author_name', 'author_role', 'author_avatar',
+            'id', 'language', 'author_name', 'author_role', 'author_avatar',
             'quote', 'rating', 'is_active', 'created_at'
         ]
         read_only_fields = ['created_at']
@@ -52,7 +52,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     """Serializer for public customer logos"""
     class Meta:
         model = Customer
-        fields = ['id', 'name', 'logo', 'website_url', 'display_order']
+        fields = ['id', 'language', 'name', 'logo', 'website_url', 'display_order']
 
 
 class CustomerAdminSerializer(serializers.ModelSerializer):
@@ -60,7 +60,7 @@ class CustomerAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
         fields = [
-            'id', 'name', 'logo', 'website_url', 
+            'id', 'language', 'name', 'logo', 'website_url', 
             'is_active', 'display_order', 
             'created_at', 'updated_at'
         ]

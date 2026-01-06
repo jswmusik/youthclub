@@ -11,6 +11,7 @@ import Link from 'next/link';
 import ConfirmationModal from '@/app/components/ConfirmationModal';
 import api from '@/lib/api';
 import { useToast } from '../../../../../hooks/useToast';
+import LanguageSelector, { LanguageBadge, type LanguageCode } from '../../../components/LanguageSelector';
 
 interface Customer {
   id: number;
@@ -19,6 +20,7 @@ interface Customer {
   website_url: string | null;
   is_active: boolean;
   display_order: number;
+  language: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -194,12 +196,13 @@ function SwipeableCard({ children, onEdit, onDelete }: SwipeableCardProps) {
 
 export default function CustomersPage() {
   const t = useTranslations('marketingAdmin.customers');
-  const { success, error, info, warning } = useToast();
+  const { success: showSuccess, error: showError } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [languageFilter, setLanguageFilter] = useState<'all' | LanguageCode>('all');
   const [analyticsExpanded, setAnalyticsExpanded] = useState(true);
   
   // Modal states
@@ -215,6 +218,7 @@ export default function CustomersPage() {
   const [formDisplayOrder, setFormDisplayOrder] = useState(0);
   const [formLogo, setFormLogo] = useState<File | null>(null);
   const [formLogoPreview, setFormLogoPreview] = useState<string | null>(null);
+  const [formLanguage, setFormLanguage] = useState<LanguageCode | null>(null);
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -225,9 +229,9 @@ export default function CustomersPage() {
     try {
       const res = await api.get('/marketing/customers/');
       setCustomers(res.data.results || res.data);
-    } catch (error) {
-      console.error('Failed to fetch customers:', error);
-      showToast(setToast, t('toast.fetchError'), 'error');
+    } catch (err) {
+      console.error('Failed to fetch customers:', err);
+      showError(t('toast.fetchError'));
     } finally {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
@@ -252,6 +256,7 @@ export default function CustomersPage() {
     setFormDisplayOrder(customers.length);
     setFormLogo(null);
     setFormLogoPreview(null);
+    setFormLanguage(null); // null = all languages
     setShowModal(true);
   };
 
@@ -264,6 +269,7 @@ export default function CustomersPage() {
     setFormDisplayOrder(customer.display_order);
     setFormLogo(null);
     setFormLogoPreview(customer.logo);
+    setFormLanguage(customer.language as LanguageCode | null);
     setShowModal(true);
   };
 
@@ -283,12 +289,12 @@ export default function CustomersPage() {
   // Save customer
   const handleSave = async () => {
     if (!formName.trim()) {
-      showToast(setToast, t('toast.nameRequired'), 'error');
+      showError(t('toast.nameRequired'));
       return;
     }
     
     if (!editingCustomer && !formLogo) {
-      showToast(setToast, t('toast.logoRequired'), 'error');
+      showError(t('toast.logoRequired'));
       return;
     }
 
@@ -300,6 +306,13 @@ export default function CustomersPage() {
       formData.append('is_active', formIsActive.toString());
       formData.append('display_order', formDisplayOrder.toString());
       
+      // Language can be null (for all languages) or a specific language code
+      if (formLanguage) {
+        formData.append('language', formLanguage);
+      } else {
+        formData.append('language', ''); // Empty string for null
+      }
+      
       if (formLogo) {
         formData.append('logo', formLogo);
       }
@@ -308,19 +321,19 @@ export default function CustomersPage() {
         await api.patch(`/marketing/customers/${editingCustomer.id}/`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        showToast(setToast, t('toast.customerUpdated'), 'success');
+        showSuccess(t('toast.customerUpdated'));
       } else {
         await api.post('/marketing/customers/', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        showToast(setToast, t('toast.customerCreated'), 'success');
+        showSuccess(t('toast.customerCreated'));
       }
 
       setShowModal(false);
       fetchCustomers();
-    } catch (error: any) {
-      console.error('Save error:', error);
-      showToast(setToast, error.response?.data?.detail || t('toast.saveError'), 'error');
+    } catch (err: any) {
+      console.error('Save error:', err);
+      showError(err.response?.data?.detail || t('toast.saveError'));
     } finally {
       setSaving(false);
     }
@@ -332,11 +345,11 @@ export default function CustomersPage() {
 
     try {
       await api.delete(`/marketing/customers/${customerToDelete.id}/`);
-      showToast(setToast, t('toast.customerDeleted'), 'success');
+      showSuccess(t('toast.customerDeleted'));
       setCustomerToDelete(null);
       fetchCustomers();
-    } catch (error) {
-      showToast(setToast, t('toast.deleteError'), 'error');
+    } catch (err) {
+      showError(t('toast.deleteError'));
       setCustomerToDelete(null);
     }
   };
@@ -348,8 +361,8 @@ export default function CustomersPage() {
         is_active: !customer.is_active 
       });
       fetchCustomers();
-    } catch (error) {
-      showToast(setToast, t('toast.updateError'), 'error');
+    } catch (err) {
+      showError(t('toast.updateError'));
     }
   };
 
@@ -359,7 +372,10 @@ export default function CustomersPage() {
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && c.is_active) || 
       (statusFilter === 'inactive' && !c.is_active);
-    return matchesSearch && matchesStatus;
+    const matchesLanguage = languageFilter === 'all' || 
+      c.language === languageFilter || 
+      (languageFilter === 'all' && c.language === null);
+    return matchesSearch && matchesStatus && matchesLanguage;
   });
 
   // Analytics
@@ -606,17 +622,24 @@ export default function CustomersPage() {
                         </p>
                       </div>
 
-                      {/* Status Badge */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleActive(customer); }}
-                        className={`px-3 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                          customer.is_active 
-                            ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
-                            : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
-                        }`}
-                      >
-                        {customer.is_active ? t('status.active') : t('status.inactive')}
-                      </button>
+                      {/* Language and Status Badges */}
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        {customer.language ? (
+                          <LanguageBadge code={customer.language} size="sm" />
+                        ) : (
+                          <span className="px-2 py-0.5 text-xs bg-[var(--dark-600)] text-[var(--brand-light)]/50 rounded-full">All</span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleActive(customer); }}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            customer.is_active 
+                              ? 'bg-[var(--brand-green)]/20 text-[var(--brand-green)]' 
+                              : 'bg-[var(--brand-red)]/20 text-[var(--brand-red)]'
+                          }`}
+                        >
+                          {customer.is_active ? t('status.active') : t('status.inactive')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </SwipeableCard>
@@ -629,6 +652,7 @@ export default function CustomersPage() {
                 <thead>
                   <tr className="border-b border-[var(--dark-600)]">
                     <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.customer')}</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">Language</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.status')}</th>
                     <th className="text-left px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.order')}</th>
                     <th className="text-right px-6 py-4 text-sm font-semibold text-[var(--brand-light)]/70">{t('tableHeaders.actions')}</th>
@@ -668,6 +692,13 @@ export default function CustomersPage() {
                             )}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {customer.language ? (
+                          <LanguageBadge code={customer.language} size="sm" />
+                        ) : (
+                          <span className="px-2 py-0.5 text-xs bg-[var(--dark-600)] text-[var(--brand-light)]/50 rounded-full">All languages</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <button
@@ -812,6 +843,37 @@ export default function CustomersPage() {
                   />
                   <p className="text-xs text-[var(--brand-light)]/40 mt-1">
                     {t('modal.displayOrderHint')}
+                  </p>
+                </div>
+
+                {/* Language Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--brand-light)]/70 mb-2">
+                    Language
+                  </label>
+                  <select
+                    value={formLanguage || ''}
+                    onChange={(e) => setFormLanguage(e.target.value ? e.target.value as LanguageCode : null)}
+                    className="w-full h-12 px-4 bg-[var(--dark-700)] border-2 border-[var(--dark-500)] rounded-xl text-[var(--brand-light)] outline-none focus:border-[var(--brand-primary)] transition-colors appearance-none cursor-pointer"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23F9F8F5' opacity='0.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 0.75rem center',
+                      backgroundSize: '1rem',
+                    }}
+                  >
+                    <option value="">🌐 All languages</option>
+                    <option value="sv">🇸🇪 Svenska</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="da">🇩🇰 Dansk</option>
+                    <option value="nb">🇳🇴 Norsk</option>
+                    <option value="fi">🇫🇮 Suomi</option>
+                    <option value="ar">🇸🇦 العربية</option>
+                    <option value="so">🇸🇴 Soomaali</option>
+                    <option value="prs">🇦🇫 دری</option>
+                  </select>
+                  <p className="text-xs text-[var(--brand-light)]/40 mt-1">
+                    Choose a specific language or leave as &quot;All&quot; to show on all language versions
                   </p>
                 </div>
 

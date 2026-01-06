@@ -4,7 +4,7 @@ SEO & Marketing Content Models
 
 This module handles:
 - Keyword tracking and management
-- Swedish location data for local SEO
+- Location data for local SEO (Sweden, Denmark, Norway, Finland)
 - AI-generated local landing pages
 - SEO-optimized articles
 - Internal linking strategy
@@ -14,6 +14,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from core.languages import LANGUAGE_CHOICES, DEFAULT_LANGUAGE, COUNTRY_CHOICES, COUNTRY_TO_LANGUAGE
 
 # Validators
 image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
@@ -27,6 +28,7 @@ class Keyword(models.Model):
     """
     Keywords we want to rank for in search engines.
     Can be added manually or imported via SEO tool APIs.
+    Each keyword belongs to a specific language/market.
     """
     STATUS_CHOICES = [
         ('ACTIVE', 'Active'),
@@ -56,9 +58,18 @@ class Keyword(models.Model):
         ('serpapi', 'SERPapi'),
     ]
     
-    # Core fields
-    keyword = models.CharField(max_length=255, unique=True, db_index=True)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)
+    # Language field - keywords are language-specific
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language/market for this keyword"
+    )
+    
+    # Core fields - keyword is now unique per language
+    keyword = models.CharField(max_length=255, db_index=True)
+    slug = models.SlugField(max_length=255, blank=True)
     
     # SEO metrics
     search_volume = models.PositiveIntegerField(
@@ -127,7 +138,7 @@ class Keyword(models.Model):
     
     # Auto-detected location from keyword text
     detected_location = models.ForeignKey(
-        'SwedishLocation',
+        'Location',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -161,6 +172,8 @@ class Keyword(models.Model):
         ordering = ['-search_volume', 'keyword']
         verbose_name = "Keyword"
         verbose_name_plural = "Keywords"
+        # Keyword is unique per language
+        unique_together = ['keyword', 'language']
     
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -169,7 +182,7 @@ class Keyword(models.Model):
     
     def __str__(self):
         vol = f" ({self.search_volume}/mo)" if self.search_volume else ""
-        return f"{self.keyword}{vol}"
+        return f"{self.keyword}{vol} [{self.get_language_display()}]"
     
     @property
     def has_content(self):
@@ -187,37 +200,45 @@ class Keyword(models.Model):
 
 
 # =============================================================================
-# SWEDISH LOCATION DATA
+# LOCATION DATA (Multi-country support)
 # =============================================================================
 
-class SwedishLocation(models.Model):
+class Location(models.Model):
     """
-    All Swedish municipalities and major cities.
-    Pre-populated for local SEO targeting.
-    Sweden has 290 municipalities (kommuner).
+    Municipalities and major cities for local SEO targeting.
+    Supports multiple countries: Sweden, Denmark, Norway, Finland.
     """
     TYPE_CHOICES = [
-        ('MUNICIPALITY', 'Kommun'),
-        ('CITY', 'Stad/Ort'),
-        ('REGION', 'Region/Län'),
+        ('MUNICIPALITY', 'Municipality/Kommune'),
+        ('CITY', 'City/Town'),
+        ('REGION', 'Region'),
     ]
+    
+    # Country field for multi-country support
+    country = models.CharField(
+        max_length=2,
+        choices=COUNTRY_CHOICES,
+        default='SE',
+        db_index=True,
+        help_text="Country for this location"
+    )
     
     # Core fields
     name = models.CharField(max_length=100, db_index=True)
     name_genitive = models.CharField(
         max_length=100, 
         blank=True,
-        help_text="Genitive form, e.g., 'Stockholms' for 'Stockholm'"
+        help_text="Genitive form, e.g., 'Stockholms' for 'Stockholm', 'Københavns' for 'København'"
     )
-    slug = models.SlugField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100)  # Unique per country now
     location_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     
-    # Official codes
-    scb_code = models.CharField(
-        max_length=10, 
+    # Official codes (country-specific)
+    official_code = models.CharField(
+        max_length=20, 
         blank=True, 
         db_index=True,
-        help_text="SCB municipality code (e.g., '0180' for Stockholm)"
+        help_text="Official municipality code (SCB for Sweden, etc.)"
     )
     
     # Geo data
@@ -233,7 +254,7 @@ class SwedishLocation(models.Model):
     region = models.CharField(
         max_length=100, 
         blank=True,
-        help_text="Län/Region name"
+        help_text="Region/County name"
     )
     region_code = models.CharField(
         max_length=10, 
@@ -263,22 +284,41 @@ class SwedishLocation(models.Model):
     
     class Meta:
         ordering = ['-population', 'name']
-        verbose_name = "Swedish Location"
-        verbose_name_plural = "Swedish Locations"
+        verbose_name = "Location"
+        verbose_name_plural = "Locations"
+        # Slug must be unique per country
+        unique_together = ['slug', 'country']
         indexes = [
             models.Index(fields=['latitude', 'longitude']),
             models.Index(fields=['location_type', 'region']),
+            models.Index(fields=['country', 'location_type']),
         ]
     
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
         if not self.name_genitive:
-            # Simple Swedish genitive - add 's' unless ending in s/x/z
-            if self.name[-1].lower() in ['s', 'x', 'z']:
-                self.name_genitive = self.name
+            # Genitive form varies by language
+            if self.country == 'SE':
+                # Swedish: add 's' unless ending in s/x/z
+                if self.name[-1].lower() in ['s', 'x', 'z']:
+                    self.name_genitive = self.name
+                else:
+                    self.name_genitive = f"{self.name}s"
+            elif self.country == 'DK':
+                # Danish: similar to Swedish
+                if self.name[-1].lower() in ['s', 'x', 'z']:
+                    self.name_genitive = self.name
+                else:
+                    self.name_genitive = f"{self.name}s"
+            elif self.country == 'NO':
+                # Norwegian: similar pattern
+                if self.name[-1].lower() in ['s', 'x', 'z']:
+                    self.name_genitive = self.name
+                else:
+                    self.name_genitive = f"{self.name}s"
             else:
-                self.name_genitive = f"{self.name}s"
+                self.name_genitive = self.name
         super().save(*args, **kwargs)
     
     @property
@@ -286,8 +326,17 @@ class SwedishLocation(models.Model):
         """Check if this location has an active municipality in our platform."""
         return self.linked_municipality is not None
     
+    @property
+    def language(self):
+        """Get the primary language for this location's country."""
+        return COUNTRY_TO_LANGUAGE.get(self.country, DEFAULT_LANGUAGE)
+    
     def __str__(self):
-        return f"{self.name} ({self.get_location_type_display()})"
+        return f"{self.name}, {self.get_country_display()} ({self.get_location_type_display()})"
+
+
+# Keep SwedishLocation as an alias for backwards compatibility
+SwedishLocation = Location
 
 
 # =============================================================================
@@ -296,8 +345,9 @@ class SwedishLocation(models.Model):
 
 class LocalLandingPage(models.Model):
     """
-    AI-generated local SEO landing pages for Swedish locations.
+    AI-generated local SEO landing pages for locations.
     Each page targets a specific location + keyword combination.
+    Supports multiple countries/languages.
     """
     STATUS_CHOICES = [
         ('DRAFT', 'Draft - AI Generated'),
@@ -313,9 +363,18 @@ class LocalLandingPage(models.Model):
         ('GENERAL', 'General Information'),
     ]
     
+    # Language field - inherits from location but can be overridden
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this landing page"
+    )
+    
     # Targeting
     location = models.ForeignKey(
-        SwedishLocation, 
+        Location, 
         on_delete=models.CASCADE, 
         related_name='landing_pages'
     )
@@ -523,21 +582,33 @@ class LocalLandingPage(models.Model):
         ordering = ['-created_at']
         verbose_name = "Local Landing Page"
         verbose_name_plural = "Local Landing Pages"
-        unique_together = ['location', 'page_type', 'target_audience']
+        # Unique per location, page type, target_audience AND language
+        unique_together = ['location', 'page_type', 'target_audience', 'language']
+        indexes = [
+            models.Index(fields=['status', 'language']),
+            models.Index(fields=['language', 'page_type']),
+        ]
     
     def save(self, *args, **kwargs):
+        # Set language from location's country if not explicitly set
+        if self.location and not self.language:
+            self.language = self.location.language
+        
         # Generate slug from keyword (SEO best practice) or fallback to location
         if not self.slug:
             if self.primary_keyword and self.primary_keyword.slug:
                 # Use keyword slug for best SEO (e.g., "fritidsgard-stockholm")
                 self.slug = self.primary_keyword.slug
             else:
-                # Fallback: Generate from page type + location
-                type_prefix = {
-                    'EVENTS': 'evenemang',
-                    'CLUBS': 'fritidsgard',
-                    'GENERAL': 'ungdomsverksamhet',
-                }.get(self.page_type, 'ungdom')
+                # Fallback: Generate from page type + location with language-specific prefixes
+                type_prefixes = {
+                    'sv': {'EVENTS': 'evenemang', 'CLUBS': 'fritidsgard', 'GENERAL': 'ungdomsverksamhet'},
+                    'da': {'EVENTS': 'begivenheder', 'CLUBS': 'ungdomsklub', 'GENERAL': 'ungdomsaktiviteter'},
+                    'nb': {'EVENTS': 'arrangementer', 'CLUBS': 'ungdomsklubb', 'GENERAL': 'ungdomsaktiviteter'},
+                    'en': {'EVENTS': 'events', 'CLUBS': 'youth-club', 'GENERAL': 'youth-activities'},
+                }
+                lang_prefixes = type_prefixes.get(self.language, type_prefixes['sv'])
+                type_prefix = lang_prefixes.get(self.page_type, 'ungdom')
                 self.slug = slugify(f"{type_prefix}-{self.location.name}")
         
         # Auto-set focus keyphrase from keyword
@@ -553,7 +624,7 @@ class LocalLandingPage(models.Model):
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"{self.h1_title} ({self.get_status_display()})"
+        return f"{self.h1_title} ({self.get_status_display()}) [{self.get_language_display()}]"
 
 
 # =============================================================================
@@ -564,6 +635,7 @@ class SEOArticle(models.Model):
     """
     AI-assisted articles targeting specific keywords.
     More editorial control than landing pages - for informational content.
+    Each article belongs to a specific language.
     """
     STATUS_CHOICES = [
         ('IDEA', 'Idea/Backlog'),
@@ -574,6 +646,15 @@ class SEOArticle(models.Model):
         ('PUBLISHED', 'Published'),
         ('ARCHIVED', 'Archived'),
     ]
+    
+    # Language field
+    language = models.CharField(
+        max_length=10,
+        choices=LANGUAGE_CHOICES,
+        default=DEFAULT_LANGUAGE,
+        db_index=True,
+        help_text="Language for this article"
+    )
     
     # Targeting
     target_keyword = models.ForeignKey(
@@ -715,14 +796,20 @@ class SEOArticle(models.Model):
         ordering = ['-published_at', '-created_at']
         verbose_name = "SEO Article"
         verbose_name_plural = "SEO Articles"
+        indexes = [
+            models.Index(fields=['language', 'status']),
+        ]
     
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
+        # Inherit language from target keyword if not set
+        if self.target_keyword and not self.language:
+            self.language = self.target_keyword.language
         super().save(*args, **kwargs)
     
     def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
+        return f"{self.title} ({self.get_status_display()}) [{self.get_language_display()}]"
 
 
 # =============================================================================

@@ -9,7 +9,7 @@ import api from '../../../../lib/api';
 import { useAuth } from '../../../../context/AuthContext';
 import { getMediaUrl } from '../../../utils';
 import { useToast } from '../../../../hooks/useToast';
-import { Upload, X, Building, Mail, Phone, MapPin, FileText, Globe, UserCheck, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, X, Building, Mail, Phone, MapPin, FileText, Globe, UserCheck, Info, CheckCircle, AlertTriangle, Package } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -58,6 +58,9 @@ interface ClubFormState {
   longitude: string;
   club_categories: string;
   trial_period_days_override: number | null;
+  // Inventory settings
+  max_active_loans_per_user: number;
+  borrowing_requires_checkin: boolean;
 }
 
 export default function ClubSettingsPage() {
@@ -88,6 +91,9 @@ export default function ClubSettingsPage() {
     longitude: '',
     club_categories: '',
     trial_period_days_override: null,
+    // Inventory settings
+    max_active_loans_per_user: 3,
+    borrowing_requires_checkin: false,
   });
   
   // Municipality trial period (for showing default)
@@ -125,6 +131,9 @@ export default function ClubSettingsPage() {
         longitude: data.longitude !== null && data.longitude !== undefined ? String(data.longitude) : '',
         club_categories: data.club_categories || '',
         trial_period_days_override: data.trial_period_days_override,
+        // Inventory settings
+        max_active_loans_per_user: data.max_active_loans_per_user ?? 3,
+        borrowing_requires_checkin: data.borrowing_requires_checkin ?? false,
       });
       
       // Get municipality trial days for showing default
@@ -203,6 +212,10 @@ export default function ClubSettingsPage() {
         // Send empty string to explicitly clear the override (use municipality default)
         data.append('trial_period_days_override', '');
       }
+
+      // Inventory settings
+      data.append('max_active_loans_per_user', formData.max_active_loans_per_user.toString());
+      data.append('borrowing_requires_checkin', formData.borrowing_requires_checkin.toString());
 
       if (avatarFile) data.append('avatar', avatarFile);
       if (heroFile) data.append('hero_image', heroFile);
@@ -682,6 +695,94 @@ export default function ClubSettingsPage() {
                     <AlertTriangle className="h-5 w-5 text-[var(--brand-yellow)]" />
                     <span className="text-sm text-[var(--brand-light)]">
                       {t('trialPeriod.statusDisabled')}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Inventory Settings Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-peach)] to-[var(--brand-purple)] flex items-center justify-center">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('inventorySettings.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('inventorySettings.description')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Max Loans Per User */}
+              <div className="space-y-3">
+                <label htmlFor="max_active_loans_per_user" className={labelClasses}>
+                  {t('inventorySettings.maxLoansPerUser')}
+                </label>
+                <div className="flex items-center gap-4">
+                  <input
+                    id="max_active_loans_per_user"
+                    type="number"
+                    min={1}
+                    max={10}
+                    className={`${inputClasses('max_active_loans_per_user')} w-24`}
+                    value={formData.max_active_loans_per_user}
+                    onChange={e => setFormData({...formData, max_active_loans_per_user: parseInt(e.target.value) || 1})}
+                    onFocus={() => setFocusedField('max_active_loans_per_user')}
+                    onBlur={() => setFocusedField(null)}
+                  />
+                  <span className="text-sm text-[var(--brand-light)]/50">{t('inventorySettings.itemsPerClub')}</span>
+                </div>
+                <p className="text-xs text-[var(--brand-light)]/40">
+                  {t('inventorySettings.maxLoansDescription')}
+                </p>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-[var(--dark-600)]" />
+
+              {/* Require Check-in Toggle */}
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <input
+                    id="borrowing_requires_checkin"
+                    type="checkbox"
+                    className="h-5 w-5 text-[var(--brand-primary)] border-[var(--dark-500)] rounded focus:ring-[var(--brand-primary)] bg-[var(--dark-600)] mt-0.5"
+                    checked={formData.borrowing_requires_checkin}
+                    onChange={e => setFormData({...formData, borrowing_requires_checkin: e.target.checked})}
+                  />
+                  <div>
+                    <label htmlFor="borrowing_requires_checkin" className="text-sm font-semibold text-[var(--brand-light)] cursor-pointer">
+                      {t('inventorySettings.requireCheckIn')}
+                    </label>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-1">
+                      {t('inventorySettings.requireCheckInDescription')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
+              <div className={`flex items-center gap-3 p-4 rounded-xl border ${
+                formData.borrowing_requires_checkin 
+                  ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30' 
+                  : 'bg-[var(--dark-700)] border-[var(--dark-500)]'
+              }`}>
+                {formData.borrowing_requires_checkin ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-[var(--brand-primary)]" />
+                    <span className="text-sm text-[var(--brand-light)]">
+                      {t('inventorySettings.statusCheckInRequired')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Info className="h-5 w-5 text-[var(--brand-light)]/50" />
+                    <span className="text-sm text-[var(--brand-light)]">
+                      {t('inventorySettings.statusCheckInNotRequired')}
                     </span>
                   </>
                 )}

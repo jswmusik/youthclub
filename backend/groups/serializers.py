@@ -1,7 +1,9 @@
 from rest_framework import serializers
+from django.db import transaction
 from .models import Group, GroupMembership
 from datetime import date
 import json
+
 
 class GroupMembershipSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
@@ -31,6 +33,7 @@ class GroupMembershipSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.user.avatar.url)
             return obj.user.avatar.url
         return None
+
 
 class GroupSerializer(serializers.ModelSerializer):
     eligibility = serializers.SerializerMethodField()
@@ -117,13 +120,20 @@ class GroupSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return None
         
-        # Check if user has a membership
-        # Optimization: In a real production app, you'd want to prefetch this in the view
+        # Optimization: Use prefetched user_memberships if available (set by view's get_queryset)
+        # This avoids N+1 queries when listing multiple groups
+        if hasattr(obj, 'user_memberships') and obj.user_memberships:
+            membership = obj.user_memberships[0]  # There can only be one per user due to unique_together
+            return {
+                'status': membership.status,
+                'rejection_count': membership.rejection_count
+            }
+        
+        # Fallback for single object retrieval or when prefetch isn't available
         membership = obj.memberships.filter(user=request.user).first()
         if membership:
-            # Return status and rejection_count for frontend to use
             return {
-                'status': membership.status,  # 'PENDING', 'APPROVED', 'REJECTED', etc.
+                'status': membership.status,
                 'rejection_count': membership.rejection_count
             }
         return None
@@ -184,47 +194,75 @@ class GroupSerializer(serializers.ModelSerializer):
         return obj.memberships.filter(status='PENDING').count()
     
     def create(self, validated_data):
-        """Handle creating a group and adding members."""
-        members_to_add = validated_data.pop('members_to_add', [])
-        group = super().create(validated_data)
+        """
+        Handle creating a group and adding members.
         
-        # Add members if specified
-        if members_to_add:
-            self._add_members_to_group(group, members_to_add)
+        Fix #14: Wrapped in transaction to prevent partial saves if member addition fails.
+        """
+        members_to_add = validated_data.pop('members_to_add', [])
+        
+        with transaction.atomic():
+            group = super().create(validated_data)
+            
+            # Add members if specified
+            if members_to_add:
+                self._add_members_to_group(group, members_to_add)
         
         return group
     
     def update(self, instance, validated_data):
-        """Handle updating a group and adding new members."""
-        members_to_add = validated_data.pop('members_to_add', [])
-        group = super().update(instance, validated_data)
+        """
+        Handle updating a group and adding new members.
         
-        # Add new members if specified
-        if members_to_add:
-            self._add_members_to_group(group, members_to_add)
+        Fix #14: Wrapped in transaction to prevent partial saves if member addition fails.
+        """
+        members_to_add = validated_data.pop('members_to_add', [])
+        
+        with transaction.atomic():
+            group = super().update(instance, validated_data)
+            
+            # Add new members if specified
+            if members_to_add:
+                self._add_members_to_group(group, members_to_add)
         
         return group
     
     def _add_members_to_group(self, group, user_ids):
-        """Helper method to add users to a group."""
+        """
+        Helper method to add users to a group.
+        
+        Fix: Properly handles admin additions without double-firing signals.
+        Uses a custom save to set the _added_by_admin flag before the signal fires.
+        """
         from users.models import User
         
         for user_id in user_ids:
             try:
                 user = User.objects.get(id=user_id)
-                # Get or create membership, update status to APPROVED if it exists
-                membership, created = GroupMembership.objects.get_or_create(
+                
+                # Check if membership already exists
+                existing_membership = GroupMembership.objects.filter(
                     group=group,
-                    user=user,
-                    defaults={
-                        'status': GroupMembership.Status.APPROVED,
-                        'role': GroupMembership.Role.MEMBER
-                    }
-                )
-                # If membership already exists, update it to APPROVED (in case it was REJECTED or PENDING)
-                if not created:
-                    membership.status = GroupMembership.Status.APPROVED
-                    membership.save(update_fields=['status', 'updated_at'])
+                    user=user
+                ).first()
+                
+                if existing_membership:
+                    # If membership exists but wasn't approved, update it
+                    if existing_membership.status != GroupMembership.Status.APPROVED:
+                        existing_membership.status = GroupMembership.Status.APPROVED
+                        existing_membership.save(update_fields=['status', 'updated_at'])
+                else:
+                    # Create new membership - set flag BEFORE save so signal can see it
+                    membership = GroupMembership(
+                        group=group,
+                        user=user,
+                        status=GroupMembership.Status.APPROVED,
+                        role=GroupMembership.Role.MEMBER
+                    )
+                    # Set flag before save so the post_save signal can access it
+                    membership._added_by_admin = True
+                    membership.save()
+                    
             except User.DoesNotExist:
                 # Skip invalid user IDs
                 continue

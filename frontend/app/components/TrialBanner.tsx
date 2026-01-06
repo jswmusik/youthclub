@@ -37,7 +37,7 @@ export default function TrialBanner({
         ? 'bg-[var(--brand-red)]/15 border-[var(--brand-red)]/40 text-[var(--brand-red)]' 
         : isUrgent 
           ? 'bg-[var(--brand-yellow)]/15 border-[var(--brand-yellow)]/40 text-[var(--brand-yellow)]'
-          : 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/30 text-[var(--brand-primary)]'
+          : 'bg-[var(--brand-purple)]/10 border-[var(--brand-purple)]/30 text-[var(--brand-purple)]'
       }
     `}>
       <div className={`
@@ -46,7 +46,7 @@ export default function TrialBanner({
           ? 'bg-[var(--brand-red)]/20' 
           : isUrgent 
             ? 'bg-[var(--brand-yellow)]/20'
-            : 'bg-[var(--brand-primary)]/20'
+            : 'bg-[var(--brand-purple)]/20'
         }
       `}>
         <Clock className="w-5 h-5" />
@@ -76,7 +76,7 @@ export default function TrialBanner({
                 ? 'hover:bg-[var(--brand-red)]/20' 
                 : isUrgent 
                   ? 'hover:bg-[var(--brand-yellow)]/20'
-                  : 'hover:bg-[var(--brand-primary)]/20'
+                  : 'hover:bg-[var(--brand-purple)]/20'
               }
             `}
           >
@@ -87,6 +87,7 @@ export default function TrialBanner({
     </div>
   );
 }
+
 
 
 

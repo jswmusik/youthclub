@@ -13,3 +13,18 @@ def update_last_active_on_checkin(sender, instance, created, **kwargs):
         from users.models import User
         User.objects.filter(pk=instance.user_id).update(last_active_at=timezone.now())
 
+
+@receiver(post_save, sender=CheckInSession)
+def process_checkin_reward_triggers(sender, instance, created, **kwargs):
+    """
+    Process reward triggers when a user checks in.
+    Handles: FIRST_CHECKIN, CHECKIN_STREAK, CHECKIN_MILESTONE
+    """
+    if created:
+        try:
+            from rewards.trigger_handlers import process_checkin_triggers
+            process_checkin_triggers(instance.user, instance)
+        except Exception as e:
+            # Don't let reward processing break check-in functionality
+            print(f"Error processing check-in reward triggers: {e}")
+
