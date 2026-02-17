@@ -63,8 +63,8 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
 
             setUserRating(data.user_rating || 0);
 
-        } catch (error) {
-            console.error("Failed to load course", error);
+        } catch (err) {
+            console.error("Failed to load course", err);
             error(t('errors.failedToLoad'));
         } finally {
             setLoading(false);
@@ -82,9 +82,9 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
             
             const res = await learningApi.getCourse(course.slug);
             setCourse(res.data);
-        } catch (error: any) {
-            console.error("Failed to rate course", error);
-            error(error.response?.data?.error || t('errors.failedToRate'));
+        } catch (err: any) {
+            console.error("Failed to rate course", err);
+            error(err.response?.data?.error || t('errors.failedToRate'));
         } finally {
             setIsRating(false);
         }
@@ -159,8 +159,8 @@ export default function CoursePlayerLayout({ courseSlug, backUrl }: Props) {
                 }
             }
 
-        } catch (error) {
-            console.error(error);
+        } catch (err) {
+            console.error(err);
             error(t('errors.failedToUpdate'));
         }
     };

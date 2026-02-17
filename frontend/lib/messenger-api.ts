@@ -26,8 +26,11 @@ export const messengerApi = {
         return api.get<{ results: ConversationList[], count: number }>(`${BASE_URL}/conversations/?${params.toString()}`);
     },
 
-    getConversationDetail: async (id: number) => {
-        return api.get<ConversationDetail>(`${BASE_URL}/conversations/${id}/`);
+    getConversationDetail: async (id: number, page = 1, pageSize = 50) => {
+        const params = new URLSearchParams();
+        params.append('page', page.toString());
+        params.append('page_size', pageSize.toString());
+        return api.get<ConversationDetail>(`${BASE_URL}/conversations/${id}/?${params.toString()}`);
     },
 
     startConversation: async (recipientId: number) => {
@@ -151,6 +154,13 @@ export const messengerApi = {
     deleteConversation: async (conversationId: number) => {
         return api.post<{ status: string; message: string }>(
             `${BASE_URL}/conversations/${conversationId}/delete/`
+        );
+    },
+
+    markMessagesRead: async (conversationId: number, messageIds: number[]) => {
+        return api.post<{ status: string; marked_read: number }>(
+            `${BASE_URL}/conversations/${conversationId}/mark_messages_read/`,
+            { message_ids: messageIds }
         );
     },
 

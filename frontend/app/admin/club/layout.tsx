@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -50,6 +50,7 @@ import { messengerApi } from '../../../lib/messenger-api';
 import { useLicense } from '../../../hooks/useLicense';
 import { Toaster } from '../../components/Toaster';
 import { useAdminInactivityTimeout } from '../../../hooks/useAdminInactivityTimeout';
+import { useNotificationWebSocket, useUnreadCountListener } from '../../../hooks/useNotificationWebSocket';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -209,6 +210,19 @@ export default function ClubAdminLayout({ children }: { children: React.ReactNod
       setInboxUnreadCount(0);
     }
   };
+
+  // Real-time message count updates via WebSocket
+  const handleUnreadCountUpdate = useCallback((count: number) => {
+    setInboxUnreadCount(count);
+  }, []);
+  
+  // Connect to notification WebSocket for real-time updates
+  useNotificationWebSocket({
+    onUnreadCountUpdate: handleUnreadCountUpdate
+  });
+  
+  // Also listen for global unread count events
+  useUnreadCountListener(handleUnreadCountUpdate);
 
   // Navigation structure with groups - FILTERED BY LICENSE
   const allNavigationGroups = [

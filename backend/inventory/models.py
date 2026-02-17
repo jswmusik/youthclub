@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, FileExtensionValidator
 from organization.models import Club
+from groups.models import Group
 
 # Validator for item images
 item_image_validator = FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
@@ -79,6 +80,15 @@ class Item(models.Model):
         validators=[MinValueValidator(0)]
     )
     
+    # Check-in requirement override for this specific item
+    # None = Use club's default setting, True = Always require, False = Never require
+    requires_checkin = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Override club's check-in requirement for this item. None = use club default."
+    )
+    
     # State
     status = models.CharField(
         max_length=20, 
@@ -88,6 +98,16 @@ class Item(models.Model):
     
     # Internal Tracking (Useful for the 'Batch Create' feature)
     internal_note = models.CharField(max_length=255, blank=True, help_text="Admin note (e.g. 'Batch 2024')")
+    
+    # Group Restriction: If set, only members of this group can see/borrow this item
+    restricted_to_group = models.ForeignKey(
+        Group,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='restricted_items',
+        help_text="If set, only members of this group can see and borrow this item"
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,6 +1,8 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
+from rest_framework.exceptions import NotFound, PermissionDenied
 from django.db.models import Count, Q, Max, Prefetch
 from django.utils import timezone
 from .models import Conversation, Message, MessageRecipient, ConversationUserStatus, MessageReaction
@@ -16,6 +18,17 @@ from users.serializers import UserListSerializer
 from core.permissions import HasLicenseFeature
 
 User = get_user_model()
+
+
+# Custom throttle classes for messenger
+class MessageSendThrottle(UserRateThrottle):
+    """Throttle for sending messages - 60/minute"""
+    scope = 'message_send'
+
+
+class BroadcastThrottle(UserRateThrottle):
+    """Throttle for broadcast messages - 10/minute"""
+    scope = 'broadcast'
 
 class ConversationViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
@@ -197,37 +210,104 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
+        from django.core.paginator import Paginator
+        
         # Get the conversation ID first
         conversation_id = kwargs.get('pk')
         
-        # Mark all messages in this conversation as read for this user
-        unread = MessageRecipient.objects.filter(
-            message__conversation_id=conversation_id,
+        # Pagination parameters
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 50))
+        
+        # Clamp page_size to reasonable limits
+        page_size = min(max(page_size, 10), 100)
+        
+        # NOTE: We no longer auto-mark all messages as read here.
+        # Instead, the frontend will call mark_messages_read when messages scroll into view.
+        
+        # Fetch conversation with participants
+        instance = Conversation.objects.prefetch_related('participants').get(id=conversation_id)
+        
+        # Fetch messages separately with pagination
+        # Order by -created_at to get newest first, then reverse for display
+        messages_queryset = Message.objects.filter(
+            conversation_id=conversation_id
+        ).select_related('sender').prefetch_related(
+            Prefetch(
+                'reactions',
+                queryset=MessageReaction.objects.select_related('user')
+            ),
+            'recipient_statuses'
+        ).order_by('-created_at')
+        
+        # Paginate
+        paginator = Paginator(messages_queryset, page_size)
+        total_messages = paginator.count
+        total_pages = paginator.num_pages
+        
+        # Get the requested page
+        if page > total_pages:
+            page = total_pages if total_pages > 0 else 1
+        
+        page_obj = paginator.get_page(page)
+        
+        # Reverse to get chronological order for display
+        messages_list = list(page_obj.object_list)[::-1]
+        
+        # Build response with pagination info
+        serializer = self.get_serializer(instance)
+        response_data = serializer.data
+        
+        # Replace messages with paginated version
+        from .serializers import MessageSerializer
+        response_data['messages'] = MessageSerializer(
+            messages_list, 
+            many=True, 
+            context={'request': request}
+        ).data
+        
+        # Add pagination metadata
+        response_data['pagination'] = {
+            'page': page,
+            'page_size': page_size,
+            'total_messages': total_messages,
+            'total_pages': total_pages,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+        }
+        
+        return Response(response_data)
+
+    @action(detail=True, methods=['post'])
+    def mark_messages_read(self, request, pk=None):
+        """
+        Mark specific messages as read when they scroll into view.
+        Accepts a list of message IDs to mark as read.
+        """
+        conversation = self.get_object()
+        message_ids = request.data.get('message_ids', [])
+        
+        if not message_ids:
+            return Response({"error": "message_ids required"}, status=400)
+        
+        # Validate message_ids is a list
+        if not isinstance(message_ids, list):
+            message_ids = [message_ids]
+        
+        # Mark messages as read for this user
+        updated_count = MessageRecipient.objects.filter(
+            message_id__in=message_ids,
+            message__conversation=conversation,
             recipient=request.user,
             is_read=False
-        )
-        if unread.exists():
-            unread.update(is_read=True, read_at=timezone.now())
+        ).update(is_read=True, read_at=timezone.now())
         
-        # Fetch conversation with prefetched messages and reactions
-        instance = Conversation.objects.prefetch_related(
-            'participants',
-            Prefetch(
-                'messages',
-                queryset=Message.objects.select_related('sender').prefetch_related(
-                    Prefetch(
-                        'reactions',
-                        queryset=MessageReaction.objects.select_related('user')
-                    ),
-                    'recipient_statuses'
-                ).order_by('created_at')
-            )
-        ).get(id=conversation_id)
-            
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        return Response({
+            'status': 'success',
+            'marked_read': updated_count
+        })
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], throttle_classes=[MessageSendThrottle])
     def start(self, request):
         """Start a new 1:1 DM"""
         serializer = CreateMessageSerializer(data=request.data)
@@ -295,6 +375,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
                     is_read=True,
                     read_at=timezone.now()
                 )
+                
+                # Broadcast message via WebSocket
+                self._broadcast_new_message(conv, msg, request)
             
             # Return existing thread
             return Response({'id': conv.id, 'status': 'existing'})
@@ -303,6 +386,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
         subject = serializer.validated_data.get('subject', '').strip()
         if not subject:
             return Response({"error": "Subject is required for new conversations"}, status=400)
+        
+        # 3.1 Validate that new conversations must have content or attachment
+        content = serializer.validated_data.get('content')
+        attachment = serializer.validated_data.get('attachment')
+        if not content and not attachment:
+            return Response({"error": "Message content or attachment is required for new conversations"}, status=400)
         
         conv = Conversation.objects.create(
             type=Conversation.Type.DM,
@@ -333,6 +422,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 is_read=True,
                 read_at=timezone.now()
             )
+            
+            # Broadcast message via WebSocket
+            self._broadcast_new_message(conv, msg, request)
 
         return Response({'id': conv.id, 'status': 'created'})
     
@@ -427,7 +519,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
             
             return Response({'status': 'deleted', 'message': 'Conversation permanently deleted'})
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], throttle_classes=[MessageSendThrottle])
     def reply(self, request, pk=None):
         """Reply to an existing thread"""
         conversation = self.get_object()
@@ -450,6 +542,18 @@ class ConversationViewSet(viewsets.ModelViewSet):
              # but they cannot reply to the broadcast thread anyway.
              return Response({"error": "You cannot reply to this conversation directly."}, status=403)
 
+        # SECURITY: Prevent guardians from messaging youth members
+        if request.user.role == 'GUARDIAN':
+            youth_in_conversation = conversation.participants.filter(role='YOUTH_MEMBER').exists()
+            if youth_in_conversation:
+                return Response({"error": "Guardians cannot message youth members"}, status=403)
+
+        # SECURITY: Prevent youth from messaging guardians
+        if request.user.role == 'YOUTH_MEMBER':
+            guardian_in_conversation = conversation.participants.filter(role='GUARDIAN').exists()
+            if guardian_in_conversation:
+                return Response({"error": "Youth cannot message guardians"}, status=403)
+
         msg = Message.objects.create(
             conversation=conversation,
             sender=request.user,
@@ -467,7 +571,43 @@ class ConversationViewSet(viewsets.ModelViewSet):
                 read_at=timezone.now() if is_read else None
             )
 
+        # Broadcast message via WebSocket
+        self._broadcast_new_message(conversation, msg, request)
+
         return Response(MessageSerializer(msg, context={'request': request}).data)
+
+    def _broadcast_new_message(self, conversation, message, request):
+        """Broadcast a new message to all connected WebSocket clients in the chat room.
+        
+        Note: Notification channel updates (badge counts) are handled by the 
+        post_save signal on MessageRecipient in signals.py to avoid duplicates.
+        """
+        try:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            
+            channel_layer = get_channel_layer()
+            if channel_layer is None:
+                return  # Channels not configured
+            
+            # Serialize the message for WebSocket
+            message_data = MessageSerializer(message, context={'request': request}).data
+            
+            # Broadcast to the conversation room only
+            # The notification channel (badge updates) is handled by signals.py
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{conversation.id}',
+                {
+                    'type': 'chat_message',
+                    'message': message_data,
+                    'sender_id': request.user.id
+                }
+            )
+        except Exception as e:
+            # Don't fail the request if WebSocket broadcast fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to broadcast message via WebSocket: {e}")
 
 
 class MessageViewSet(viewsets.ViewSet):
@@ -611,6 +751,7 @@ class MessageViewSet(viewsets.ViewSet):
 
 class BroadcastViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [BroadcastThrottle]
 
     @action(detail=False, methods=['post'])
     def estimate(self, request):

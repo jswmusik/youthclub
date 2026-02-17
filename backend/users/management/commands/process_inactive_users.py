@@ -276,6 +276,7 @@ class Command(BaseCommand):
         for item in pending:
             user = item['user']
             original_email = user.email  # Save before anonymization
+            original_name = user.first_name or "User"  # Save name
             try:
                 result = InactiveUserService.anonymize_user(
                     user, 
@@ -287,7 +288,7 @@ class Command(BaseCommand):
                 ))
                 
                 # Send confirmation email to the original email address
-                InactiveUserService.send_account_deleted_notification(original_email)
+                InactiveUserService.send_account_deleted_notification(original_email, original_name)
                 
             except Exception as e:
                 error_count += 1

@@ -154,6 +154,26 @@ def grant_reward_with_context(user, reward, trigger_type, trigger_context=None):
         )
     except Exception as e:
         print(f"Error creating notification: {e}")
+    
+    # Send Email Notification (async in production, sync in development)
+    try:
+        from emails.tasks import send_email_async
+        from emails.models import EmailTemplate
+        
+        send_email_async(
+            template_type=EmailTemplate.Type.REWARD_EARNED,
+            recipient=user,
+            context={
+                'reward_name': reward.name,
+                'reward_description': reward.description or '',
+                'reward_type': reward.get_reward_type_display(),
+                'trigger_type': trigger_type,
+            }
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to queue reward earned email to {user.email}: {e}")
 
     print(f"-> Granted '{reward.name}' to {user.email} via {trigger_type} (Pending Redemption)")
     return True
@@ -210,6 +230,25 @@ def grant_reward(user, reward, trigger_type=None, trigger_context=None):
         )
     except Exception as e:
         print(f"Error creating notification: {e}")
+    
+    # Send Email Notification (async in production, sync in development)
+    try:
+        from emails.tasks import send_email_async
+        from emails.models import EmailTemplate
+        
+        send_email_async(
+            template_type=EmailTemplate.Type.REWARD_EARNED,
+            recipient=user,
+            context={
+                'reward_name': reward.name,
+                'reward_description': reward.description or '',
+                'reward_type': reward.get_reward_type_display(),
+            }
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to queue reward earned email to {user.email}: {e}")
 
     print(f"-> Granted '{reward.name}' to {user.email} (Pending Redemption)")
     return True

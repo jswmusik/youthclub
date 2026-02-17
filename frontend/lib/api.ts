@@ -40,7 +40,6 @@ api.interceptors.request.use((config: any) => {
     '/custom-fields/public/',
     '/register/youth/',
     '/register/check-guardian/',
-    '/interests/',
     '/marketing/public/',
     '/public/events/',
     '/auth/jwt/refresh/',  // Token refresh endpoint
@@ -49,6 +48,7 @@ api.interceptors.request.use((config: any) => {
   // Endpoints that are public only for GET requests (read-only public access)
   const readOnlyPublicEndpoints = [
     '/municipalities/',
+    '/interests/',  // Interests are public for reading, but require auth for CRUD
   ];
   
   // Get URL path without query parameters

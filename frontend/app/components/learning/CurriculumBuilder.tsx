@@ -73,7 +73,7 @@ export default function CurriculumBuilder({ course }: Props) {
             setNewChapterTitle('');
             loadChapters();
             success(t('toast.chapterAdded'));
-        } catch (error) {
+        } catch (err) {
             error(t('toast.failedToAddChapter'));
         }
     };
@@ -85,7 +85,7 @@ export default function CurriculumBuilder({ course }: Props) {
             setChapters(prev => prev.filter(c => c.id !== chapterToDelete));
             success(t('toast.chapterDeleted'));
             setChapterToDelete(null);
-        } catch (error) {
+        } catch (err) {
             error(t('toast.failedToDeleteChapter'));
             setChapterToDelete(null);
         }
@@ -103,19 +103,19 @@ export default function CurriculumBuilder({ course }: Props) {
             success(t('toast.lessonSaved'));
             setShowItemModal(false);
             setEditingItem(undefined);
-        } catch (error: any) {
-            console.error('Save item error:', error);
+        } catch (err: any) {
+            console.error('Save item error:', err);
             
             let errorMessage = t('toast.failedToSaveLesson');
-            if (error.response?.data) {
-                if (typeof error.response.data === 'string') {
-                    errorMessage = error.response.data;
-                } else if (error.response.data.detail) {
-                    errorMessage = error.response.data.detail;
-                } else if (error.response.data.error) {
-                    errorMessage = error.response.data.error;
+            if (err.response?.data) {
+                if (typeof err.response.data === 'string') {
+                    errorMessage = err.response.data;
+                } else if (err.response.data.detail) {
+                    errorMessage = err.response.data.detail;
+                } else if (err.response.data.error) {
+                    errorMessage = err.response.data.error;
                 } else {
-                    const fieldErrors = Object.entries(error.response.data)
+                    const fieldErrors = Object.entries(err.response.data)
                         .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
                         .join('; ');
                     if (fieldErrors) {
@@ -137,7 +137,7 @@ export default function CurriculumBuilder({ course }: Props) {
             loadChapters();
             success(t('toast.lessonDeleted'));
             setItemToDelete(null);
-        } catch (error) {
+        } catch (err) {
             error(t('toast.failedToDeleteLesson'));
             setItemToDelete(null);
         }
@@ -205,8 +205,8 @@ export default function CurriculumBuilder({ course }: Props) {
             const orderedIds = newItems.map(item => item.id);
             await learningApi.reorderItems(targetChapter.id, orderedIds);
             success(t('toast.orderUpdated'));
-        } catch (error) {
-            console.error('Failed to reorder items', error);
+        } catch (err) {
+            console.error('Failed to reorder items', err);
             error(t('toast.failedToUpdateOrder'));
             loadChapters();
         }

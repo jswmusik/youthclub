@@ -592,6 +592,9 @@ class YouthGuardiansViewSet(viewsets.ModelViewSet):
                 is_primary_guardian=True
             ).exclude(id=link.id).update(is_primary_guardian=False)
         
+        # Send email notification to guardian
+        self._send_guardian_notification_email(guardian_user, user, guardian_existed)
+        
         response_serializer = GuardianYouthLinkSerializer(link)
         response_data = response_serializer.data
         # Add metadata about whether guardian existed
@@ -624,6 +627,48 @@ class YouthGuardiansViewSet(viewsets.ModelViewSet):
         
         link.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    def _send_guardian_notification_email(self, guardian, youth, guardian_existed):
+        """Send email notification to guardian about youth linking"""
+        try:
+            from emails.tasks import send_email_async
+            from emails.models import EmailTemplate
+            from django.conf import settings
+            
+            if not guardian_existed:
+                # New guardian - send account creation email with password setup link
+                from django.contrib.auth.tokens import default_token_generator
+                from django.utils.http import urlsafe_base64_encode
+                from django.utils.encoding import force_bytes
+                
+                uid = urlsafe_base64_encode(force_bytes(guardian.pk))
+                token = default_token_generator.make_token(guardian)
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+                reset_url = f"{frontend_url}/reset-password/{uid}/{token}"
+                
+                send_email_async(
+                    template_type=EmailTemplate.Type.GUARDIAN_CREATED,
+                    recipient=guardian,
+                    context={
+                        'youth_name': f"{youth.first_name} {youth.last_name}".strip() or youth.email,
+                        'club_name': youth.preferred_club.name if youth.preferred_club else 'Ungdomsappen',
+                        'set_password_url': reset_url,
+                    }
+                )
+            else:
+                # Existing guardian - send link request
+                send_email_async(
+                    template_type=EmailTemplate.Type.GUARDIAN_LINK_REQUEST,
+                    recipient=guardian,
+                    context={
+                        'youth_name': f"{youth.first_name} {youth.last_name}".strip() or youth.email,
+                        'youth_email': youth.email,
+                    }
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send guardian notification email to {guardian.email}: {e}")
 
 
 class GuardianChildrenViewSet(viewsets.ModelViewSet):

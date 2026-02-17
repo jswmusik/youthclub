@@ -754,6 +754,12 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
     # NEW: Custom Fields (Dict of {field_id: value})
     custom_fields = serializers.DictField(required=False, write_only=True)
     guardian_custom_fields = serializers.DictField(required=False, write_only=True)
+    
+    # GDPR Consents (Required)
+    consent_terms_of_service = serializers.BooleanField(required=True, write_only=True)
+    consent_privacy_policy = serializers.BooleanField(required=True, write_only=True)
+    consent_data_processing = serializers.BooleanField(required=True, write_only=True)
+    consent_age_verification = serializers.BooleanField(required=True, write_only=True)
 
     class Meta:
         model = User
@@ -763,7 +769,8 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             'date_of_birth', 'legal_gender', 'preferred_gender',
             'grade', 'preferred_club_id',
             'guardian_email', 'guardian_first_name', 'guardian_last_name', 'guardian_phone', 'guardian_legal_gender',
-            'interests', 'custom_fields', 'guardian_custom_fields'
+            'interests', 'custom_fields', 'guardian_custom_fields',
+            'consent_terms_of_service', 'consent_privacy_policy', 'consent_data_processing', 'consent_age_verification'
         ]
 
     def validate(self, attrs):
@@ -781,6 +788,20 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Password must contain at least one number."})
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
             raise serializers.ValidationError({"password": "Password must contain at least one special character."})
+        
+        # 1b. GDPR Consent Check - All required consents must be True
+        required_consents = [
+            'consent_terms_of_service',
+            'consent_privacy_policy',
+            'consent_data_processing',
+            'consent_age_verification'
+        ]
+        for consent in required_consents:
+            if not attrs.get(consent, False):
+                consent_name = consent.replace('consent_', '').replace('_', ' ').title()
+                raise serializers.ValidationError({
+                    consent: f"You must accept the {consent_name} to register."
+                })
         
         # Clean up empty strings - convert to None for optional fields
         # Note: nickname is excluded because the model has blank=True but not null=True
@@ -925,6 +946,12 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
         youth_cf_data = validated_data.pop('custom_fields', {})
         guardian_cf_data = validated_data.pop('guardian_custom_fields', {})
         
+        # Pop GDPR Consents
+        consent_terms = validated_data.pop('consent_terms_of_service', False)
+        consent_privacy = validated_data.pop('consent_privacy_policy', False)
+        consent_data = validated_data.pop('consent_data_processing', False)
+        consent_age = validated_data.pop('consent_age_verification', False)
+        
         # Pop Guardian Data
         g_email = validated_data.pop('guardian_email', None)
         g_first = validated_data.pop('guardian_first_name', '')
@@ -948,6 +975,17 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
 
         # 1b. Save Youth Custom Fields
         self._save_custom_fields(user, youth_cf_data)
+        
+        # 1c. Record GDPR Consents
+        self._record_consents(user, {
+            'terms_of_service': consent_terms,
+            'privacy_policy': consent_privacy,
+            'data_processing': consent_data,
+            'age_verification': consent_age
+        })
+        
+        # 1d. Send Welcome Email to Youth
+        self._send_welcome_email(user, club)
 
         # 2. Handle Guardian Logic
         if g_email:
@@ -955,6 +993,7 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
             # Check if guardian exists
             guardian_user = User.objects.filter(email=g_email).first()
             
+            guardian_was_created = False
             if not guardian_user:
                 # CREATE SHADOW GUARDIAN
                 # We create an active user with a random unusable password
@@ -973,6 +1012,7 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
                 )
                 # Save Guardian Custom Fields (Only for new shadow users)
                 self._save_custom_fields(guardian_user, guardian_cf_data)
+                guardian_was_created = True
             
             # Create Link (Pending by default)
             GuardianYouthLink.objects.create(
@@ -982,6 +1022,14 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
                 status='PENDING',
                 is_primary_guardian=True
             )
+            
+            # Send notification to guardian
+            if guardian_was_created:
+                # New guardian account - send creation email
+                self._send_guardian_created_email(guardian_user, user, club)
+            else:
+                # Existing guardian - send link request email
+                self._send_guardian_link_request_email(guardian_user, user)
 
         return user
 
@@ -1010,3 +1058,101 @@ class YouthRegistrationSerializer(serializers.ModelSerializer):
                     
             except (CustomFieldDefinition.DoesNotExist, ValueError):
                 continue
+    
+    def _record_consents(self, user, consents_dict):
+        """Helper to record GDPR consents given during registration"""
+        from gdpr.consent_models import ConsentType, UserConsent
+        from django.utils import timezone
+        
+        # Get IP address from request context if available
+        ip_address = None
+        if hasattr(self, 'context') and 'request' in self.context:
+            ip_address = self.context['request'].META.get('REMOTE_ADDR')
+        
+        for consent_code, accepted in consents_dict.items():
+            if accepted:
+                try:
+                    consent_type = ConsentType.objects.get(code=consent_code, is_active=True)
+                    UserConsent.objects.create(
+                        user=user,
+                        consent_type=consent_type,
+                        consent_method='REGISTRATION',
+                        ip_address=ip_address,
+                        version_snapshot=consent_type.version,
+                        is_active=True
+                    )
+                except ConsentType.DoesNotExist:
+                    # Log but don't fail registration if consent type is missing
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Consent type '{consent_code}' not found for user {user.email}")
+                    continue
+    
+    def _send_welcome_email(self, user, club):
+        """Send welcome email to newly registered youth"""
+        try:
+            from emails.tasks import send_email_async
+            from emails.models import EmailTemplate
+            
+            send_email_async(
+                template_type=EmailTemplate.Type.WELCOME,
+                recipient=user,
+                context={
+                    'club_name': club.name if club else 'Ungdomsappen',
+                }
+            )
+        except Exception as e:
+            # Don't fail registration if email fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send welcome email to {user.email}: {e}")
+    
+    def _send_guardian_created_email(self, guardian, youth, club):
+        """Send notification email to newly created shadow guardian"""
+        try:
+            from emails.tasks import send_email_async
+            from emails.models import EmailTemplate
+            from django.conf import settings
+            
+            # Create password reset URL for guardian
+            from django.contrib.auth.tokens import default_token_generator
+            from django.utils.http import urlsafe_base64_encode
+            from django.utils.encoding import force_bytes
+            
+            uid = urlsafe_base64_encode(force_bytes(guardian.pk))
+            token = default_token_generator.make_token(guardian)
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+            reset_url = f"{frontend_url}/reset-password/{uid}/{token}"
+            
+            send_email_async(
+                template_type=EmailTemplate.Type.GUARDIAN_CREATED,
+                recipient=guardian,
+                context={
+                    'youth_name': f"{youth.first_name} {youth.last_name}".strip() or youth.email,
+                    'club_name': club.name if club else 'Ungdomsappen',
+                    'set_password_url': reset_url,
+                }
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send guardian created email to {guardian.email}: {e}")
+    
+    def _send_guardian_link_request_email(self, guardian, youth):
+        """Send link request email to existing guardian"""
+        try:
+            from emails.tasks import send_email_async
+            from emails.models import EmailTemplate
+            
+            send_email_async(
+                template_type=EmailTemplate.Type.GUARDIAN_LINK_REQUEST,
+                recipient=guardian,
+                context={
+                    'youth_name': f"{youth.first_name} {youth.last_name}".strip() or youth.email,
+                    'youth_email': youth.email,
+                }
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send guardian link request email to {guardian.email}: {e}")

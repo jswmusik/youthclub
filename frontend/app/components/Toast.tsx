@@ -182,6 +182,4 @@ export const initialToastState: ToastState = {
   type: 'success',
   isVisible: false,
   title: undefined
-};
-
-export function showToast(
+};export function showToast(

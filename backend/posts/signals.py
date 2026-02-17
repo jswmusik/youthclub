@@ -172,6 +172,7 @@ def create_post_notification(sender, instance, created, **kwargs):
 
     # We need to loop to check specific permissions (Age, Group, Gender)
     # PostEngine.user_can_see_post is perfect for this.
+    # We also send emails to eligible users
     for user in candidates:
         # A. Strict Permission Check
         if PostEngine.user_can_see_post(user, post):
@@ -187,6 +188,30 @@ def create_post_notification(sender, instance, created, **kwargs):
                     action_url=action_url
                 )
             )
+            
+            # B. Send Email Notification (async in production, sync in development)
+            # The PostEngine.user_can_see_post() check ensures:
+            # - User only gets emails from their preferred club, municipality, or followed clubs
+            # - No emails from other clubs the user doesn't follow
+            # - Only for posts they are targeted to see
+            try:
+                from emails.tasks import send_email_async
+                from emails.models import EmailTemplate
+                
+                send_email_async(
+                    template_type=EmailTemplate.Type.NEW_POST,
+                    recipient=user,
+                    context={
+                        'post_title': post.title,
+                        'post_preview': display_title,
+                        'source_name': source_name,
+                        'is_group_announcement': is_group_announcement,
+                    }
+                )
+            except Exception as e:
+                import logging
+                logger_email = logging.getLogger(__name__)
+                logger_email.error(f"Failed to queue new post email to {user.email}: {e}")
 
     # 4. Bulk Insert for Performance
     if notifications_to_create:

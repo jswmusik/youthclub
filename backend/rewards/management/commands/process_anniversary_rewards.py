@@ -56,3 +56,10 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"✅ Done. Processed {count} user(s) for anniversary rewards."))
 
+
+
+
+
+
+
+

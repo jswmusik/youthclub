@@ -647,7 +647,7 @@
     "hideConversation": "إخفاء المحادثة",
     "hideConversationMessage": "إخفاء \"{subject}\"؟ ستظهر مجدداً عند استلام رسالة جديدة.",
     "deleteConversation": "حذف المحادثة",
-    "deleteConversationMessage": "حذف \"{subject}\" نهائياً؟ لا يمكن التراجع عن هذا.",
+    "deleteConversationMessage": "سيتم حذف \"{subject}\" نهائياً لك وللمشارك الآخر. لا يمكن التراجع عن هذا.",
     "cancel": "إلغاء",
     "messageSentSuccess": "تم إرسال الرسالة بنجاح!",
     "failedToSendMessage": "فشل إرسال الرسالة.",

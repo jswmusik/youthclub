@@ -54,3 +54,10 @@ class Migration(migrations.Migration):
         migrations.RunPython(add_questionnaire_reward_template, remove_questionnaire_reward_template),
     ]
 
+
+
+
+
+
+
+

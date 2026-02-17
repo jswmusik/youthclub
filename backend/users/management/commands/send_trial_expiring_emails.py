@@ -1,0 +1,93 @@
+"""
+Management command to send trial expiring warning emails.
+
+Notifies unverified youth members that their trial is about to expire.
+
+This should be run daily (scheduled via APScheduler):
+    python manage.py send_trial_expiring_emails
+"""
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from datetime import timedelta
+from users.models import User
+from users.trial_service import get_user_trial_info
+from emails.tasks import send_email_async
+from emails.models import EmailTemplate
+
+
+class Command(BaseCommand):
+    help = 'Send trial expiring notification emails to unverified youth members'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--days-before',
+            type=int,
+            default=3,
+            help='Number of days before expiration to send warning (default: 3)'
+        )
+
+    def handle(self, *args, **options):
+        days_before = options['days_before']
+        now = timezone.now()
+        
+        # Find unverified youth members who have started their trial
+        unverified_youth = User.objects.filter(
+            role=User.Role.YOUTH_MEMBER,
+            verification_status=User.VerificationStatus.UNVERIFIED,
+            trial_started_at__isnull=False,
+            is_active=True
+        ).exclude(
+            email__icontains='@anonymized.local'  # Skip anonymized users
+        )
+        
+        sent_count = 0
+        skipped_count = 0
+        failed_count = 0
+        
+        for user in unverified_youth:
+            trial_info = get_user_trial_info(user)
+            
+            # Only send if trial is active and expiring soon
+            if not trial_info.get('trial_active'):
+                skipped_count += 1
+                continue
+            
+            days_left = trial_info.get('days_left', 0)
+            
+            # Send email if days_left matches our warning threshold (e.g., exactly 3 days)
+            if days_left == days_before:
+                self.stdout.write(f"Sending trial expiring email to {user.email} ({days_left} days left)...")
+                
+                try:
+                    success = send_email_async(
+                        template_type=EmailTemplate.Type.TRIAL_EXPIRING,
+                        recipient=user,
+                        context={
+                            'days_left': days_left,
+                            'expiration_date': trial_info.get('trial_end_date').strftime('%Y-%m-%d') if trial_info.get('trial_end_date') else 'soon',
+                            'trial_duration_days': trial_info.get('trial_duration_days', 14),
+                        }
+                    )
+                    
+                    if success:
+                        sent_count += 1
+                        self.stdout.write(self.style.SUCCESS(f"  ✓ Sent to {user.email}"))
+                    else:
+                        failed_count += 1
+                        self.stdout.write(self.style.ERROR(f"  ✗ Failed to send to {user.email}"))
+                        
+                except Exception as e:
+                    failed_count += 1
+                    self.stdout.write(self.style.ERROR(f"  ✗ Error sending to {user.email}: {e}"))
+            else:
+                skipped_count += 1
+        
+        self.stdout.write(self.style.SUCCESS(
+            f"\n✅ Trial Expiring Email Summary:\n"
+            f"   Warning threshold: {days_before} days before expiration\n"
+            f"   Sent: {sent_count}\n"
+            f"   Skipped: {skipped_count}\n"
+            f"   Failed: {failed_count}\n"
+        ))
+
+

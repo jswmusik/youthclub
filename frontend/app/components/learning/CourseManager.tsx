@@ -318,7 +318,7 @@ export default function CourseManager() {
             setCourses(prev => prev.filter(c => c.slug !== itemToDelete.slug));
             success(t('toast.courseDeleted'));
             setItemToDelete(null);
-        } catch (error) {
+        } catch (err) {
             error(t('toast.failedToDelete'));
         }
     };

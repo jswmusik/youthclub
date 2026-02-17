@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTranslations } from 'next-intl';
 import { ShieldAlert } from 'lucide-react';
 import { BackgroundGlow } from '@/components/BackgroundGlow';
+import { Toaster } from '@/app/components/Toaster';
 
 // Helper function to get admin dashboard URL based on role
 const getAdminDashboardUrl = (role: string): string | null => {
@@ -133,6 +134,7 @@ export default function YouthLayout({ children }: { children: React.ReactNode })
         <>
             <BackgroundGlow variant="youth" />
             {children}
+            <Toaster />
         </>
     );
 }

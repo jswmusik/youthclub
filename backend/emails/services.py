@@ -89,7 +89,14 @@ class EmailService:
             bool: True if email was sent successfully
         """
         context = context or {}
-        to_email = override_email or recipient.email
+        to_email = override_email or (recipient.email if recipient else None)
+        
+        if not to_email:
+            logger.error(f"No email address provided for template {template_type}")
+            return False
+        
+        # Default language when recipient is None
+        default_language = 'sv'
         
         # Get the template
         try:
@@ -102,7 +109,7 @@ class EmailService:
                 template=None,
                 template_type=template_type,
                 subject=f"[Missing template: {template_type}]",
-                language=recipient.preferred_language,
+                language=getattr(recipient, 'preferred_language', default_language) if recipient else default_language,
                 status=EmailLog.Status.FAILED,
                 error_message=f"Template not found: {template_type}",
                 context_data=context,

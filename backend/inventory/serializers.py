@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from .models import Item, ItemCategory, InventoryTag, LendingSession, WaitingList
 from organization.models import Club
+from groups.models import Group
 
 class ItemCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,13 +15,28 @@ class InventoryTagSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'icon', 'club']
         read_only_fields = ['club'] 
 
+class RestrictedGroupSerializer(serializers.ModelSerializer):
+    """Minimal serializer for group info on items"""
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'club', 'municipality']
+
+
 class ItemSerializer(serializers.ModelSerializer):
     category_details = ItemCategorySerializer(source='category', read_only=True)
     tags_details = InventoryTagSerializer(source='tags', many=True, read_only=True)
     club_name = serializers.CharField(source='club.name', read_only=True)
     
-    # Club settings for frontend display
-    borrowing_requires_checkin = serializers.BooleanField(source='club.borrowing_requires_checkin', read_only=True)
+    # Effective check-in requirement (item-level overrides club-level)
+    borrowing_requires_checkin = serializers.SerializerMethodField()
+    
+    # Group restriction
+    restricted_to_group = serializers.PrimaryKeyRelatedField(
+        queryset=Group.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    restricted_to_group_details = RestrictedGroupSerializer(source='restricted_to_group', read_only=True)
     
     # Field to check availability instantly in the list
     active_loan = serializers.SerializerMethodField()
@@ -34,10 +50,62 @@ class ItemSerializer(serializers.ModelSerializer):
             'title', 'description', 'image', 'tags', 'tags_details',
             'max_borrow_duration', 'status', 'internal_note', 
             'active_loan', 'queue_count', 'user_in_queue', 'created_at',
-            'borrowing_requires_checkin'
+            'borrowing_requires_checkin', 'requires_checkin',
+            'restricted_to_group', 'restricted_to_group_details'
         ]
         read_only_fields = ['club'] # Club is usually assigned automatically in the view
+    
+    def validate_restricted_to_group(self, value):
+        """
+        Validate that the group belongs to the same club or municipality as the item.
+        """
+        if value is None:
+            return value
+        
+        # Get the club from context or initial data
+        request = self.context.get('request')
+        club = None
+        
+        # Try to get club from the item being updated
+        if self.instance:
+            club = self.instance.club
+        # Or from the request data for new items
+        elif request and hasattr(request, 'data'):
+            club_id = request.data.get('club')
+            if club_id:
+                try:
+                    club = Club.objects.get(id=club_id)
+                except Club.DoesNotExist:
+                    pass
+        # Or from the user's assigned club
+        if not club and request and hasattr(request, 'user'):
+            club = getattr(request.user, 'assigned_club', None)
+        
+        if not club:
+            raise serializers.ValidationError("Cannot validate group without knowing the item's club")
+        
+        # Group must belong to the same club OR the same municipality
+        if value.club and value.club != club:
+            raise serializers.ValidationError("Group must belong to the same club as the item")
+        
+        if value.municipality and value.municipality != club.municipality:
+            raise serializers.ValidationError("Group must belong to the same municipality as the item's club")
+        
+        # If group has neither club nor municipality (global group), it's not allowed
+        if not value.club and not value.municipality:
+            raise serializers.ValidationError("Cannot restrict items to global groups")
+        
+        return value
 
+    def get_borrowing_requires_checkin(self, obj):
+        """
+        Returns the effective check-in requirement for this item.
+        Item-level setting overrides club-level setting.
+        """
+        if obj.requires_checkin is not None:
+            return obj.requires_checkin
+        return obj.club.borrowing_requires_checkin
+    
     def get_active_loan(self, obj):
         # Returns the current active session if exists (for Admins to see who has it)
         active = obj.lending_sessions.filter(status='ACTIVE').first()
@@ -72,6 +140,8 @@ class BatchItemCreateSerializer(serializers.Serializer):
     max_borrow_duration = serializers.IntegerField(default=60)
     tags = serializers.PrimaryKeyRelatedField(queryset=InventoryTag.objects.all(), many=True, required=False)
     internal_note = serializers.CharField(required=False, allow_blank=True)
+    restricted_to_group = serializers.PrimaryKeyRelatedField(queryset=Group.objects.all(), required=False, allow_null=True)
+    requires_checkin = serializers.BooleanField(required=False, allow_null=True, default=None)
 
 class LendingSessionSerializer(serializers.ModelSerializer):
     item_title = serializers.CharField(source='item.title', read_only=True)

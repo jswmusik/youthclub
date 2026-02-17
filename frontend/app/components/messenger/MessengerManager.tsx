@@ -40,12 +40,13 @@ export default function MessengerManager({ role, scope, darkMode = false }: Mess
         }
     }, [filter, searchQuery]);
 
-    // Initial Load & Polling (Simple Real-time MVP)
+    // Initial Load & Polling (Reduced frequency - will be replaced by WebSocket)
     useEffect(() => {
         fetchConversations();
         
-        // Poll every 15 seconds to keep inbox fresh
-        const interval = setInterval(fetchConversations, 15000);
+        // Poll every 30 seconds to keep inbox fresh (reduced from 15s)
+        // This will be replaced by WebSocket real-time updates in a future update
+        const interval = setInterval(fetchConversations, 30000);
         return () => clearInterval(interval);
     }, [fetchConversations]);
 

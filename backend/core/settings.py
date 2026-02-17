@@ -24,6 +24,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.50.44', '217.211.65.86', '19
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI server for Django Channels - must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'djoser',
+    'channels',  # Django Channels for WebSocket support
     'django_apscheduler',  # Scheduled tasks
     # Core app with image optimization signals
     'core.apps.CoreConfig',
@@ -59,6 +61,8 @@ INSTALLED_APPS = [
     'licensing',
     'emails',
     'seo',
+    'audit',  # GDPR audit logging
+    'gdpr',   # GDPR data export and compliance
 ]
 
 MIDDLEWARE = [
@@ -91,6 +95,26 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+ASGI_APPLICATION = 'core.asgi.application'
+
+# --- DJANGO CHANNELS CONFIGURATION ---
+# Channel layers for WebSocket communication
+# In-memory layer for development (no external dependencies)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
+# For production, use Redis:
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("127.0.0.1", 6379)],
+#         },
+#     }
+# }
 
 
 # Database
@@ -174,6 +198,17 @@ REST_FRAMEWORK = {
     # --- PAGINATION ---
     'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardResultsSetPagination',
     'PAGE_SIZE': 10,  # Default items per page (can be overridden via page_size query param)
+    # --- THROTTLING ---
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '10000/hour',  # General rate limit for authenticated users (increased for development)
+        'anon': '1000/hour',   # General rate limit for anonymous users (increased for development)
+        'message_send': '60/minute',  # Rate limit for sending messages
+        'broadcast': '10/minute',     # Rate limit for broadcasts (admin only)
+    }
 }
 
 from datetime import timedelta
@@ -269,3 +304,100 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Ungdomsappen <noreply@ungd
 
 # App-specific email settings
 EMAIL_SUBJECT_PREFIX = '[Ungdomsappen] '
+
+# ============================================================================
+# CELERY CONFIGURATION - Async Task Processing
+# ============================================================================
+# Celery allows tasks like sending emails to run in the background,
+# so API requests return instantly instead of waiting for emails to send.
+#
+# DEVELOPMENT: 
+#   - CELERY_TASK_ALWAYS_EAGER=True (default) - Tasks run synchronously
+#   - No need to start Celery worker or Redis
+#   - Emails send immediately but block the request
+#
+# PRODUCTION:
+#   - CELERY_TASK_ALWAYS_EAGER=False - Tasks run asynchronously in background
+#   - Requires Redis and Celery worker to be running
+#   - Emails send in background, API returns instantly
+#
+# To enable async (in production or testing):
+#   1. Install Redis: brew install redis (Mac) or apt install redis (Linux)
+#   2. Start Redis: redis-server
+#   3. Start Celery worker: celery -A core worker -l info
+#   4. Set CELERY_TASK_ALWAYS_EAGER=False in .env
+
+# Redis connection (message broker)
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+
+# Store task results in Redis (optional, useful for debugging)
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+
+# Run tasks synchronously in development (no Redis/Celery worker needed)
+# Set to False in production for true async behavior
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'True').lower() == 'true'
+
+# If running synchronously, propagate exceptions for easier debugging
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# Serialization formats
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = 'Europe/Stockholm'
+
+# Task execution settings
+CELERY_TASK_TIME_LIMIT = 300  # 5 minutes max per task
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # Warn at 4 minutes
+CELERY_TASK_ACKS_LATE = True  # Only ack tasks after completion (safer)
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Take one task at a time
+
+# Retry policy for failed tasks
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # Wait 1 minute before retry
+CELERY_TASK_MAX_RETRIES = 3  # Retry failed tasks up to 3 times
+
+# Optional: Monitor tasks with Flower
+# Start with: celery -A core flower
+# Access at: http://localhost:5555
+
+# ============================================================================
+# GDPR & COMPLIANCE SETTINGS
+# ============================================================================
+
+# Audit Logging
+# Enable comprehensive audit logging for GDPR compliance
+# Set to False to disable (for development or if causing issues)
+ENABLE_AUDIT_LOGGING = os.getenv('ENABLE_AUDIT_LOGGING', 'False').lower() == 'true'
+
+# Data Export
+# Enable user data export functionality (GDPR Article 20)
+ENABLE_DATA_EXPORT = os.getenv('ENABLE_DATA_EXPORT', 'False').lower() == 'true'
+
+# Consent Management
+# Enable consent tracking and management
+ENABLE_CONSENT_TRACKING = os.getenv('ENABLE_CONSENT_TRACKING', 'True').lower() == 'true'  # Enabled by default for compliance
+
+# Account Deletion
+# Enable account deletion (right to erasure)
+ENABLE_ACCOUNT_DELETION = os.getenv('ENABLE_ACCOUNT_DELETION', 'True').lower() == 'true'  # Enabled by default for compliance
+GDPR_ACCOUNT_DELETION_GRACE_PERIOD_DAYS = int(os.getenv('GDPR_ACCOUNT_DELETION_GRACE_PERIOD_DAYS', 30))  # 30 days grace period
+
+# Account Deletion
+# Enable self-service account deletion (GDPR Article 17)
+ENABLE_ACCOUNT_DELETION = os.getenv('ENABLE_ACCOUNT_DELETION', 'False').lower() == 'true'
+
+# Audit Log Retention
+# How long to keep audit logs before archiving (days)
+AUDIT_LOG_RETENTION_DAYS = int(os.getenv('AUDIT_LOG_RETENTION_DAYS', '365'))  # 1 year
+
+# Data Export Settings
+# Maximum file size for data exports (MB)
+DATA_EXPORT_MAX_SIZE_MB = int(os.getenv('DATA_EXPORT_MAX_SIZE_MB', '100'))
+
+# Data Export Rate Limiting
+# Minimum hours between data export requests
+DATA_EXPORT_COOLDOWN_HOURS = int(os.getenv('DATA_EXPORT_COOLDOWN_HOURS', '24'))
+
+# Account Deletion Grace Period
+# Days before account is actually deleted (allows cancellation)
+ACCOUNT_DELETION_GRACE_PERIOD_DAYS = int(os.getenv('ACCOUNT_DELETION_GRACE_PERIOD_DAYS', '14'))

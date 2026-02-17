@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import api from '../../lib/api';
 import { useToast } from '../../hooks/useToast';
 import { Check, ChevronLeft, ChevronRight, MapPin, Lock, User, Users, FileCheck, Eye, EyeOff, AlertCircle, Sparkles, Building2, X } from 'lucide-react';
@@ -41,8 +41,27 @@ interface CustomFieldDef {
     help_text?: string;
 }
 
+interface ConsentDocument {
+    id: number;
+    code: string;
+    name: string;
+    description: string;
+    consent_text: string;
+    version: string;
+    is_required: boolean;
+    legal_basis: string;
+    document_url?: string;
+    translations: Array<{
+        language: string;
+        name: string;
+        description: string;
+        consent_text: string;
+    }>;
+}
+
 export default function YouthRegistrationWizard() {
   const t = useTranslations('registrationWizard');
+  const locale = useLocale();
   const router = useRouter();
   
   const STEPS = [
@@ -60,6 +79,7 @@ export default function YouthRegistrationWizard() {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [interestsList, setInterestsList] = useState<Interest[]>([]);
+  const [consentDocuments, setConsentDocuments] = useState<ConsentDocument[]>([]);
   
   // Custom Fields Schema
   const [youthCustomFields, setYouthCustomFields] = useState<CustomFieldDef[]>([]);
@@ -95,7 +115,7 @@ export default function YouthRegistrationWizard() {
   
   // --- Terms Modal State ---
   const [termsModalOpen, setTermsModalOpen] = useState(false);
-  const [termsModalType, setTermsModalType] = useState<'terms' | 'policies'>('terms');
+  const [termsModalType, setTermsModalType] = useState<'terms' | 'policies' | 'privacy' | 'data'>('terms');
   const [mounted, setMounted] = useState(false);
   
   // --- Club Hover Preview State ---
@@ -138,7 +158,11 @@ export default function YouthRegistrationWizard() {
     guardian_phone: '',
     guardian_legal_gender: '',
     guardian_custom_field_values: {} as Record<string, any>,
-    terms_accepted: false,
+    // GDPR Consents (all required)
+    consent_terms_of_service: false,
+    consent_privacy_policy: false,
+    consent_data_processing: false,
+    consent_age_verification: false,
   });
 
   // --- Fetch Initial Data ---
@@ -153,6 +177,12 @@ export default function YouthRegistrationWizard() {
       setInterestsList(interests);
     }).catch(err => console.error('Failed to fetch interests:', err));
 
+    // Fetch GDPR consent documents
+    api.get('/gdpr/consent-types/?is_required=true').then(res => {
+      const documents = Array.isArray(res.data) ? res.data : res.data.results || [];
+      setConsentDocuments(documents);
+    }).catch(err => console.error('Failed to fetch consent documents:', err));
+
     generateCaptcha();
   }, []);
 
@@ -162,6 +192,24 @@ export default function YouthRegistrationWizard() {
         num2: Math.floor(Math.random() * 10) + 1
     });
     setCaptchaAnswer('');
+  };
+
+  // Helper to get translated consent document content
+  const getConsentTranslation = (doc: ConsentDocument, locale: string) => {
+    const translation = doc.translations.find(t => t.language === locale);
+    if (translation) {
+      return {
+        name: translation.name,
+        description: translation.description,
+        consent_text: translation.consent_text
+      };
+    }
+    // Fallback to default
+    return {
+      name: doc.name,
+      description: doc.description,
+      consent_text: doc.consent_text
+    };
   };
 
   // --- Fetch Clubs when Muni changes ---
@@ -415,7 +463,7 @@ export default function YouthRegistrationWizard() {
     return text;
   };
   
-  const openTermsModal = (type: 'terms' | 'policies') => {
+  const openTermsModal = (type: 'terms' | 'policies' | 'privacy' | 'data') => {
     setTermsModalType(type);
     setTermsModalOpen(true);
   };
@@ -504,8 +552,10 @@ export default function YouthRegistrationWizard() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.terms_accepted) {
-      error(t('toasts.mustAcceptTerms'));
+    // Validate all required consents are checked
+    if (!formData.consent_terms_of_service || !formData.consent_privacy_policy || 
+        !formData.consent_data_processing || !formData.consent_age_verification) {
+      error(t('toasts.mustAcceptAllConsents') || 'You must accept all required consents to register');
       return;
     }
     
@@ -544,6 +594,11 @@ export default function YouthRegistrationWizard() {
         preferred_club_id: selectedClub?.id,
         legal_gender: formData.legal_gender,
         custom_fields: formData.custom_field_values,
+        // GDPR Consents
+        consent_terms_of_service: formData.consent_terms_of_service,
+        consent_privacy_policy: formData.consent_privacy_policy,
+        consent_data_processing: formData.consent_data_processing,
+        consent_age_verification: formData.consent_age_verification,
       };
       
       if (formData.nickname) payload.nickname = formData.nickname;
@@ -1337,33 +1392,108 @@ export default function YouthRegistrationWizard() {
               )}
             </div>
             
-            {/* Accept Terms */}
-            <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
-              <input 
-                type="checkbox" 
-                checked={formData.terms_accepted} 
-                onChange={e => setFormData({...formData, terms_accepted: e.target.checked})} 
-                className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
-              />
-              <span className="text-[var(--brand-light)] text-sm">
-                {t('step5.acceptTermsText')}{' '}
-                <button 
-                  type="button" 
-                  onClick={(e) => { e.preventDefault(); openTermsModal('terms'); }}
-                  className="text-[var(--brand-primary)] font-medium hover:underline"
-                >
-                  {t('step5.termsAndConditions')}
-                </button>
-                {' '}{t('step5.and')}{' '}
-                <button 
-                  type="button" 
-                  onClick={(e) => { e.preventDefault(); openTermsModal('policies'); }}
-                  className="text-[var(--brand-primary)] font-medium hover:underline"
-                >
-                  {t('step5.clubPolicies')}
-                </button>
-              </span>
-            </label>
+            {/* GDPR Consents Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 mb-4">
+                <FileCheck className="w-5 h-5 text-[var(--brand-primary)]" />
+                <h3 className="text-lg font-semibold text-[var(--brand-light)]">
+                  {t('step5.requiredConsents') || 'Required Consents'}
+                </h3>
+              </div>
+
+              {/* Terms of Service */}
+              <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <input 
+                  type="checkbox" 
+                  checked={formData.consent_terms_of_service} 
+                  onChange={e => setFormData({...formData, consent_terms_of_service: e.target.checked})} 
+                  className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                />
+                <div className="flex-1">
+                  <div className="text-[var(--brand-light)] text-sm font-medium mb-1">
+                    {t('step5.termsOfService') || 'Terms of Service'}
+                  </div>
+                  <p className="text-[var(--brand-light)]/60 text-xs mb-2">
+                    {t('step5.termsOfServiceDesc') || 'Agreement to the terms and conditions of using the service'}
+                  </p>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); openTermsModal('terms'); }}
+                    className="text-[var(--brand-primary)] text-xs font-medium hover:underline"
+                  >
+                    {t('step5.readTerms') || 'Read Terms'}
+                  </button>
+                </div>
+              </label>
+
+              {/* Privacy Policy */}
+              <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <input 
+                  type="checkbox" 
+                  checked={formData.consent_privacy_policy} 
+                  onChange={e => setFormData({...formData, consent_privacy_policy: e.target.checked})} 
+                  className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                />
+                <div className="flex-1">
+                  <div className="text-[var(--brand-light)] text-sm font-medium mb-1">
+                    {t('step5.privacyPolicy') || 'Privacy Policy'}
+                  </div>
+                  <p className="text-[var(--brand-light)]/60 text-xs mb-2">
+                    {t('step5.privacyPolicyDesc') || 'Consent to data processing as described in privacy policy'}
+                  </p>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); openTermsModal('privacy'); }}
+                    className="text-[var(--brand-primary)] text-xs font-medium hover:underline"
+                  >
+                    {t('step5.readPrivacy') || 'Read Privacy Policy'}
+                  </button>
+                </div>
+              </label>
+
+              {/* Data Processing */}
+              <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <input 
+                  type="checkbox" 
+                  checked={formData.consent_data_processing} 
+                  onChange={e => setFormData({...formData, consent_data_processing: e.target.checked})} 
+                  className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                />
+                <div className="flex-1">
+                  <div className="text-[var(--brand-light)] text-sm font-medium mb-1">
+                    {t('step5.dataProcessing') || 'Data Processing'}
+                  </div>
+                  <p className="text-[var(--brand-light)]/60 text-xs mb-2">
+                    {t('step5.dataProcessingDesc') || 'Consent to process personal data for service operation'}
+                  </p>
+                  <button 
+                    type="button" 
+                    onClick={(e) => { e.preventDefault(); openTermsModal('data'); }}
+                    className="text-[var(--brand-primary)] text-xs font-medium hover:underline"
+                  >
+                    {t('step5.readDataProcessing') || 'Read Data Processing Terms'}
+                  </button>
+                </div>
+              </label>
+
+              {/* Age Verification */}
+              <label className="flex items-start gap-3 cursor-pointer p-4 bg-[var(--dark-700)] rounded-xl border border-[var(--dark-500)] hover:border-[var(--brand-primary)]/50 transition-all">
+                <input 
+                  type="checkbox" 
+                  checked={formData.consent_age_verification} 
+                  onChange={e => setFormData({...formData, consent_age_verification: e.target.checked})} 
+                  className="w-5 h-5 mt-0.5 rounded border-[var(--dark-400)] bg-[var(--dark-600)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                />
+                <div className="flex-1">
+                  <div className="text-[var(--brand-light)] text-sm font-medium mb-1">
+                    {t('step5.ageVerification') || 'Age Verification'}
+                  </div>
+                  <p className="text-[var(--brand-light)]/60 text-xs">
+                    {t('step5.ageVerificationDesc') || 'I confirm that I am at least 13 years old (or have parental consent)'}
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
         )}
       </div>
@@ -1399,7 +1529,7 @@ export default function YouthRegistrationWizard() {
           <button 
             type="button"
             onClick={handleSubmit} 
-            disabled={loading || !formData.terms_accepted} 
+            disabled={loading || !formData.consent_terms_of_service || !formData.consent_privacy_policy || !formData.consent_data_processing || !formData.consent_age_verification} 
             className="flex items-center gap-2 bg-[var(--brand-green)] text-white px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--brand-green)]/90 transition-all active:scale-95 shadow-md"
           >
             {loading ? (
@@ -1499,7 +1629,10 @@ export default function YouthRegistrationWizard() {
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-gray-50">
                 <h3 className="text-xl font-bold text-gray-900 font-heading">
-                  {termsModalType === 'terms' ? t('step5.termsAndConditions') : t('step5.clubPolicies')}
+                  {termsModalType === 'terms' && (t('step5.termsOfService') || 'Terms of Service')}
+                  {termsModalType === 'privacy' && (t('step5.privacyPolicy') || 'Privacy Policy')}
+                  {termsModalType === 'data' && (t('step5.dataProcessing') || 'Data Processing')}
+                  {termsModalType === 'policies' && (t('step5.clubPolicies') || 'Club Policies')}
                 </h3>
                 <button
                   type="button"
@@ -1512,16 +1645,84 @@ export default function YouthRegistrationWizard() {
               
               {/* Body */}
               <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
-                <div className="text-gray-700 text-sm leading-relaxed">
-                  {termsModalType === 'terms' ? (
-                    <div className="whitespace-pre-line">
-                      {stripHtmlTags(selectedMuni?.terms_and_conditions || '') || t('step5.noTermsAvailable')}
-                    </div>
-                  ) : (
-                    <div className="whitespace-pre-line">
-                      {stripHtmlTags(selectedClub?.club_policies || '') || t('step5.noPoliciesAvailable')}
-                    </div>
-                  )}
+                <div className="text-gray-700 text-sm leading-relaxed space-y-4">
+                  {(() => {
+                    // Map modal type to consent code
+                    const codeMap: Record<string, string> = {
+                      'terms': 'terms_of_service',
+                      'privacy': 'privacy_policy',
+                      'data': 'data_processing'
+                    };
+                    
+                    const code = codeMap[termsModalType];
+                    const doc = consentDocuments.find(d => d.code === code);
+                    
+                    if (doc) {
+                      const translated = getConsentTranslation(doc, locale);
+                      return (
+                        <>
+                          <div className="prose prose-sm max-w-none">
+                            <h4 className="font-bold text-lg mb-3">{translated.name}</h4>
+                            <div className="whitespace-pre-line">
+                              {translated.consent_text}
+                            </div>
+                            {doc.document_url && (
+                              <div className="mt-4">
+                                <a 
+                                  href={doc.document_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline text-sm"
+                                >
+                                  View full document →
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Municipality Policies (if viewing terms) */}
+                          {termsModalType === 'terms' && selectedMuni?.terms_and_conditions && (
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                              <h4 className="font-bold text-lg mb-3">
+                                {selectedMuni.name} - {t('step5.localPolicies') || 'Local Policies'}
+                              </h4>
+                              <div className="whitespace-pre-line">
+                                {stripHtmlTags(selectedMuni.terms_and_conditions)}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Club House Rules (if viewing terms) */}
+                          {termsModalType === 'terms' && selectedClub?.club_policies && (
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                              <h4 className="font-bold text-lg mb-3">
+                                {selectedClub.name} - {t('step5.houseRules') || 'House Rules'}
+                              </h4>
+                              <div className="whitespace-pre-line">
+                                {stripHtmlTags(selectedClub.club_policies)}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    }
+                    
+                    // Fallback for club policies modal type
+                    if (termsModalType === 'policies') {
+                      return (
+                        <div className="whitespace-pre-line">
+                          {stripHtmlTags(selectedClub?.club_policies || '') || t('step5.noPoliciesAvailable')}
+                        </div>
+                      );
+                    }
+                    
+                    // Fallback if document not found
+                    return (
+                      <div className="text-center py-8 text-gray-500">
+                        {t('step5.documentNotAvailable') || 'Document not available'}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               

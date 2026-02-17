@@ -118,3 +118,10 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"   - Would deactivate {very_old_rewards.count()} very old reward(s)")
 
+
+
+
+
+
+
+

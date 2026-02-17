@@ -14,6 +14,7 @@ class Notification(models.Model):
         GROUP = 'GROUP', 'Group'
         INVENTORY = 'INVENTORY', 'Inventory'
         QUESTIONNAIRE = 'QUESTIONNAIRE', 'Questionnaire'
+        MESSAGE = 'MESSAGE', 'Message'
 
     recipient = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
@@ -76,6 +77,10 @@ class NotificationTemplate(models.Model):
         # Inventory
         INVENTORY_OVERDUE = 'inventory_overdue', 'Inventory Overdue'
         INVENTORY_AVAILABLE = 'inventory_available', 'Inventory Available'
+        
+        # Messages
+        MESSAGE_RECEIVED = 'message_received', 'New Message Received'
+        MESSAGE_REACTION = 'message_reaction', 'Message Reaction'
 
     type = models.CharField(
         max_length=50, 

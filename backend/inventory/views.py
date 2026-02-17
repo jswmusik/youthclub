@@ -17,6 +17,7 @@ from organization.models import Club
 from visits.models import CheckInSession
 from notifications.models import Notification
 from core.permissions import HasLicenseFeature
+from groups.models import Group, GroupMembership
 
 # --- Custom Permissions ---
 class IsClubAdminOrReadOnly(permissions.BasePermission):
@@ -57,7 +58,7 @@ class ItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Item.objects.select_related('club', 'category').prefetch_related('tags')
+        queryset = Item.objects.select_related('club', 'category', 'restricted_to_group').prefetch_related('tags')
 
         # Role-based filtering
         if user.role == 'SUPER_ADMIN':
@@ -81,6 +82,18 @@ class ItemViewSet(viewsets.ModelViewSet):
                 
             # Hide hidden items from youth
             queryset = queryset.exclude(status__in=['HIDDEN', 'MISSING', 'MAINTENANCE'])
+            
+            # Group restriction filtering for youth members:
+            # Show items that either have no group restriction OR user is a member of the restricted group
+            user_group_ids = GroupMembership.objects.filter(
+                user=user,
+                status='APPROVED'
+            ).values_list('group_id', flat=True)
+            
+            # Items with no restriction OR items restricted to groups the user is a member of
+            queryset = queryset.filter(
+                Q(restricted_to_group__isnull=True) | Q(restricted_to_group__in=user_group_ids)
+            )
         else:
             # Default: no items for unauthenticated or other roles
             queryset = queryset.none()
@@ -122,14 +135,24 @@ class ItemViewSet(viewsets.ModelViewSet):
         """
         Create multiple copies of an item at once.
         """
+        # Debug: Log incoming data
+        print(f"[BATCH CREATE] Raw request data: {dict(request.data)}")
+        print(f"[BATCH CREATE] restricted_to_group in request: {request.data.get('restricted_to_group')}")
+        
         serializer = BatchItemCreateSerializer(data=request.data)
         if not serializer.is_valid():
+            print(f"[BATCH CREATE] Validation errors: {serializer.errors}")
             return Response({"error": "Validation failed", "details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             data = serializer.validated_data
+            print(f"[BATCH CREATE] Validated data: {data}")
             quantity = data.pop('quantity')
             tags = data.pop('tags', [])
+            restricted_to_group = data.pop('restricted_to_group', None)
+            requires_checkin = data.pop('requires_checkin', None)
+            print(f"[BATCH CREATE] restricted_to_group after pop: {restricted_to_group}")
+            print(f"[BATCH CREATE] requires_checkin after pop: {requires_checkin}")
             
             # Determine Club
             club_id = request.data.get('club')
@@ -144,6 +167,16 @@ class ItemViewSet(viewsets.ModelViewSet):
                     return Response({"error": "Invalid Club ID"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({"error": "Club ID required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validate group restriction if provided
+            if restricted_to_group:
+                # Group must belong to the same club OR the same municipality
+                if restricted_to_group.club and restricted_to_group.club != club:
+                    return Response({"error": "Group must belong to the same club as the item"}, status=status.HTTP_400_BAD_REQUEST)
+                if restricted_to_group.municipality and restricted_to_group.municipality != club.municipality:
+                    return Response({"error": "Group must belong to the same municipality as the item's club"}, status=status.HTTP_400_BAD_REQUEST)
+                if not restricted_to_group.club and not restricted_to_group.municipality:
+                    return Response({"error": "Cannot restrict items to global groups"}, status=status.HTTP_400_BAD_REQUEST)
 
             created_items = []
             base_title = data['title']
@@ -170,7 +203,13 @@ class ItemViewSet(viewsets.ModelViewSet):
                 item_data = {k: v for k, v in data.items() if k != 'title'}
                 
                 # Create the item
-                item = Item.objects.create(club=club, title=title, **item_data)
+                item = Item.objects.create(
+                    club=club, 
+                    title=title, 
+                    restricted_to_group=restricted_to_group,
+                    requires_checkin=requires_checkin,
+                    **item_data
+                )
                 
                 # Assign image to each item if provided (copy the content for each)
                 if image_content and image_name:
@@ -217,8 +256,23 @@ class ItemViewSet(viewsets.ModelViewSet):
         if item.lending_sessions.filter(status='ACTIVE').exists():
             return Response({"error": "Item is currently borrowed"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2.5. Validation: Check-in Required (only if club setting requires it)
-        if item.club.borrowing_requires_checkin:
+        # 2.3. Validation: Group Restriction
+        if item.restricted_to_group:
+            is_member = GroupMembership.objects.filter(
+                user=user,
+                group=item.restricted_to_group,
+                status='APPROVED'
+            ).exists()
+            if not is_member:
+                return Response({
+                    "error": "This item is restricted to members of a specific group",
+                    "code": "GROUP_RESTRICTED"
+                }, status=status.HTTP_403_FORBIDDEN)
+
+        # 2.5. Validation: Check-in Required
+        # Item-level setting overrides club setting (None = use club default)
+        checkin_required = item.requires_checkin if item.requires_checkin is not None else item.club.borrowing_requires_checkin
+        if checkin_required:
             active_checkin = CheckInSession.objects.filter(
                 user=user,
                 club=item.club,
@@ -322,8 +376,23 @@ class ItemViewSet(viewsets.ModelViewSet):
         item = self.get_object()
         user = request.user
         
-        # 0. Validation: Check-in Required (only if club setting requires it)
-        if item.club.borrowing_requires_checkin:
+        # 0.1. Validation: Group Restriction
+        if item.restricted_to_group:
+            is_member = GroupMembership.objects.filter(
+                user=user,
+                group=item.restricted_to_group,
+                status='APPROVED'
+            ).exists()
+            if not is_member:
+                return Response({
+                    "error": "This item is restricted to members of a specific group",
+                    "code": "GROUP_RESTRICTED"
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        # 0.2. Validation: Check-in Required
+        # Item-level setting overrides club setting (None = use club default)
+        checkin_required = item.requires_checkin if item.requires_checkin is not None else item.club.borrowing_requires_checkin
+        if checkin_required:
             active_checkin = CheckInSession.objects.filter(
                 user=user,
                 club=item.club,
@@ -359,6 +428,44 @@ class ItemViewSet(viewsets.ModelViewSet):
         if deleted:
             return Response({"message": "You have left the queue."}, status=status.HTTP_200_OK)
         return Response({"error": "You are not in the queue for this item."}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='selectable-groups')
+    def selectable_groups(self, request):
+        """
+        Returns groups that can be assigned to items based on the admin's scope.
+        Groups must belong to the same club or municipality as the item.
+        """
+        user = request.user
+        club_id = request.query_params.get('club_id')
+        
+        # Determine which club we're getting groups for
+        club = None
+        if user.role == 'CLUB_ADMIN' and user.assigned_club:
+            club = user.assigned_club
+        elif club_id:
+            try:
+                club = Club.objects.get(id=club_id)
+                # Verify permission to access this club
+                if user.role == 'MUNICIPALITY_ADMIN' and user.assigned_municipality:
+                    if club.municipality != user.assigned_municipality:
+                        return Response({"error": "Not authorized for this club"}, status=status.HTTP_403_FORBIDDEN)
+                elif user.role != 'SUPER_ADMIN':
+                    return Response({"error": "Not authorized"}, status=status.HTTP_403_FORBIDDEN)
+            except Club.DoesNotExist:
+                return Response({"error": "Club not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not club:
+            return Response({"error": "Club ID required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get groups that belong to this club OR to the same municipality
+        groups = Group.objects.filter(
+            Q(club=club) | Q(municipality=club.municipality, club__isnull=True)
+        ).exclude(
+            # Exclude global groups (no club and no municipality)
+            club__isnull=True, municipality__isnull=True
+        ).values('id', 'name', 'club', 'municipality')
+        
+        return Response(list(groups))
 
     @action(detail=False, methods=['get'], url_path='analytics')
     def analytics(self, request):

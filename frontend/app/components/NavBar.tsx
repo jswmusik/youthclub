@@ -1,7 +1,7 @@
 // frontend/app/components/NavBar.tsx
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
@@ -10,6 +10,7 @@ import { fetchUnreadNotificationCount, visits } from '../../lib/api';
 import { messengerApi } from '../../lib/messenger-api';
 import ActiveVisitModal from './visits/ActiveVisitModal';
 import { useLicense } from '@/hooks/useLicense';
+import { useNotificationWebSocket, useUnreadCountListener } from '../../hooks/useNotificationWebSocket';
 import { 
     Menu, 
     Calendar, 
@@ -24,7 +25,8 @@ import {
     ArrowLeft,
     Home,
     Users,
-    ChevronLeft
+    ChevronLeft,
+    Shield
 } from 'lucide-react';
 
 interface NavBarProps {
@@ -87,6 +89,19 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode:
         const interval = setInterval(loadCounts, 60000);
         return () => clearInterval(interval);
     }, [user]);
+
+    // Real-time message count updates via WebSocket
+    const handleUnreadCountUpdate = useCallback((count: number) => {
+        setMessageUnreadCount(count);
+    }, []);
+    
+    // Connect to notification WebSocket for real-time updates
+    useNotificationWebSocket({
+        onUnreadCountUpdate: handleUnreadCountUpdate
+    });
+    
+    // Also listen for global unread count events (from other components)
+    useUnreadCountListener(handleUnreadCountUpdate);
 
     // Check Active Visit Status
     useEffect(() => {
@@ -395,6 +410,20 @@ export default function NavBar({ onMenuToggle, showBackButton = false, darkMode:
                                             >
                                                 <Settings className="w-5 h-5" />
                                                 <span className="font-medium">{t('settings')}</span>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    router.push('/dashboard/youth/privacy');
+                                                    setShowMenu(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center gap-3 ${
+                                                    darkMode
+                                                        ? 'text-[var(--brand-light)] hover:bg-[var(--dark-500)]'
+                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                <Shield className="w-5 h-5" />
+                                                <span className="font-medium">{t('privacyData') || 'Privacy & Data'}</span>
                                             </button>
                                             <hr className={`my-2 ${darkMode ? 'border-[var(--dark-500)]' : 'border-gray-100'}`} />
                                             <button

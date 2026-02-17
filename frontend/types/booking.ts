@@ -217,3 +217,10 @@ export interface BookingScheduleFormData {
     week_cycle?: WeekCycle | 'ALL' | 'ODD' | 'EVEN';
 }
 
+
+
+
+
+
+
+

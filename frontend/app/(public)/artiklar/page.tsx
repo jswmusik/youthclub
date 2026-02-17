@@ -246,3 +246,10 @@ export default function ArtiklerPage() {
 
 
 
+
+
+
+
+
+
+

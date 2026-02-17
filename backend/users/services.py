@@ -335,7 +335,7 @@ class InactiveUserService:
             bool: True if email was sent successfully
         """
         from emails.models import EmailTemplate
-        from emails.services import EmailService
+        from emails.tasks import send_email_async
         
         template_type = (
             EmailTemplate.Type.DELETION_WARNING_FINAL if is_final 
@@ -347,7 +347,7 @@ class InactiveUserService:
             'deletion_date': deletion_date.strftime('%Y-%m-%d'),
         }
         
-        success = EmailService.send(
+        success = send_email_async(
             template_type=template_type,
             recipient=user,
             context=context
@@ -362,25 +362,60 @@ class InactiveUserService:
         return success
     
     @classmethod
-    def send_account_deleted_notification(cls, email):
+    def send_account_deleted_notification(cls, email, user_name="User"):
         """
         Send a confirmation email after account has been deleted.
         Note: This is sent to the email before it was anonymized.
+        
+        Args:
+            email: The original email address before anonymization
+            user_name: The user's name (first name or full name) before deletion
         """
         from emails.models import EmailTemplate
-        from django.core.mail import send_mail
+        from django.core.mail import EmailMultiAlternatives
         from django.conf import settings
+        from django.template import Template, Context
         
-        # Since the user is already anonymized, we need to send this differently
-        # Using Django's basic send_mail since we don't have a User object anymore
+        # Since the user is already anonymized, we can't use send_email_async()
+        # But we can still use the template if it exists
         try:
-            send_mail(
-                subject='Your account has been deleted',
-                message='Your account on Ungdomsappen has been deleted according to our data protection policies (GDPR). All personal data has been permanently removed.',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=True,
-            )
+            template = EmailTemplate.objects.get(type=EmailTemplate.Type.ACCOUNT_DELETED)
+            translation = template.get_translation('sv')  # Default to Swedish
+            
+            if translation:
+                # Build minimal context
+                context = Context({
+                    'user': {'first_name': user_name, 'full_name': user_name},
+                    'app_name': 'Ungdomsappen',
+                    'support_email': 'support@ungdomsappen.se',
+                })
+                
+                subject_template = Template(translation.subject)
+                body_template = Template(translation.body_html)
+                
+                subject = subject_template.render(context)
+                body_html = body_template.render(context)
+                body_text = translation.body_text or "Your account has been deleted according to GDPR policies."
+                
+                email_message = EmailMultiAlternatives(
+                    subject=subject,
+                    body=body_text,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[email],
+                )
+                email_message.attach_alternative(body_html, "text/html")
+                email_message.send(fail_silently=True)
+            else:
+                # Fallback to simple email if template not found
+                from django.core.mail import send_mail
+                send_mail(
+                    subject='Your account has been deleted',
+                    message='Your account on Ungdomsappen has been deleted according to our data protection policies (GDPR). All personal data has been permanently removed.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=True,
+                )
+            
             logger.info(f"Account deleted notification sent to {email}")
             return True
         except Exception as e:

@@ -15,6 +15,13 @@ export interface ItemCategory {
   icon: string;
 }
 
+export interface RestrictedGroup {
+  id: number;
+  name: string;
+  club: number | null;
+  municipality: number | null;
+}
+
 export interface Item {
   id: number;
   title: string;
@@ -38,8 +45,13 @@ export interface Item {
   queue_count: number;
   user_in_queue?: boolean;
   created_at: string;
-  // Club settings
+  // Club settings (read-only, from club)
   borrowing_requires_checkin?: boolean;
+  // Item-level check-in requirement (overrides club setting)
+  requires_checkin?: boolean | null;
+  // Group restriction
+  restricted_to_group?: number | null;
+  restricted_to_group_details?: RestrictedGroup | null;
 }
 
 // Params for Batch Creation
@@ -53,6 +65,8 @@ export interface CreateItemData {
   tags?: number[];
   internal_note?: string;
   club?: number; // Optional if admin has one assigned
+  restricted_to_group?: number | null; // Group restriction
+  requires_checkin?: boolean | null; // Item-level check-in requirement
 }
 
 export interface ClubOption {
@@ -91,6 +105,20 @@ export const inventoryApi = {
     if (data.internal_note) formData.append('internal_note', data.internal_note);
     if (data.image) formData.append('image', data.image);
     if (data.club) formData.append('club', String(data.club));
+    
+    // Group restriction
+    if (data.restricted_to_group) {
+      formData.append('restricted_to_group', String(data.restricted_to_group));
+    }
+    
+    // Check-in requirement (send even if null to explicitly set)
+    if (data.requires_checkin !== undefined) {
+      if (data.requires_checkin === null) {
+        formData.append('requires_checkin', '');  // Empty string for null/default
+      } else {
+        formData.append('requires_checkin', String(data.requires_checkin));
+      }
+    }
 
     // Handle Tags (Many-to-Many)
     if (data.tags && data.tags.length > 0) {
@@ -220,6 +248,12 @@ export const inventoryApi = {
     if (itemId) params.append('item_id', String(itemId));
     const queryString = params.toString();
     return (await api.get(`/inventory/history/analytics/${queryString ? `?${queryString}` : ''}`)).data;
+  },
+
+  // Get selectable groups for item restriction
+  getSelectableGroups: async (clubId: number) => {
+    const response = await api.get(`/inventory/items/selectable-groups/?club_id=${clubId}`);
+    return response.data as RestrictedGroup[];
   }
 };
 

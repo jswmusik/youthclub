@@ -1,0 +1,13 @@
+# Production-ready async task processing
+celery==5.3.6
+redis==5.0.1
+
+# Email backends for production (uncomment when ready)
+# django-ses==3.5.2  # AWS SES
+# sendgrid==6.11.0   # SendGrid
+# mailgun==0.1.1     # Mailgun
+
+# Optional: Celery monitoring
+# flower==2.0.1  # Web-based monitoring tool
+
+

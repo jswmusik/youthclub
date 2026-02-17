@@ -291,8 +291,8 @@ export default function InventoryBrowserPage() {
                     )}
                   </div>
 
-                  {/* Check-in Warning */}
-                  {!isCheckedIn && (
+                  {/* Check-in Warning - Only show if club requires check-in and user is not checked in */}
+                  {!isCheckedIn && items.some(item => item.borrowing_requires_checkin) && (
                     <div className={`mb-4 sm:mb-6 mx-0 sm:mx-0 p-4 border-y sm:border sm:rounded-2xl flex items-start gap-3 ${
                       darkMode 
                         ? 'bg-[var(--brand-peach)]/10 border-[var(--brand-peach)]/30' 

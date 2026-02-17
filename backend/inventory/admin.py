@@ -32,17 +32,23 @@ class InventoryTagAdmin(admin.ModelAdmin):
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ['title', 'club', 'category', 'status', 'max_borrow_duration', 'active_loan_count', 'queue_count', 'created_at']
-    list_filter = ['status', 'club', 'category', 'created_at']
+    list_display = ['title', 'club', 'category', 'status', 'restricted_to_group', 'max_borrow_duration', 'active_loan_count', 'queue_count', 'created_at']
+    list_filter = ['status', 'club', 'category', 'restricted_to_group', 'created_at']
     search_fields = ['title', 'description', 'internal_note']
     filter_horizontal = ['tags']
     readonly_fields = ['created_at', 'updated_at']
+    autocomplete_fields = ['restricted_to_group']
     fieldsets = (
         ('Basic Information', {
             'fields': ('club', 'title', 'description', 'image', 'category', 'tags')
         }),
+        ('Access Restriction', {
+            'fields': ('restricted_to_group',),
+            'description': 'If a group is selected, only members of that group can see and borrow this item.'
+        }),
         ('Borrowing Settings', {
-            'fields': ('max_borrow_duration',)
+            'fields': ('max_borrow_duration', 'requires_checkin'),
+            'description': 'Configure borrowing rules. Check-in requirement: None = use club default, True = always require, False = never require.'
         }),
         ('Status', {
             'fields': ('status', 'internal_note')

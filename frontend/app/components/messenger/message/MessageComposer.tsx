@@ -1,29 +1,78 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useToast } from '../../../../hooks/useToast';
 
 interface MessageComposerProps {
     onSend: (content: string, attachment?: File) => Promise<void>;
+    onTyping?: (isTyping: boolean) => void;
     disabled?: boolean;
     darkMode?: boolean;
 }
 
-export default function MessageComposer({ onSend, disabled, darkMode = false }: MessageComposerProps) {
+export default function MessageComposer({ onSend, onTyping, disabled, darkMode = false }: MessageComposerProps) {
     const t = useTranslations('messages');
     const [text, setText] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [sending, setSending] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isTypingRef = useRef(false);
     
     // Toast state
     const { success, error, info, warning } = useToast();
 
+    // Handle typing indicator
+    const handleTyping = useCallback(() => {
+        if (!onTyping) return;
+        
+        // Send typing start if not already typing
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            onTyping(true);
+        }
+        
+        // Clear existing timeout
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+        
+        // Set timeout to stop typing indicator after 2 seconds of inactivity
+        typingTimeoutRef.current = setTimeout(() => {
+            if (isTypingRef.current) {
+                isTypingRef.current = false;
+                onTyping(false);
+            }
+        }, 2000);
+    }, [onTyping]);
+
+    // Cleanup typing timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+            // Send stop typing on unmount
+            if (isTypingRef.current && onTyping) {
+                onTyping(false);
+            }
+        };
+    }, [onTyping]);
+
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if ((!text.trim() && !file) || sending) return;
+
+        // Stop typing indicator when sending
+        if (isTypingRef.current && onTyping) {
+            isTypingRef.current = false;
+            onTyping(false);
+        }
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
 
         setSending(true);
         try {
@@ -106,7 +155,10 @@ export default function MessageComposer({ onSend, disabled, darkMode = false }: 
                 <textarea
                     ref={textareaRef}
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => {
+                        setText(e.target.value);
+                        handleTyping();
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder={t('typeMessage')}
                     className={`flex-1 border-0 rounded-2xl px-3 sm:px-4 py-2 sm:py-3 text-base transition-all resize-none h-[40px] max-h-[40px] min-h-[40px] overflow-y-auto overflow-x-hidden w-full max-w-full min-w-0 break-words ${

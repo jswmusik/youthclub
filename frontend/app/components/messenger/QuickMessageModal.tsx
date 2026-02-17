@@ -108,7 +108,8 @@ export default function QuickMessageModal({
             setContent('');
             setAttachment(null);
             
-            success(t('quickMessage.messageSentSuccess'));
+            // Don't show success toast here - parent component will handle it
+            // This prevents duplicate toasts when used in AdminSearchModal
             
             if (onSuccess && finalConversationId) {
                 onSuccess(finalConversationId);
@@ -116,7 +117,7 @@ export default function QuickMessageModal({
             
             setTimeout(() => {
                 onClose();
-            }, 2000);
+            }, 1500);
         } catch (err: any) {
             console.error("Failed to send message", err);
             const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || t('quickMessage.couldNotSendMessage');

@@ -24,3 +24,10 @@ class CoreConfig(AppConfig):
 
 
 
+
+
+
+
+
+
+

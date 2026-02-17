@@ -29,87 +29,52 @@ class CourseViewSet(viewsets.ModelViewSet):
     - Super Admins see everything and can edit.
     - Regular Users see only published courses matching their role.
     """
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSuperAdminOrReadOnly]
     lookup_field = 'slug'
 
     def get_queryset(self):
-        import json
-        import traceback
-        try:
-            # #region agent log
-            with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({'location':'views.py:get_queryset:entry','message':'get_queryset called','data':{'action':self.action,'user_role':self.request.user.role if self.request.user.is_authenticated else None,'user_authenticated':self.request.user.is_authenticated},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'A'})+'\n')
-            # #endregion
-            
-            # First, automatically publish any scheduled courses that have passed their published_at date
-            # This ensures scheduled courses are published even if the cron job hasn't run yet
-            now = timezone.now()
-            scheduled_courses = Course.objects.filter(
-                status=Course.Status.SCHEDULED,
-                published_at__isnull=False,
-                published_at__lte=now
-            )
-            if scheduled_courses.exists():
-                scheduled_courses.update(status=Course.Status.PUBLISHED)
-            
-            user = self.request.user
-            qs = Course.objects.all().prefetch_related('chapters__items')
+        # First, automatically publish any scheduled courses that have passed their published_at date
+        # This ensures scheduled courses are published even if the cron job hasn't run yet
+        now = timezone.now()
+        scheduled_courses = Course.objects.filter(
+            status=Course.Status.SCHEDULED,
+            published_at__isnull=False,
+            published_at__lte=now
+        )
+        if scheduled_courses.exists():
+            scheduled_courses.update(status=Course.Status.PUBLISHED)
+        
+        user = self.request.user
+        qs = Course.objects.all().prefetch_related('chapters__items')
 
-            if user.role == 'SUPER_ADMIN':
-                # #region agent log
-                with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({'location':'views.py:get_queryset:super_admin','message':'Returning all courses for super admin','data':{'queryset_count':qs.count()},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'A'})+'\n')
-                # #endregion
-                return qs
-            
-            # Filter for normal users:
-            # 1. Must be PUBLISHED
-            # 2. visible_to_roles must be empty (public to all admins) OR contain user's role
-            # For SQLite JSONField: Try database-level filtering first, fallback to Python if needed
-            # #region agent log
-            with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({'location':'views.py:get_queryset:before_filter','message':'Before filtering for non-super-admin','data':{'user_role':user.role,'qs_count':qs.count()},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'B'})+'\n')
-            # #endregion
-            
-            try:
-                # Try database-level filtering (works for PostgreSQL, may work for SQLite)
-                # For SQLite: visible_to_roles=[] checks for empty JSON array
-                # visible_to_roles__icontains checks if role string appears in JSON (like news/views.py)
-                filtered_qs = qs.filter(
-                    status=Course.Status.PUBLISHED
-                ).filter(
-                    Q(visible_to_roles=[]) | Q(visible_to_roles__icontains=user.role)
-                )
-                # #region agent log
-                with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({'location':'views.py:get_queryset:db_filter_success','message':'Database-level filter succeeded','data':{'filtered_count':filtered_qs.count()},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'B'})+'\n')
-                # #endregion
-                return filtered_qs
-            except Exception as db_error:
-                # #region agent log
-                with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({'location':'views.py:get_queryset:db_filter_failed','message':'Database-level filter failed, using Python filtering','data':{'error':str(db_error),'error_type':type(db_error).__name__},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'C'})+'\n')
-                # #endregion
-                # Fallback to Python-side filtering (for SQLite JSONField compatibility)
-                # This matches the pattern used in custom_fields/views.py for cross-DB safety
-                filtered_qs = qs.filter(status=Course.Status.PUBLISHED)
-                final_course_ids = []
-                for course in filtered_qs.only('id', 'visible_to_roles'):
-                    visible_roles = course.visible_to_roles if isinstance(course.visible_to_roles, list) else []
-                    # Empty list means visible to all admins, OR user's role is in the list
-                    if len(visible_roles) == 0 or user.role in visible_roles:
-                        final_course_ids.append(course.id)
-                # #region agent log
-                with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                    f.write(json.dumps({'location':'views.py:get_queryset:python_filter','message':'Python-side filtering completed','data':{'filtered_count':len(final_course_ids),'final_course_ids':final_course_ids[:5]},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'C'})+'\n')
-                # #endregion
-                return qs.filter(id__in=final_course_ids) if final_course_ids else qs.none()
-        except Exception as e:
-            # #region agent log
-            with open('/Users/ungdomsappen/the-youth-app/.cursor/debug.log', 'a') as f:
-                f.write(json.dumps({'location':'views.py:get_queryset:error','message':'Error in get_queryset','data':{'error':str(e),'error_type':type(e).__name__,'traceback':traceback.format_exc()},'timestamp':int(__import__('time').time()*1000),'sessionId':'debug-session','runId':'run1','hypothesisId':'C'})+'\n')
-            # #endregion
-            raise
+        if user.role == 'SUPER_ADMIN':
+            return qs
+        
+        # Filter for normal users:
+        # 1. Must be PUBLISHED
+        # 2. visible_to_roles must be empty (public to all admins) OR contain user's role
+        # For SQLite JSONField: Try database-level filtering first, fallback to Python if needed
+        try:
+            # Try database-level filtering (works for PostgreSQL, may work for SQLite)
+            # For SQLite: visible_to_roles=[] checks for empty JSON array
+            # visible_to_roles__icontains checks if role string appears in JSON (like news/views.py)
+            filtered_qs = qs.filter(
+                status=Course.Status.PUBLISHED
+            ).filter(
+                Q(visible_to_roles=[]) | Q(visible_to_roles__icontains=user.role)
+            )
+            return filtered_qs
+        except Exception:
+            # Fallback to Python-side filtering (for SQLite JSONField compatibility)
+            # This matches the pattern used in custom_fields/views.py for cross-DB safety
+            filtered_qs = qs.filter(status=Course.Status.PUBLISHED)
+            final_course_ids = []
+            for course in filtered_qs.only('id', 'visible_to_roles'):
+                visible_roles = course.visible_to_roles if isinstance(course.visible_to_roles, list) else []
+                # Empty list means visible to all admins, OR user's role is in the list
+                if len(visible_roles) == 0 or user.role in visible_roles:
+                    final_course_ids.append(course.id)
+            return qs.filter(id__in=final_course_ids) if final_course_ids else qs.none()
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -261,7 +226,13 @@ def upload_image(request):
     
     Images are automatically optimized and converted to WebP format
     for reduced file sizes and faster loading.
+    
+    Note: Only Super Admins can edit course content, so this endpoint
+    is effectively restricted to them through the frontend.
     """
+    # Restrict to Super Admins only (course content editors)
+    if request.user.role != 'SUPER_ADMIN':
+        return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     if 'image' not in request.FILES:
         return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
     

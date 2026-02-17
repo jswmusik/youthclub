@@ -21,7 +21,7 @@ interface InventoryCardProps {
 export default function InventoryCard({ item, onRefresh, darkMode = false }: InventoryCardProps) {
   const { user } = useAuth();
   const router = useRouter();
-  const { showToast } = useToast();
+  const { success, error: showError } = useToast();
   const t = useTranslations('inventory');
   const tCommon = useTranslations('common');
   const [loading, setLoading] = useState(false);
@@ -144,7 +144,7 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.borrowItem(item.id);
-      showToast(t('borrowedSuccess'), 'success');
+      success(t('borrowedSuccess'));
       setShowBorrowModal(false);
       onRefresh();
       // Refresh check-in status after borrowing
@@ -155,27 +155,29 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
       } else {
         setIsCheckedIn(false);
       }
-    } catch (error: any) {
-      console.error(error);
-      const errorData = error.response?.data;
+    } catch (err: any) {
+      console.error(err);
+      const errorData = err.response?.data;
       const msg = errorData?.error || t('couldNotBorrowItem');
       
       // Show specific message for check-in requirement
       if (errorData?.code === 'CHECKIN_REQUIRED' || msg.includes('checked in')) {
-        showToast(t('mustCheckInToBorrow'), 'error');
+        showError(t('mustCheckInToBorrow'));
+      } else if (errorData?.code === 'GROUP_RESTRICTED' || msg.includes('restricted to members')) {
+        showError(t('groupRestricted'));
       } else if (
         errorData?.code === 'MAX_LOANS_REACHED' || 
         msg.includes('maximum borrowing limit') || 
         msg.includes('reached the maximum') ||
         msg.includes('maximum limit') ||
-        (error.response?.status === 400 && msg.toLowerCase().includes('limit'))
+        (err.response?.status === 400 && msg.toLowerCase().includes('limit'))
       ) {
         // Show modal for max loans error
         setMaxLoansError(msg);
         setShowMaxLoansModal(true);
         setShowBorrowModal(false);
       } else {
-        showToast(msg, 'error');
+        showError(msg);
       }
     } finally {
       setLoading(false);
@@ -190,13 +192,13 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.returnItem(item.id);
-      showToast(t('itemReturnedSuccess'), 'success');
+      success(t('itemReturnedSuccess'));
       setShowReturnModal(false);
       onRefresh();
-    } catch (error: any) {
-      console.error(error);
-      const msg = error.response?.data?.error || t('failedToReturnItem');
-      showToast(msg, 'error');
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.response?.data?.error || t('failedToReturnItem');
+      showError(msg);
     } finally {
       setLoading(false);
     }
@@ -210,18 +212,20 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.joinQueue(item.id);
-      showToast(t('joinedWaitingList'), 'success');
+      success(t('joinedWaitingList'));
       setShowJoinQueueModal(false);
       onRefresh();
-    } catch (error: any) {
-      const errorData = error.response?.data;
+    } catch (err: any) {
+      const errorData = err.response?.data;
       const msg = errorData?.error || t('couldNotJoinQueue');
       
       // Show specific message for check-in requirement
       if (errorData?.code === 'CHECKIN_REQUIRED' || msg.includes('checked in')) {
-        showToast(t('mustCheckInToJoinQueue'), 'error');
+        showError(t('mustCheckInToJoinQueue'));
+      } else if (errorData?.code === 'GROUP_RESTRICTED' || msg.includes('restricted to members')) {
+        showError(t('groupRestricted'));
       } else {
-        showToast(msg, 'error');
+        showError(msg);
       }
       setShowJoinQueueModal(false);
     } finally {
@@ -237,13 +241,13 @@ export default function InventoryCard({ item, onRefresh, darkMode = false }: Inv
     setLoading(true);
     try {
       await inventoryApi.leaveQueue(item.id);
-      showToast(t('leftWaitingList'), 'success');
+      success(t('leftWaitingList'));
       setShowLeaveQueueModal(false);
       onRefresh();
-    } catch (error: any) {
-      const errorData = error.response?.data;
+    } catch (err: any) {
+      const errorData = err.response?.data;
       const msg = errorData?.error || t('couldNotLeaveQueue');
-      showToast(msg, 'error');
+      showError(msg);
       setShowLeaveQueueModal(false);
     } finally {
       setLoading(false);

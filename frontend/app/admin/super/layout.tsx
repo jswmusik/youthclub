@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -70,6 +70,7 @@ import api from '../../../lib/api';
 import { messengerApi } from '../../../lib/messenger-api';
 import { Toaster } from '../../components/Toaster';
 import { useAdminInactivityTimeout } from '../../../hooks/useAdminInactivityTimeout';
+import { useNotificationWebSocket, useUnreadCountListener } from '../../../hooks/useNotificationWebSocket';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -231,6 +232,19 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   };
 
+  // Real-time message count updates via WebSocket
+  const handleUnreadCountUpdate = useCallback((count: number) => {
+    setInboxUnreadCount(count);
+  }, []);
+  
+  // Connect to notification WebSocket for real-time updates
+  useNotificationWebSocket({
+    onUnreadCountUpdate: handleUnreadCountUpdate
+  });
+  
+  // Also listen for global unread count events
+  useUnreadCountListener(handleUnreadCountUpdate);
+
   // Navigation structure with groups
   const navigationGroups = [
     {
@@ -370,6 +384,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       icon: Wrench,
       items: [
         { name: t('items.dataRetention'), href: '/admin/super/settings/data-retention', icon: Trash2 },
+        { name: t('items.gdprDocuments'), href: '/admin/super/settings/gdpr-documents', icon: Shield },
         { name: t('items.emailTemplates'), href: '/admin/super/settings/email-templates', icon: Mail },
         { name: t('items.notificationTemplates'), href: '/admin/super/settings/notification-templates', icon: Bell },
         { name: t('items.boilerplates'), href: '/admin/super/settings/boilerplates', icon: FileText },

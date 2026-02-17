@@ -138,7 +138,61 @@
     "logout": "Logga ut",
     "news": "Nyheter",
     "findClubs": "Hitta fritidsgårdar",
-    "children": "Barn"
+    "children": "Barn",
+    "privacyData": "Integritet & Data"
+  },
+  "privacy": {
+    "title": "Integritet & Dina Data",
+    "description": "Hantera dina integritetsinställningar, samtycken och datarättigheter (GDPR)",
+    "consents": {
+      "title": "Dina samtycken",
+      "cardTitle": "Integritet & Samtycken",
+      "required": "Obligatoriskt",
+      "active": "Aktivt",
+      "withdrawn": "Återkallat",
+      "given": "Givet",
+      "withdrawnAt": "Återkallat",
+      "source": "Källa",
+      "noConsents": "Inga samtycken registrerade",
+      "noConsentTypes": "Inga samtyckestyper tillgängliga",
+      "clickToRead": "Klicka för att läsa hela texten",
+      "withdraw": "Återkalla",
+      "giveConsent": "Ge samtycke",
+      "legalBasis": "Rättslig grund",
+      "viewFullDocument": "Visa fullständigt dokument →",
+      "localPolicies": "Lokala policyer",
+      "houseRules": "Ordningsregler",
+      "close": "Stäng"
+    },
+    "export": {
+      "title": "Exportera dina data",
+      "status": "Status",
+      "download": "Ladda ner",
+      "requested": "Begärd",
+      "expires": "Upphör",
+      "requestExport": "Begär dataexport",
+      "exportInfo": "📋 Du kan begära en export av alla dina data en gång var 24:e timme. Du får ett e-postmeddelande när den är klar att ladda ner."
+    },
+    "deletion": {
+      "title": "Radera konto",
+      "scheduled": "Radering schemalagd",
+      "willBeDeleted": "Ditt konto kommer att raderas den",
+      "daysRemaining": "dagar kvar",
+      "cancelDeletion": "Avbryt radering",
+      "warning": "⚠️ Detta kommer att anonymisera ditt konto. Du har 30 dagar på dig att avbryta innan det blir permanent.",
+      "requestDeletion": "Begär kontoradering"
+    },
+    "activity": {
+      "title": "Senaste aktivitet",
+      "noActivity": "Ingen senaste aktivitet"
+    },
+    "sources": {
+      "REGISTRATION": "Registrering",
+      "SETTINGS": "Inställningar",
+      "PROMPT": "Samtyckesbegäran",
+      "API": "API",
+      "ADMIN": "Administratör"
+    }
   },
   "visits": {
     "checkedInAt": "Incheckad på",
@@ -672,7 +726,7 @@
     "hideConversation": "Dölj konversation",
     "hideConversationMessage": "Dölj \"{subject}\"? Den kommer att visas igen när du får ett nytt meddelande.",
     "deleteConversation": "Radera konversation",
-    "deleteConversationMessage": "Är du säker på att du vill permanent radera \"{subject}\"? Denna åtgärd kan inte ångras.",
+    "deleteConversationMessage": "Detta kommer permanent radera \"{subject}\" för BÅDE dig och den andra deltagaren. Denna åtgärd kan inte ångras.",
     "cancel": "Avbryt",
     "messageSentSuccess": "Meddelande skickat!",
     "failedToSendMessage": "Misslyckades med att skicka meddelande.",
@@ -1738,6 +1792,7 @@
     "couldNotJoinQueue": "Kunde inte gå med i kö.",
     "mustCheckInToJoinQueue": "Du måste vara incheckad på denna fritidsgård för att gå med i väntelistan.",
     "couldNotLeaveQueue": "Kunde inte lämna kö.",
+    "groupRestricted": "Detta föremål är begränsat till medlemmar i en specifik grupp.",
     "maximumItemsReached": "Maximalt antal föremål nått",
     "maximumItemsReachedMessage": "Du har nått den maximala utlåningsgränsen.\n\nVänligen lämna tillbaka ett föremål innan du lånar ett annat.",
     "viewMyItems": "Visa mina föremål",
@@ -3731,7 +3786,12 @@
         "status": "Status",
         "internalNote": "Intern anteckning",
         "internalNotePlaceholder": "t.ex. Köpt 2024, Serienummer #12345",
-        "internalNoteHint": "Endast synlig för administratörer"
+        "internalNoteHint": "Endast synlig för administratörer",
+        "requiresCheckin": "Incheckning krävs",
+        "requiresCheckinDefault": "Använd fritidsgårdens standard",
+        "requiresCheckinYes": "Kräv alltid incheckning",
+        "requiresCheckinNo": "Kräv aldrig incheckning",
+        "requiresCheckinHint": "Åsidosätt fritidsgårdens incheckningskrav för detta specifika föremål"
       },
       "tags": {
         "title": "Taggar",
@@ -3739,6 +3799,20 @@
         "selected": "Valda:",
         "noTagsAvailable": "Inga taggar tillgängliga",
         "createTagsMessage": "Skapa taggar på sidan för tagghantering"
+      },
+      "groupRestriction": {
+        "title": "Gruppbegränsning",
+        "description": "Begränsa denna artikel till medlemmar i en specifik grupp",
+        "selectGroup": "Begränsa till grupp",
+        "noRestriction": "Ingen begränsning (tillgänglig för alla)",
+        "clubGroup": "Fritidsgårdsgrupp",
+        "municipalityGroup": "Kommungrupp",
+        "hint": "Om en grupp väljs kan endast medlemmar i den gruppen se och låna denna artikel",
+        "restrictedInfo": "Denna artikel är begränsad",
+        "restrictedDescription": "Endast medlemmar i den valda gruppen kommer att kunna se och låna denna artikel",
+        "loading": "Laddar grupper...",
+        "noGroups": "Inga grupper tillgängliga",
+        "noGroupsHint": "Skapa grupper i grupphanterings-sektionen först"
       },
       "quickTips": {
         "title": "Snabbtips",
@@ -6255,6 +6329,7 @@
       "pricingPage": "Prissida",
       "contactPage": "Kontaktsida",
       "dataRetention": "Datalagring",
+      "gdprDocuments": "GDPR-dokument",
       "emailTemplates": "E-postmallar",
       "notificationTemplates": "Notifikationsmallar",
       "boilerplates": "Textmallar",
@@ -9862,6 +9937,126 @@
       "copied": "Innehållet har kopierats till urklipp"
     }
   },
+  "gdprDocuments": {
+    "title": "GDPR-samtyckedokument",
+    "subtitle": "Hantera juridiska dokument som användare måste samtycka till",
+    "search": "Sök dokument...",
+    "noTranslations": "Inga översättningar",
+    "disabled": "Inaktiverad",
+    "required": "Obligatorisk",
+    "optional": "Frivillig",
+    "selectDocument": {
+      "title": "Välj ett dokument",
+      "subtitle": "Välj ett samtyckedokument från listan för att redigera innehåll och översättningar."
+    },
+    "editor": {
+      "language": "Språk:",
+      "documentName": "Dokumentnamn",
+      "namePlaceholder": "t.ex., Användarvillkor",
+      "description": "Kort beskrivning",
+      "descriptionPlaceholder": "Kort beskrivning av vad detta dokument omfattar...",
+      "consentText": "Fullständig juridisk text",
+      "consentTextPlaceholder": "Skriv in den fullständiga juridiska texten som användare kommer att samtycka till...",
+      "richText": "Rich Text",
+      "html": "HTML",
+      "htmlHelp": "💡 Använd HTML för formatering. Denna text visas i samtyckemodaler.",
+      "active": "Aktiv",
+      "isRequired": "Obligatorisk vid registrering",
+      "legalBasis": "Rättslig grund (GDPR-artikel)",
+      "legalBasisPlaceholder": "t.ex., GDPR Artikel 6(1)(a) - Samtycke",
+      "documentUrl": "Extern dokument-URL (valfritt)",
+      "documentUrlPlaceholder": "https://example.com/integritetspolicy.pdf",
+      "version": "Aktuell version",
+      "displayOrder": "Visningsordning",
+      "preview": "Förhandsgranska",
+      "saveTranslation": "Spara översättning",
+      "saveDocument": "Spara dokument"
+    },
+    "createNew": "Skapa nytt dokument",
+    "createModal": {
+      "title": "Skapa nytt samtyckedokument",
+      "subtitle": "Skapa ett nytt juridiskt dokument för GDPR-efterlevnad",
+      "code": "Dokumentkod",
+      "codePlaceholder": "t.ex., privacy_policy (gemener, endast understreck)",
+      "codeHelp": "💡 Denna kod används internt och kan inte ändras senare",
+      "name": "Dokumentnamn",
+      "namePlaceholder": "t.ex., Integritetspolicy",
+      "description": "Beskrivning",
+      "descriptionPlaceholder": "Kort beskrivning...",
+      "consentText": "Juridisk text",
+      "consentTextPlaceholder": "Skriv in den juridiska texten...",
+      "version": "Version",
+      "versionPlaceholder": "1.0",
+      "cancel": "Avbryt",
+      "create": "Skapa dokument"
+    },
+    "versionModal": {
+      "title": "Publicera ny version",
+      "subtitle": "Skapa en ny version av detta dokument. Användare som tidigare samtyckt måste samtycka på nytt.",
+      "currentVersion": "Aktuell version:",
+      "newVersion": "Ny version",
+      "newVersionPlaceholder": "t.ex., 2.0",
+      "changeSummary": "Ändringssammanfattning",
+      "changeSummaryPlaceholder": "Beskriv vad som ändrades i denna version...",
+      "warning": "⚠️ Att publicera en ny version kräver att alla användare samtycker till detta dokument på nytt.",
+      "cancel": "Avbryt",
+      "publish": "Publicera version"
+    },
+    "versionHistory": {
+      "title": "Versionshistorik",
+      "noVersions": "Ingen versionshistorik tillgänglig",
+      "version": "Version",
+      "publishedBy": "Publicerad av",
+      "publishedAt": "Publicerad den",
+      "changes": "Ändringar"
+    },
+    "stats": {
+      "title": "Statistik",
+      "totalDocuments": "Totalt antal dokument",
+      "activeDocuments": "Aktiva",
+      "requiredDocuments": "Obligatoriska",
+      "totalConsents": "Totalt antal användarsamtycken",
+      "activeConsents": "Aktiva samtycken",
+      "withdrawnConsents": "Återkallade"
+    },
+    "actions": {
+      "toggleActive": "Växla aktiv",
+      "toggleRequired": "Växla obligatorisk",
+      "publishVersion": "Publicera ny version",
+      "viewVersions": "Versionshistorik",
+      "duplicate": "Duplicera",
+      "delete": "Radera"
+    },
+    "toast": {
+      "loadFailed": "Kunde inte ladda GDPR-dokument",
+      "loadDetailsFailed": "Kunde inte ladda dokumentdetaljer",
+      "saveSuccess": "Dokumentet har sparats",
+      "saveFailed": "Kunde inte spara dokumentet",
+      "createSuccess": "Dokumentet har skapats",
+      "createFailed": "Kunde inte skapa dokumentet",
+      "translationSaveSuccess": "Översättningen har sparats",
+      "translationSaveFailed": "Kunde inte spara översättningen",
+      "versionPublished": "Ny version har publicerats",
+      "versionPublishFailed": "Kunde inte publicera versionen",
+      "documentEnabled": "Dokumentet har aktiverats",
+      "documentDisabled": "Dokumentet har inaktiverats",
+      "updateFailed": "Kunde inte uppdatera dokumentet",
+      "duplicateSuccess": "Dokumentet har duplicerats",
+      "duplicateFailed": "Kunde inte duplicera dokumentet",
+      "deleteSuccess": "Dokumentet har raderats",
+      "deleteFailed": "Kunde inte radera dokumentet"
+    },
+    "languages": {
+      "swedish": "Svenska",
+      "english": "Engelska",
+      "arabic": "Arabiska",
+      "danish": "Danska",
+      "finnish": "Finska",
+      "norwegian": "Norska",
+      "dariPersian": "Dari/Persiska",
+      "somali": "Somaliska"
+    }
+  },
   "emailTemplates": {
     "title": "E-postmallar",
     "subtitle": "Hantera och anpassa e-postmeddelanden som skickas till användare",
@@ -10153,6 +10348,17 @@
     "login": "Logga in",
     "createAccount": "Skapa konto"
   },
+  "terms": {
+    "loading": "Laddar dokument...",
+    "notFound": "Dokument hittades inte",
+    "notFoundDesc": "Dokumentet du söker existerar inte eller har tagits bort.",
+    "goBack": "Gå tillbaka",
+    "back": "Tillbaka",
+    "version": "Version",
+    "required": "Obligatorisk",
+    "viewExternal": "Visa externt dokument",
+    "lastUpdated": "Senast uppdaterad"
+  },
   "registrationWizard": {
     "steps": {
       "location": "Plats",
@@ -10184,6 +10390,7 @@
       "emailAlreadyRegistered": "Denna e-post är redan registrerad.",
       "guardianFound": "Vårdnadshavare hittad! Vi kommer att länka era konton.",
       "mustAcceptTerms": "Du måste acceptera villkoren.",
+      "mustAcceptAllConsents": "Du måste acceptera alla obligatoriska samtycken för att registrera dig.",
       "incorrectCaptcha": "Fel svar på matefrågan. Är du en robot?",
       "registrationSuccess": "Registrering lyckades! Omdirigerar...",
       "registrationFailed": "Registreringen misslyckades.",
@@ -10283,7 +10490,22 @@
       "acceptTermsText": "Jag har läst och accepterar",
       "and": "och",
       "readMore": "Läs mer...",
-      "close": "Stäng"
+      "close": "Stäng",
+      "requiredConsents": "Obligatoriska Samtycken",
+      "termsOfService": "Användarvillkor",
+      "termsOfServiceDesc": "Godkännande av villkoren för användning av tjänsten",
+      "readTerms": "Läs Villkoren",
+      "privacyPolicy": "Integritetspolicy",
+      "privacyPolicyDesc": "Samtycke till databehandling enligt integritetspolicyn",
+      "readPrivacy": "Läs Integritetspolicyn",
+      "dataProcessing": "Databehandling",
+      "dataProcessingDesc": "Samtycke till behandling av personuppgifter för tjänstens drift",
+      "readDataProcessing": "Läs Villkor för Databehandling",
+      "ageVerification": "Åldersverifiering",
+      "ageVerificationDesc": "Jag bekräftar att jag är minst 13 år gammal (eller har vårdnadshavares samtycke)",
+      "localPolicies": "Lokala policyer",
+      "houseRules": "Husregler",
+      "documentNotAvailable": "Dokument ej tillgängligt"
     }
   },
   "youthRegister": {

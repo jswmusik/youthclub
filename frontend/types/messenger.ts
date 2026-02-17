@@ -44,8 +44,18 @@ export interface ConversationList {
     participants: MessageSender[];
 }
 
+export interface PaginationInfo {
+    page: number;
+    page_size: number;
+    total_messages: number;
+    total_pages: number;
+    has_next: boolean;
+    has_previous: boolean;
+}
+
 export interface ConversationDetail extends ConversationList {
     messages: Message[];
+    pagination?: PaginationInfo;
 }
 
 // For the Broadcast Composer

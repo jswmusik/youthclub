@@ -29,11 +29,13 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
   const t = useTranslations('guardianDetail');
   const tGenders = useTranslations('youthManager.genders');
   const tStatuses = useTranslations('guardianManager.statuses');
+  const tPrivacy = useTranslations('privacy');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [youthList, setYouthList] = useState<any[]>([]);
   const [relationships, setRelationships] = useState<any[]>([]);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [userConsents, setUserConsents] = useState<any[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -53,6 +55,15 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
           } catch (relErr) {
             console.error('Error fetching relationships:', relErr);
           }
+        }
+        
+        // Fetch user consents
+        try {
+          const consentsRes = await api.get(`/gdpr/my-consents/?user=${userId}`);
+          setUserConsents(consentsRes.data.results || []);
+        } catch (err) {
+          console.error('Failed to fetch consents:', err);
+          setUserConsents([]);
         }
       } catch (err) { console.error(err); } 
       finally { setLoading(false); }
@@ -547,6 +558,64 @@ export default function GuardianDetailView({ userId, basePath }: GuardianDetailP
                 <div className="text-center py-6 text-[var(--brand-light)]/40">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm italic">{t('connectedYouth.noYouthConnected')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* GDPR Consents Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <h2 className="text-lg font-semibold text-[var(--brand-light)] flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-[var(--brand-primary)]" />
+                {tPrivacy('consents.cardTitle')}
+              </h2>
+            </div>
+            <div className="p-6 space-y-3">
+              {userConsents.length > 0 ? (
+                userConsents.map((consent: any) => (
+                  <div
+                    key={consent.id}
+                    className="flex items-start justify-between p-3 rounded-xl bg-[var(--dark-700)]/50 border border-[var(--dark-500)]"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-[var(--brand-light)]">
+                          {consent.consent_type_name || consent.consent_type}
+                        </span>
+                        {consent.is_active ? (
+                          <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">
+                            {tPrivacy('consents.active')}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-xs bg-red-500/20 text-red-400 rounded">
+                            {tPrivacy('consents.withdrawn')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[var(--brand-light)]/50 space-y-1">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {tPrivacy('consents.given')}: {new Date(consent.consented_at).toLocaleDateString()}
+                        </div>
+                        {consent.withdrawn_at && (
+                          <div className="flex items-center gap-1 text-red-400/70">
+                            {tPrivacy('consents.withdrawnAt')}: {new Date(consent.withdrawn_at).toLocaleDateString()}
+                          </div>
+                        )}
+                        {consent.consent_method && (
+                          <div className="text-[var(--brand-light)]/40">
+                            {tPrivacy('consents.source')}: {tPrivacy(`sources.${consent.consent_method}`)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-6 text-[var(--brand-light)]/40">
+                  <ShieldCheck className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm italic">{tPrivacy('consents.noConsents')}</p>
                 </div>
               )}
             </div>

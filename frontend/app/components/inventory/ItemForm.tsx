@@ -7,9 +7,9 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { 
   ArrowLeft, Upload, X, Tag as TagIcon, Package, Settings, Image, 
-  CheckCircle2, Lightbulb, Clock, Layers, Building2
+  CheckCircle2, Lightbulb, Clock, Layers, Building2, Users, Lock
 } from 'lucide-react';
-import { inventoryApi, ItemCategory, InventoryTag, ClubOption } from '@/lib/inventory-api';
+import { inventoryApi, ItemCategory, InventoryTag, ClubOption, RestrictedGroup } from '@/lib/inventory-api';
 import { useAuth } from '@/context/AuthContext';
 import { getMediaUrl } from '@/app/utils';
 import { useToast } from '../../../hooks/useToast';
@@ -31,6 +31,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
   const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [tags, setTags] = useState<InventoryTag[]>([]);
   const [clubs, setClubs] = useState<ClubOption[]>([]);
+  const [selectableGroups, setSelectableGroups] = useState<RestrictedGroup[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
   const { success, error, info, warning } = useToast();
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isProgressFixed, setIsProgressFixed] = useState(false);
@@ -47,6 +49,8 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
     internal_note: initialData?.internal_note || '',
     status: initialData?.status || 'AVAILABLE',
     club: initialData?.club ? (typeof initialData.club === 'object' ? initialData.club.id : initialData.club) : '',
+    restricted_to_group: initialData?.restricted_to_group || '',
+    requires_checkin: initialData?.requires_checkin ?? null, // null = use club default
   });
   
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -181,6 +185,39 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
     }
   }, [user, clubId]);
 
+  // Load selectable groups when club changes
+  useEffect(() => {
+    const loadGroups = async () => {
+      // Determine the club ID to use
+      let targetClubId: number | undefined;
+      
+      if (formData.club) {
+        targetClubId = Number(formData.club);
+      } else if (clubId) {
+        targetClubId = clubId;
+      } else if (user?.assigned_club?.id) {
+        targetClubId = user.assigned_club.id;
+      }
+      
+      if (targetClubId) {
+        setLoadingGroups(true);
+        try {
+          const groups = await inventoryApi.getSelectableGroups(targetClubId);
+          setSelectableGroups(groups);
+        } catch (err) {
+          console.error("Failed to load groups", err);
+          setSelectableGroups([]);
+        } finally {
+          setLoadingGroups(false);
+        }
+      } else {
+        setSelectableGroups([]);
+      }
+    };
+    
+    loadGroups();
+  }, [formData.club, clubId, user?.assigned_club?.id]);
+
   const calculateCompletion = useCallback(() => {
     const isSuperOrMuniAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'MUNICIPALITY_ADMIN';
     
@@ -240,7 +277,15 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
         image: imageFile,
         club: formData.club ? Number(formData.club) : (clubId || user?.assigned_club?.id), 
         category: formData.category ? Number(formData.category) : undefined,
+        restricted_to_group: formData.restricted_to_group ? Number(formData.restricted_to_group) : null,
+        requires_checkin: formData.requires_checkin,
       };
+      
+      // Debug: Log payload
+      console.log('[ItemForm] formData.restricted_to_group:', formData.restricted_to_group);
+      console.log('[ItemForm] payload.restricted_to_group:', payload.restricted_to_group);
+      console.log('[ItemForm] formData.requires_checkin:', formData.requires_checkin);
+      console.log('[ItemForm] Full payload:', payload);
 
       if (initialData) {
         await inventoryApi.updateItem(initialData.id, payload);
@@ -719,6 +764,100 @@ export default function ItemForm({ initialData, clubId }: ItemFormProps) {
                 />
                 <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('settings.internalNoteHint')}</p>
               </div>
+
+              {/* Check-in Requirement */}
+              <div>
+                <label className={labelClasses}>{t('settings.requiresCheckin')}</label>
+                <select
+                  name="requires_checkin"
+                  className={selectClasses('requires_checkin')}
+                  style={selectArrowStyle}
+                  value={formData.requires_checkin === null ? 'default' : formData.requires_checkin ? 'true' : 'false'}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setFormData({
+                      ...formData, 
+                      requires_checkin: val === 'default' ? null : val === 'true'
+                    });
+                  }}
+                  onFocus={() => setFocusedField('requires_checkin')}
+                  onBlur={() => setFocusedField(null)}
+                >
+                  <option value="default">{t('settings.requiresCheckinDefault')}</option>
+                  <option value="true">{t('settings.requiresCheckinYes')}</option>
+                  <option value="false">{t('settings.requiresCheckinNo')}</option>
+                </select>
+                <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('settings.requiresCheckinHint')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Group Restriction Card */}
+          <div className="bg-[var(--dark-800)] rounded-none sm:rounded-2xl border-y sm:border border-[var(--dark-600)] overflow-hidden mb-6">
+            <div className="px-4 sm:px-6 py-5 border-b border-[var(--dark-600)] bg-[var(--dark-700)]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-purple)] flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--brand-light)]">{t('groupRestriction.title')}</h2>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('groupRestriction.description')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {loadingGroups ? (
+                <div className="flex items-center gap-2 text-[var(--brand-light)]/50">
+                  <div className="w-4 h-4 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">{t('groupRestriction.loading')}</span>
+                </div>
+              ) : selectableGroups.length > 0 ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className={labelClasses}>{t('groupRestriction.selectGroup')}</label>
+                    <select
+                      name="restricted_to_group"
+                      className={selectClasses('restricted_to_group')}
+                      style={selectArrowStyle}
+                      value={formData.restricted_to_group}
+                      onChange={e => setFormData({...formData, restricted_to_group: e.target.value})}
+                      onFocus={() => setFocusedField('restricted_to_group')}
+                      onBlur={() => setFocusedField(null)}
+                    >
+                      <option value="">{t('groupRestriction.noRestriction')}</option>
+                      {selectableGroups.map(group => (
+                        <option key={group.id} value={group.id}>
+                          {group.name} {group.club ? `(${t('groupRestriction.clubGroup')})` : `(${t('groupRestriction.municipalityGroup')})`}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[var(--brand-light)]/40 mt-2">{t('groupRestriction.hint')}</p>
+                  </div>
+                  
+                  {formData.restricted_to_group && (
+                    <div className="bg-[var(--brand-purple)]/10 rounded-xl p-4 border border-[var(--brand-purple)]/30">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--brand-purple)]/20 flex items-center justify-center flex-shrink-0">
+                          <Users className="w-4 h-4 text-[var(--brand-purple)]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-[var(--brand-light)]">{t('groupRestriction.restrictedInfo')}</p>
+                          <p className="text-xs text-[var(--brand-light)]/50 mt-1">{t('groupRestriction.restrictedDescription')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--dark-700)] flex items-center justify-center mx-auto mb-3">
+                    <Users className="w-6 h-6 text-[var(--brand-light)]/30" />
+                  </div>
+                  <p className="text-sm text-[var(--brand-light)]/50">{t('groupRestriction.noGroups')}</p>
+                  <p className="text-xs text-[var(--brand-light)]/30 mt-1">{t('groupRestriction.noGroupsHint')}</p>
+                </div>
+              )}
             </div>
           </div>
 

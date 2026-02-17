@@ -138,7 +138,61 @@
     "logout": "Logout",
     "news": "News",
     "findClubs": "Find Clubs",
-    "children": "Children"
+    "children": "Children",
+    "privacyData": "Privacy & Data"
+  },
+  "privacy": {
+    "title": "Privacy & Your Data",
+    "description": "Manage your privacy settings, consents, and data rights (GDPR)",
+    "consents": {
+      "title": "Your Consents",
+      "cardTitle": "Privacy & Consents",
+      "required": "Required",
+      "active": "Active",
+      "withdrawn": "Withdrawn",
+      "given": "Given",
+      "withdrawnAt": "Withdrawn",
+      "source": "Source",
+      "noConsents": "No consents recorded",
+      "noConsentTypes": "No consent types available",
+      "clickToRead": "Click to read full text",
+      "withdraw": "Withdraw",
+      "giveConsent": "Give Consent",
+      "legalBasis": "Legal Basis",
+      "viewFullDocument": "View full document →",
+      "localPolicies": "Local Policies",
+      "houseRules": "House Rules",
+      "close": "Close"
+    },
+    "export": {
+      "title": "Export Your Data",
+      "status": "Status",
+      "download": "Download",
+      "requested": "Requested",
+      "expires": "Expires",
+      "requestExport": "Request Data Export",
+      "exportInfo": "📋 You can request an export of all your data once every 24 hours. You'll receive an email when it's ready to download."
+    },
+    "deletion": {
+      "title": "Delete Account",
+      "scheduled": "Deletion Scheduled",
+      "willBeDeleted": "Your account will be deleted on",
+      "daysRemaining": "days remaining",
+      "cancelDeletion": "Cancel Deletion",
+      "warning": "⚠️ This will anonymize your account. You'll have 30 days to cancel before it's permanent.",
+      "requestDeletion": "Request Account Deletion"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "noActivity": "No recent activity"
+    },
+    "sources": {
+      "REGISTRATION": "Registration",
+      "SETTINGS": "Settings",
+      "PROMPT": "Consent prompt",
+      "API": "API",
+      "ADMIN": "Administrator"
+    }
   },
   "visits": {
     "checkedInAt": "Checked in at",
@@ -673,7 +727,7 @@
     "hideConversation": "Hide Conversation",
     "hideConversationMessage": "Hide \"{subject}\"? It will reappear when you receive a new message.",
     "deleteConversation": "Delete Conversation",
-    "deleteConversationMessage": "Are you sure you want to permanently delete \"{subject}\"? This action cannot be undone.",
+    "deleteConversationMessage": "This will permanently delete \"{subject}\" for BOTH you and the other participant. This action cannot be undone.",
     "cancel": "Cancel",
     "messageSentSuccess": "Message sent successfully!",
     "failedToSendMessage": "Failed to send message.",
@@ -1739,6 +1793,7 @@
     "couldNotJoinQueue": "Could not join queue.",
     "mustCheckInToJoinQueue": "You must be checked in to this club to join the waiting list.",
     "couldNotLeaveQueue": "Could not leave queue.",
+    "groupRestricted": "This item is restricted to members of a specific group.",
     "maximumItemsReached": "Maximum Items Reached",
     "maximumItemsReachedMessage": "You have reached the maximum borrowing limit.\n\nPlease return an item before borrowing another one.",
     "viewMyItems": "View My Items",
@@ -3311,6 +3366,7 @@
       "pricingPage": "Pricing Page",
       "contactPage": "Contact Page",
       "dataRetention": "Data Retention",
+      "gdprDocuments": "GDPR Documents",
       "emailTemplates": "Email Templates",
       "notificationTemplates": "Notification Templates",
       "boilerplates": "Text Templates",
@@ -7140,7 +7196,12 @@
         "status": "Status",
         "internalNote": "Internal Note",
         "internalNotePlaceholder": "e.g. Purchased 2024, Serial #12345",
-        "internalNoteHint": "Only visible to admins"
+        "internalNoteHint": "Only visible to admins",
+        "requiresCheckin": "Check-in Requirement",
+        "requiresCheckinDefault": "Use club default",
+        "requiresCheckinYes": "Always require check-in",
+        "requiresCheckinNo": "Never require check-in",
+        "requiresCheckinHint": "Override the club's check-in requirement for this specific item"
       },
       "tags": {
         "title": "Tags",
@@ -7148,6 +7209,20 @@
         "selected": "Selected:",
         "noTagsAvailable": "No tags available",
         "createTagsMessage": "Create tags in the Tags management page"
+      },
+      "groupRestriction": {
+        "title": "Group Restriction",
+        "description": "Restrict this item to members of a specific group",
+        "selectGroup": "Restrict to Group",
+        "noRestriction": "No restriction (available to all)",
+        "clubGroup": "Club Group",
+        "municipalityGroup": "Municipality Group",
+        "hint": "If a group is selected, only members of that group can see and borrow this item",
+        "restrictedInfo": "This item is restricted",
+        "restrictedDescription": "Only members of the selected group will be able to see and borrow this item",
+        "loading": "Loading groups...",
+        "noGroups": "No groups available",
+        "noGroupsHint": "Create groups in the Groups management section first"
       },
       "quickTips": {
         "title": "Quick Tips",
@@ -9865,6 +9940,126 @@
       "copied": "Content copied to clipboard"
     }
   },
+  "gdprDocuments": {
+    "title": "GDPR Consent Documents",
+    "subtitle": "Manage legal documents that users must consent to",
+    "search": "Search documents...",
+    "noTranslations": "No translations",
+    "disabled": "Disabled",
+    "required": "Required",
+    "optional": "Optional",
+    "selectDocument": {
+      "title": "Select a Document",
+      "subtitle": "Choose a consent document from the list to edit its content and translations."
+    },
+    "editor": {
+      "language": "Language:",
+      "documentName": "Document Name",
+      "namePlaceholder": "e.g., Terms of Service",
+      "description": "Short Description",
+      "descriptionPlaceholder": "Brief description of what this document covers...",
+      "consentText": "Full Legal Text",
+      "consentTextPlaceholder": "Enter the complete legal text that users will consent to...",
+      "richText": "Rich Text",
+      "html": "HTML",
+      "htmlHelp": "💡 Use HTML for formatting. This text will be displayed in consent modals.",
+      "active": "Active",
+      "isRequired": "Required for Registration",
+      "legalBasis": "Legal Basis (GDPR Article)",
+      "legalBasisPlaceholder": "e.g., GDPR Article 6(1)(a) - Consent",
+      "documentUrl": "External Document URL (optional)",
+      "documentUrlPlaceholder": "https://example.com/privacy-policy.pdf",
+      "version": "Current Version",
+      "displayOrder": "Display Order",
+      "preview": "Preview",
+      "saveTranslation": "Save Translation",
+      "saveDocument": "Save Document"
+    },
+    "createNew": "Create New Document",
+    "createModal": {
+      "title": "Create New Consent Document",
+      "subtitle": "Create a new legal document for GDPR compliance",
+      "code": "Document Code",
+      "codePlaceholder": "e.g., privacy_policy (lowercase, underscores only)",
+      "codeHelp": "💡 This code is used internally and cannot be changed later",
+      "name": "Document Name",
+      "namePlaceholder": "e.g., Privacy Policy",
+      "description": "Description",
+      "descriptionPlaceholder": "Brief description...",
+      "consentText": "Legal Text",
+      "consentTextPlaceholder": "Enter the legal text...",
+      "version": "Version",
+      "versionPlaceholder": "1.0",
+      "cancel": "Cancel",
+      "create": "Create Document"
+    },
+    "versionModal": {
+      "title": "Publish New Version",
+      "subtitle": "Create a new version of this document. Users who previously consented will need to re-consent.",
+      "currentVersion": "Current Version:",
+      "newVersion": "New Version",
+      "newVersionPlaceholder": "e.g., 2.0",
+      "changeSummary": "Change Summary",
+      "changeSummaryPlaceholder": "Describe what changed in this version...",
+      "warning": "⚠️ Publishing a new version will require all users to re-consent to this document.",
+      "cancel": "Cancel",
+      "publish": "Publish Version"
+    },
+    "versionHistory": {
+      "title": "Version History",
+      "noVersions": "No version history available",
+      "version": "Version",
+      "publishedBy": "Published By",
+      "publishedAt": "Published At",
+      "changes": "Changes"
+    },
+    "stats": {
+      "title": "Statistics",
+      "totalDocuments": "Total Documents",
+      "activeDocuments": "Active",
+      "requiredDocuments": "Required",
+      "totalConsents": "Total User Consents",
+      "activeConsents": "Active Consents",
+      "withdrawnConsents": "Withdrawn"
+    },
+    "actions": {
+      "toggleActive": "Toggle Active",
+      "toggleRequired": "Toggle Required",
+      "publishVersion": "Publish New Version",
+      "viewVersions": "Version History",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "toast": {
+      "loadFailed": "Failed to load GDPR documents",
+      "loadDetailsFailed": "Failed to load document details",
+      "saveSuccess": "Document saved successfully",
+      "saveFailed": "Failed to save document",
+      "createSuccess": "Document created successfully",
+      "createFailed": "Failed to create document",
+      "translationSaveSuccess": "Translation saved successfully",
+      "translationSaveFailed": "Failed to save translation",
+      "versionPublished": "New version published successfully",
+      "versionPublishFailed": "Failed to publish version",
+      "documentEnabled": "Document enabled",
+      "documentDisabled": "Document disabled",
+      "updateFailed": "Failed to update document",
+      "duplicateSuccess": "Document duplicated successfully",
+      "duplicateFailed": "Failed to duplicate document",
+      "deleteSuccess": "Document deleted successfully",
+      "deleteFailed": "Failed to delete document"
+    },
+    "languages": {
+      "swedish": "Swedish",
+      "english": "English",
+      "arabic": "Arabic",
+      "danish": "Danish",
+      "finnish": "Finnish",
+      "norwegian": "Norwegian",
+      "dariPersian": "Dari/Persian",
+      "somali": "Somali"
+    }
+  },
   "emailTemplates": {
     "title": "Email Templates",
     "subtitle": "Manage and customize email notifications sent to users",
@@ -10156,6 +10351,17 @@
     "login": "Login",
     "createAccount": "Create Account"
   },
+  "terms": {
+    "loading": "Loading document...",
+    "notFound": "Document Not Found",
+    "notFoundDesc": "The document you are looking for does not exist or has been removed.",
+    "goBack": "Go Back",
+    "back": "Back",
+    "version": "Version",
+    "required": "Required",
+    "viewExternal": "View external document",
+    "lastUpdated": "Last updated"
+  },
   "registrationWizard": {
     "steps": {
       "location": "Location",
@@ -10187,6 +10393,7 @@
       "emailAlreadyRegistered": "This email is already registered.",
       "guardianFound": "Guardian found! We will link your accounts.",
       "mustAcceptTerms": "You must accept the terms.",
+      "mustAcceptAllConsents": "You must accept all required consents to register.",
       "incorrectCaptcha": "Incorrect math answer. Are you a robot?",
       "registrationSuccess": "Registration Successful! Redirecting...",
       "registrationFailed": "Registration failed.",
@@ -10286,7 +10493,22 @@
       "acceptTermsText": "I have read and accept the",
       "and": "and",
       "readMore": "Read more...",
-      "close": "Close"
+      "close": "Close",
+      "requiredConsents": "Required Consents",
+      "termsOfService": "Terms of Service",
+      "termsOfServiceDesc": "Agreement to the terms and conditions of using the service",
+      "readTerms": "Read Terms",
+      "privacyPolicy": "Privacy Policy",
+      "privacyPolicyDesc": "Consent to data processing as described in privacy policy",
+      "readPrivacy": "Read Privacy Policy",
+      "dataProcessing": "Data Processing",
+      "dataProcessingDesc": "Consent to process personal data for service operation",
+      "readDataProcessing": "Read Data Processing Terms",
+      "ageVerification": "Age Verification",
+      "ageVerificationDesc": "I confirm that I am at least 13 years old (or have parental consent)",
+      "localPolicies": "Local Policies",
+      "houseRules": "House Rules",
+      "documentNotAvailable": "Document not available"
     }
   },
   "youthRegister": {

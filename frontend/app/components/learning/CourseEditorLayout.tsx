@@ -117,8 +117,8 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
                 await settingsFormRef.current.handleSave(false);
                 success(t('toast.courseSaved'));
             }
-        } catch (error) {
-            console.error('Save failed', error);
+        } catch (err) {
+            console.error('Save failed', err);
             error(t('toast.failedToSave'));
         } finally {
             setSaving(false);
@@ -133,8 +133,8 @@ export default function CourseEditorLayout({ course, basePath = '/admin/super/kn
             } else {
                 router.push(buildUrlWithParams(`${basePath}/courses`));
             }
-        } catch (error) {
-            console.error('Save failed', error);
+        } catch (err) {
+            console.error('Save failed', err);
             error(t('toast.failedToSave'));
         } finally {
             setSaving(false);

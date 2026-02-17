@@ -186,8 +186,8 @@ const CourseSettingsForm = forwardRef<CourseSettingsFormRef, Props>(
                 success(t('toast.courseCreated'));
                 setTimeout(() => router.push(`${basePath}/courses/${createdCourse.slug}/edit?tab=curriculum`), 1000);
             }
-        } catch (error: any) {
-            console.error(error);
+        } catch (err: any) {
+            console.error(err);
             error(t('toast.failedToSave'));
         } finally {
             setUploading(false);

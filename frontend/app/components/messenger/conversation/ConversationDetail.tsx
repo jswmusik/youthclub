@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { messengerApi } from '../../../../lib/messenger-api';
 import { ConversationDetail as ConversationDetailType, Message } from '../../../../types/messenger';
 import MessageBubble from '../message/MessageBubble';
 import MessageComposer from '../message/MessageComposer';
 import ConfirmationModal from '../../../components/ConfirmationModal';
+import TypingIndicator from '../message/TypingIndicator';
 import { useToast } from '../../../../hooks/useToast';
+import { useWebSocket } from '../../../../hooks/useWebSocket';
 
 interface ConversationDetailProps {
     conversationId: number;
@@ -21,10 +23,16 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     const t = useTranslations('messages');
     const [detail, setDetail] = useState<ConversationDetailType | null>(null);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const bottomRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const topRef = useRef<HTMLDivElement>(null);
+    
+    // Track which messages have been marked as read to avoid duplicate API calls
+    const markedAsReadRef = useRef<Set<number>>(new Set());
     
     // Confirmation modal states
     const [showHideModal, setShowHideModal] = useState(false);
@@ -33,10 +41,76 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
     // Toast
     const { success, error, info } = useToast();
 
-    // Fetch Logic
+    // WebSocket for real-time updates
+    const handleNewMessage = useCallback((message: Message) => {
+        setDetail(prev => {
+            if (!prev) return prev;
+            // Check if message already exists
+            if (prev.messages.some(m => m.id === message.id)) return prev;
+            return {
+                ...prev,
+                messages: [...prev.messages, message]
+            };
+        });
+        // Scroll to bottom for new messages
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        // Refresh conversation list
+        if (onRefresh) {
+            onRefresh();
+        }
+    }, [onRefresh]);
+
+    const { isConnected, typingUsers, sendTyping } = useWebSocket(conversationId, {
+        onNewMessage: handleNewMessage
+    });
+
+    // Convert typing users map to array of names for display
+    const typingUserNames = useMemo(() => {
+        const names = Array.from(typingUsers.values()).map(u => u.name);
+        if (names.length > 0) {
+            console.log('ConversationDetail: typingUserNames updated:', names);
+        }
+        return names;
+    }, [typingUsers]);
+
+    // Mark messages as read when they scroll into view
+    const markMessagesAsRead = useCallback(async (messageIds: number[]) => {
+        // Filter out already marked messages
+        const newMessageIds = messageIds.filter(id => !markedAsReadRef.current.has(id));
+        if (newMessageIds.length === 0) return;
+        
+        // Add to marked set immediately to prevent duplicate calls
+        newMessageIds.forEach(id => markedAsReadRef.current.add(id));
+        
+        try {
+            await messengerApi.markMessagesRead(conversationId, newMessageIds);
+            // Update local state to reflect read status
+            setDetail(prev => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    messages: prev.messages.map(m => 
+                        newMessageIds.includes(m.id) && !m.is_me
+                            ? { ...m, read_status: { is_read: true, read_at: new Date().toISOString() } }
+                            : m
+                    )
+                };
+            });
+            // Refresh conversation list to update unread counts
+            if (onRefresh) {
+                onRefresh();
+            }
+        } catch (err) {
+            // Remove from marked set on error so it can be retried
+            newMessageIds.forEach(id => markedAsReadRef.current.delete(id));
+            console.error('Failed to mark messages as read:', err);
+        }
+    }, [conversationId, onRefresh]);
+
+    // Fetch Logic - loads newest messages (page 1)
     const loadData = async () => {
         try {
-            const res = await messengerApi.getConversationDetail(conversationId);
+            const res = await messengerApi.getConversationDetail(conversationId, 1, 50);
             setDetail(res.data);
         } catch (err) {
             console.error(err);
@@ -45,14 +119,86 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
         }
     };
 
-    // Initial Load & Polling (Every 5s for active chat)
+    // Load older messages (previous pages)
+    const loadMoreMessages = async () => {
+        if (!detail?.pagination?.has_previous || loadingMore) return;
+        
+        setLoadingMore(true);
+        try {
+            const nextPage = (detail.pagination?.page || 1) + 1;
+            const res = await messengerApi.getConversationDetail(conversationId, nextPage, 50);
+            
+            // Prepend older messages to the beginning
+            setDetail(prev => {
+                if (!prev) return res.data;
+                
+                // Get existing message IDs to avoid duplicates
+                const existingIds = new Set(prev.messages.map(m => m.id));
+                const newMessages = res.data.messages.filter(m => !existingIds.has(m.id));
+                
+                return {
+                    ...prev,
+                    messages: [...newMessages, ...prev.messages],
+                    pagination: res.data.pagination
+                };
+            });
+        } catch (err) {
+            console.error('Failed to load more messages:', err);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    // Reset marked messages when conversation changes
+    useEffect(() => {
+        markedAsReadRef.current = new Set();
+    }, [conversationId]);
+
+    // Initial Load & Polling (Every 10s for active chat - reduced from 5s)
     useEffect(() => {
         setLoading(true);
         loadData();
         
-        const interval = setInterval(loadData, 5000);
+        const interval = setInterval(loadData, 10000);
         return () => clearInterval(interval);
     }, [conversationId]);
+
+    // Intersection Observer for scroll-based read marking
+    useEffect(() => {
+        if (!detail?.messages || !messagesContainerRef.current) return;
+        
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const visibleUnreadMessageIds: number[] = [];
+                
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
+                        const isUnread = entry.target.getAttribute('data-is-unread') === 'true';
+                        
+                        if (messageId && isUnread) {
+                            visibleUnreadMessageIds.push(messageId);
+                        }
+                    }
+                });
+                
+                if (visibleUnreadMessageIds.length > 0) {
+                    markMessagesAsRead(visibleUnreadMessageIds);
+                }
+            },
+            {
+                root: messagesContainerRef.current,
+                rootMargin: '0px',
+                threshold: 0.5 // Message is considered "seen" when 50% visible
+            }
+        );
+        
+        // Observe all message elements
+        const messageElements = messagesContainerRef.current.querySelectorAll('[data-message-id]');
+        messageElements.forEach(el => observer.observe(el));
+        
+        return () => observer.disconnect();
+    }, [detail?.messages, markMessagesAsRead]);
 
     // Scroll to bottom on new messages
     useEffect(() => {
@@ -275,9 +421,39 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
 
             {/* Messages Area - ensure proper scrolling on mobile */}
             {/* Add bottom padding on mobile to account for fixed input */}
-            <div className={`flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar min-h-0 pb-20 md:pb-0 w-full overflow-x-hidden ${
-                darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'
-            }`}>
+            <div 
+                ref={messagesContainerRef}
+                className={`flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar min-h-0 pb-20 md:pb-0 w-full overflow-x-hidden ${
+                    darkMode ? 'bg-[var(--dark-900)]' : 'bg-[#F8F7FE]'
+                }`}
+            >
+                {/* Load More Button - at top for older messages */}
+                {detail.pagination?.has_previous && (
+                    <div className="flex justify-center mb-4" ref={topRef}>
+                        <button
+                            onClick={loadMoreMessages}
+                            disabled={loadingMore}
+                            className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 ${
+                                darkMode 
+                                    ? 'bg-[var(--dark-600)] text-[var(--brand-light)] hover:bg-[var(--dark-500)]' 
+                                    : 'bg-white text-[#4D4DA4] hover:bg-[#EBEBFE] border border-[#4D4DA4]/20'
+                            }`}
+                        >
+                            {loadingMore ? (
+                                <span className="flex items-center gap-2">
+                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    {t('conversationDetail.loadingMore') || 'Loading...'}
+                                </span>
+                            ) : (
+                                t('conversationDetail.loadOlderMessages') || 'Load older messages'
+                            )}
+                        </button>
+                    </div>
+                )}
+
                 {/* System Notice for Broadcasts */}
                 {isBroadcast && (
                     <div className="flex justify-center mb-4 sm:mb-6">
@@ -291,53 +467,89 @@ export default function ConversationDetail({ conversationId, onBack, isAdmin, on
                     </div>
                 )}
 
-                {detail.messages.map((msg) => (
-                    <MessageBubble 
-                        key={msg.id} 
-                        message={msg}
-                        darkMode={darkMode}
-                        onReactionUpdate={(messageId, reactionData) => {
-                            // Update the message in the detail state
-                            setDetail(prev => {
-                                if (!prev) return prev;
-                                return {
-                                    ...prev,
-                                    messages: prev.messages.map(m => 
-                                        m.id === messageId 
-                                            ? {
-                                                ...m,
-                                                reaction_count: reactionData.reaction_count,
-                                                reaction_breakdown: reactionData.reaction_breakdown,
-                                                user_reaction: reactionData.user_reaction
-                                            }
-                                            : m
-                                    )
-                                };
-                            });
-                        }}
-                    />
-                ))}
+                {detail.messages.map((msg) => {
+                    // Determine if this message is unread for the current user
+                    const isUnread = !msg.is_me && msg.read_status && !msg.read_status.is_read;
+                    
+                    return (
+                        <div 
+                            key={msg.id}
+                            data-message-id={msg.id}
+                            data-is-unread={isUnread ? 'true' : 'false'}
+                        >
+                            <MessageBubble 
+                                message={msg}
+                                darkMode={darkMode}
+                                onReactionUpdate={(messageId, reactionData) => {
+                                    // Update the message in the detail state
+                                    setDetail(prev => {
+                                        if (!prev) return prev;
+                                        return {
+                                            ...prev,
+                                            messages: prev.messages.map(m => 
+                                                m.id === messageId 
+                                                    ? {
+                                                        ...m,
+                                                        reaction_count: reactionData.reaction_count,
+                                                        reaction_breakdown: reactionData.reaction_breakdown,
+                                                        user_reaction: reactionData.user_reaction
+                                                    }
+                                                    : m
+                                            )
+                                        };
+                                    });
+                                }}
+                            />
+                        </div>
+                    );
+                })}
+                
                 <div ref={bottomRef} />
             </div>
+
+            {/* WebSocket Connection Status - subtle indicator */}
+            {!isConnected && detail && (
+                <div className={`text-center text-xs py-1 ${
+                    darkMode ? 'bg-[var(--dark-600)] text-[var(--brand-light)]/40' : 'bg-gray-100 text-gray-400'
+                }`}>
+                    Connecting to real-time updates...
+                </div>
+            )}
 
             {/* Composer or Action Area - Fixed at bottom on mobile, relative on desktop */}
             {canReply ? (
                 <>
                     {/* Mobile: Fixed at bottom, full width, outside card */}
-                    <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 border-t w-screen max-w-screen overflow-x-hidden ${
+                    <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 w-screen max-w-screen overflow-x-hidden ${
                         darkMode 
-                            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-                            : 'bg-white border-[#4D4DA4]/15 shadow-lg'
+                            ? 'bg-[var(--dark-800)]' 
+                            : 'bg-white shadow-lg'
                     }`}>
-                        <MessageComposer onSend={handleSend} darkMode={darkMode} />
+                        {/* Typing Indicator - Mobile */}
+                        {typingUserNames.length > 0 && (
+                            <div className={`border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
+                                <TypingIndicator users={typingUserNames} darkMode={darkMode} />
+                            </div>
+                        )}
+                        <div className={`border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
+                            <MessageComposer onSend={handleSend} onTyping={sendTyping} darkMode={darkMode} />
+                        </div>
                     </div>
                     {/* Desktop: Relative inside card */}
-                    <div className={`hidden md:block flex-shrink-0 border-t ${
+                    <div className={`hidden md:block flex-shrink-0 ${
                         darkMode 
-                            ? 'bg-[var(--dark-800)] border-[var(--dark-500)]' 
-                            : 'bg-white border-[#4D4DA4]/15'
+                            ? 'bg-[var(--dark-800)]' 
+                            : 'bg-white'
                     }`}>
-                        <MessageComposer onSend={handleSend} darkMode={darkMode} />
+                        {/* Typing Indicator - Desktop */}
+                        {typingUserNames.length > 0 && (
+                            <div className={`border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
+                                <TypingIndicator users={typingUserNames} darkMode={darkMode} />
+                            </div>
+                        )}
+                        <div className={`border-t ${darkMode ? 'border-[var(--dark-500)]' : 'border-[#4D4DA4]/15'}`}>
+                            <MessageComposer onSend={handleSend} onTyping={sendTyping} darkMode={darkMode} />
+                        </div>
                     </div>
                 </>
             ) : (
